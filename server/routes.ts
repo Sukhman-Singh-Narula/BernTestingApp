@@ -20,10 +20,10 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/conversation", async (req, res) => {
     try {
-      const { activityId = 1 } = req.body; // Accept activityId from request
+      const { activityId = 1 } = req.body;
       const conversation = await storage.createConversation({
         activityId,
-        currentStep: 0, // Start from step 0
+        currentStep: 0,
         messages: []
       });
 
@@ -39,16 +39,13 @@ export async function registerRoutes(app: Express) {
           JSON.stringify({ role: "assistant", content: aiResponse })
         ];
 
-        await storage.updateConversation(
+        const updatedConversation = await storage.updateConversation(
           conversation.id,
-          updatedMessages,
+          updatedMessages as Message[],
           1 // Move to step 1 after initial message
         );
 
-        return res.json({
-          ...conversation,
-          messages: updatedMessages
-        });
+        return res.json(updatedConversation);
       }
 
       res.json(conversation);
@@ -103,12 +100,12 @@ export async function registerRoutes(app: Express) {
         previousMessages
       );
 
-      // Create new messages array with proper JSON string format
+      // Update messages array with proper type casting
       const updatedMessages = [
         ...conversation.messages,
         JSON.stringify({ role: "user", content: message }),
         JSON.stringify({ role: "assistant", content: aiResponse })
-      ];
+      ] as Message[];
 
       const nextStep = conversation.currentStep + 1;
       const updatedConversation = await storage.updateConversation(
