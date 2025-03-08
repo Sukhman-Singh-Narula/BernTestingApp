@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { generateResponse } from "./lib/openai";
-import { Message } from "@shared/schema";
+import { MessageRole } from "@shared/schema";
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -23,8 +23,7 @@ export async function registerRoutes(app: Express) {
       const { activityId = 1 } = req.body;
       const conversation = await storage.createConversation({
         activityId,
-        currentStep: 0,
-        messages: []
+        currentStep: 0
       });
 
       // Get initial step and generate first message
@@ -35,17 +34,23 @@ export async function registerRoutes(app: Express) {
           initialStep,
           ""
         );
-        const updatedMessages = [
-          JSON.stringify({ role: "assistant", content: aiResponse })
-        ];
 
-        const updatedConversation = await storage.updateConversation(
+        // Create initial assistant message
+        await storage.createMessage({
+          conversationId: conversation.id,
+          stepId: initialStep.id,
+          role: "assistant" as MessageRole,
+          content: aiResponse
+        });
+
+        // Move to step 1 after initial message
+        const updatedConversation = await storage.updateConversationStep(
           conversation.id,
-          updatedMessages as Message[],
-          1 // Move to step 1 after initial message
+          1
         );
 
-        return res.json(updatedConversation);
+        const messages = await storage.getMessagesByConversation(conversation.id);
+        return res.json({ ...updatedConversation, messages });
       }
 
       res.json(conversation);
@@ -61,7 +66,9 @@ export async function registerRoutes(app: Express) {
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
-      res.json(conversation);
+
+      const messages = await storage.getMessagesByConversation(conversation.id);
+      res.json({ ...conversation, messages });
     } catch (error) {
       console.error("Error getting conversation:", error);
       res.status(500).json({ message: "Failed to get conversation" });
@@ -87,11 +94,11 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Activity step not found" });
       }
 
-      // Format previous messages for context
-      const previousMessages = conversation.messages.map(msg => {
-        const message = JSON.parse(msg);
-        return `${message.role}: ${message.content}`;
-      }).join("\n");
+      // Get previous messages for context
+      const existingMessages = await storage.getMessagesByConversation(conversationId);
+      const previousMessages = existingMessages
+        .map(msg => `${msg.role}: ${msg.content}`)
+        .join("\n");
 
       // Generate AI response using the step's script
       const aiResponse = await generateResponse(
@@ -100,23 +107,33 @@ export async function registerRoutes(app: Express) {
         previousMessages
       );
 
-      // Update messages array with proper type casting
-      const updatedMessages = [
-        ...conversation.messages,
-        JSON.stringify({ role: "user", content: message }),
-        JSON.stringify({ role: "assistant", content: aiResponse })
-      ] as Message[];
+      // Create user message
+      await storage.createMessage({
+        conversationId,
+        stepId: step.id,
+        role: "user" as MessageRole,
+        content: message
+      });
+
+      // Create assistant message
+      await storage.createMessage({
+        conversationId,
+        stepId: step.id,
+        role: "assistant" as MessageRole,
+        content: aiResponse
+      });
 
       const nextStep = conversation.currentStep + 1;
-      const updatedConversation = await storage.updateConversation(
+      const updatedConversation = await storage.updateConversationStep(
         conversationId,
-        updatedMessages,
         nextStep
       );
 
+      const updatedMessages = await storage.getMessagesByConversation(conversationId);
+
       res.json({
         message: aiResponse,
-        conversation: updatedConversation
+        conversation: { ...updatedConversation, messages: updatedMessages }
       });
     } catch (error) {
       console.error("Error processing message:", error);

@@ -1,6 +1,6 @@
-import { activities, steps, conversations, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message } from "@shared/schema";
+import { activities, steps, conversations, messages, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Activity operations
@@ -16,7 +16,11 @@ export interface IStorage {
   // Conversation operations
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversation(id: number): Promise<Conversation | undefined>;
-  updateConversation(id: number, messages: Message[], currentStep: number): Promise<Conversation>;
+  updateConversationStep(id: number, currentStep: number): Promise<Conversation>;
+
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessagesByConversation(conversationId: number): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -62,7 +66,7 @@ export class DatabaseStorage implements IStorage {
     return step;
   }
 
-  // Conversation operations
+  // Updated conversation operations
   async createConversation(conversation: InsertConversation): Promise<Conversation> {
     const [created] = await db.insert(conversations).values(conversation).returning();
     return created;
@@ -76,20 +80,27 @@ export class DatabaseStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversation(
-    id: number,
-    messages: Message[],
-    currentStep: number
-  ): Promise<Conversation> {
+  async updateConversationStep(id: number, currentStep: number): Promise<Conversation> {
     const [updated] = await db
       .update(conversations)
-      .set({
-        messages: messages as any[], // Type cast needed due to array type
-        currentStep
-      })
+      .set({ currentStep })
       .where(eq(conversations.id, id))
       .returning();
     return updated;
+  }
+
+  // New message operations
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [created] = await db.insert(messages).values(message).returning();
+    return created;
+  }
+
+  async getMessagesByConversation(conversationId: number): Promise<Message[]> {
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt, desc);
   }
 }
 
