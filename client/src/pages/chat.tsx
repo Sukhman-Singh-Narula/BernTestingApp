@@ -20,14 +20,15 @@ export default function Chat() {
   // Fetch available activities
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ["/api/activities"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/activities");
-      return res.json();
-    }
   });
 
   // Create new conversation when activity is selected
-  const { data: conversation } = useQuery<Conversation>({
+  const { data: conversation } = useQuery<{
+    id: number;
+    activityId: number;
+    currentStep: number;
+    messages: Message[];
+  }>({
     queryKey: ["/api/conversation", selectedActivity],
     queryFn: async () => {
       if (!selectedActivity) return null;
@@ -101,27 +102,24 @@ export default function Chat() {
         <Card className="flex-1 flex flex-col p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
             <div className="space-y-4">
-              {conversation?.messages.map((messageStr, i) => {
-                const message = JSON.parse(messageStr) as Message;
-                return (
+              {conversation?.messages?.map((message, i) => (
+                <div
+                  key={i}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
                   <div
-                    key={i}
-                    className={`flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground ml-4"
+                        : "bg-muted"
                     }`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground ml-4"
-                          : "bg-muted"
-                      }`}
-                    >
-                      {message.content}
-                    </div>
+                    {message.content}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </ScrollArea>
 
