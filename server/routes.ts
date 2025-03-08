@@ -32,15 +32,23 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/conversation", async (req, res) => {
     try {
-      const { activityId = 1 } = req.body;
+      const { activityId = 1, shouldGenerateFirstResponse = true } = req.body;
+
+      // Try to use step 0 first, fallback to 1 if step 0 does not exist
+      let startingStep = 0;
+      const step0 = await storage.getStepByActivityAndNumber(activityId, 0);
+      if (!step0) {
+        startingStep = 1;
+      }
+
       const conversation = await storage.createConversation({
         activityId,
-        currentStep: 0
+        currentStep: startingStep
       });
 
-      // Get initial step and generate first message
-      const initialStep = await storage.getStepByActivityAndNumber(activityId, 0);
-      if (initialStep) {
+      // Get the initial step based on the startingStep determined above
+      const initialStep = await storage.getStepByActivityAndNumber(activityId, startingStep);
+      if (initialStep && shouldGenerateFirstResponse) {
         const aiResponse = await generateResponse(
           "start",
           initialStep,
@@ -55,14 +63,8 @@ export async function registerRoutes(app: Express) {
           content: aiResponse
         });
 
-        // Move to step 1 after initial message
-        const updatedConversation = await storage.updateConversationStep(
-          conversation.id,
-          1
-        );
-
         const messages = await storage.getMessagesByConversation(conversation.id);
-        return res.json({ ...updatedConversation, messages });
+        return res.json({ ...conversation, messages });
       }
 
       res.json(conversation);

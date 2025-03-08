@@ -47,7 +47,11 @@ export default function Chat() {
     queryKey: ["/api/conversation", selectedActivity],
     queryFn: async () => {
       if (!selectedActivity) return null;
-      const res = await apiRequest("POST", "/api/conversation", { activityId: selectedActivity });
+      // Create conversation and get initial AI response
+      const res = await apiRequest("POST", "/api/conversation", { 
+        activityId: selectedActivity,
+        shouldGenerateFirstResponse: true 
+      });
       return res.json();
     },
     enabled: !!selectedActivity
