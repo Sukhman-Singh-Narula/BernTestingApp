@@ -1,0 +1,31 @@
+Step Number,Step Description,Step Objective,Suggested Script,Spanish words to learn,Expected Response(s) from child,Suggested AI response when successful
+0,"Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.  ",Commence the race,"""Welcome to the Grand Prix academy! Today is a very big race, and there will be some challenges ahead! But if you play well and drive carefully, you can win the race and take home the prize! Are you ready to win the race? Let's get in the driver's seat!""  ",None,"Something affirmative, such as 'Yes', or 'Let's go!', or 'I'm ready""","""Ok, get your seatbelt on, let's race! Vamos!"""
+1,"Ask the child to choose the correct colour of Speedy, the car, whilst they are waiting in the foyer of the Grand Prix academy. ",Speak one colour word successfully in Spanish,"""Let's meet your car, Speedy! Speedy is one of the fastest cars around, and he is ready to drive with you! It's time to choose the colour of Speedy for the race! What colour would you like to choose? You can choose rojo, azul or amarillo!""","Rojo
+Azul
+Amarillo","Rojo
+Azul
+Amarillo
+
+It is preferable that the child speak the colour of the car in Spanish. ","""That's a great colour! Speedy will go really fast"". "
+2,Help the child to navigate through the race's obstacles with simple directional commands. The child should 'steer' the car left and right and announce in spanish which direction they are steering. ,Speak at least one directional word correctly in Spanish. Pause after each spanish directional word and acknowledge the child's response,"""Speedy’s first test lap is full of obstacles! Let's drive. Move your hands like a steering wheel! Repeat after me and drive Speedy in the right direction! Turn left - izquierda!"" ""Turn right - derecha!"" ""Stop - alto!""","Izquierda
+Derecha
+Alto","Izquierda
+Derecha
+Alto
+
+The child should repeat at least one of these words correctly","""Well done, we're on to a great start in the race!"""
+3,Help the child to fix the car during a storm. The child should choose one fix for the car and speak the word in spanish to move on to the next stage. ,Speak at least one automotive vocabulary word correctly. ,"""Oh no! A storm has arrived on the race track! Speedy is getting damaged and needs some repairs! What part of the car should we fix first? ¡El parabrisas!"" (The windshield!)? ""¡Las llantas!"" (The tires!)? ¡Las luces!"" (The lights!)?""","el parabrisas
+las llantas
+las luces","el parabrisas
+las llantas
+las luces
+
+The child should repeat at least one of these words correctly","""Great, Speedy is back on the road and back in the race!"""
+4,Help the child to successfuly pit stop the car by communicating with the pit crew,Speak at least one sentence correctly. ,"""Speedy has run low on fuel! We need to tell the pit crew what we need. Repeat each sentence after me! I need more gas! Necesito mas gasolina!"" ""Check the tires! Revisa las llantas!""","Necesito mas gasolina!
+Revisa las llantas!","Necesito mas gasolina!
+Revisa las llantas!
+
+The child should repeat at least one of these sentences correctly","""Well done, Speedy is racing ahead, and we're almost at the finish!"""
+5,"Help the child to get past El Rayo, the fastest racer on the track, to win the race. After each sentence, pause to hear the child's responses",Answer at least one question correctly with a spanish word,"""We are so close to the finish line, but we must get past El Rayo, the fastest racer in the land! El Rayo has some questions, and we have to reply in Spanish to get past him."" ""El Rayo asks, What colour is your car?"" El Rayo asks, How many races have you won?"" ""El Rayo asks, ""Do you want to win?"" ",,"A colour word in response to the first question 
+A number word in response to the second question
+Si - in response to the final question","""That's amazing! You won! Great job! I hope you come back to race again soon!"""
