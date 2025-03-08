@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -46,6 +46,18 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
+// New metrics table
+export const messageMetrics = pgTable("message_metrics", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => messages.id),
+  promptTokens: integer("prompt_tokens").notNull(),
+  completionTokens: integer("completion_tokens").notNull(),
+  totalTokens: integer("total_tokens").notNull(),
+  costUsd: decimal("cost_usd", { precision: 10, scale: 6 }).notNull(),
+  latencyMs: integer("latency_ms").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
 // Define relationships
 export const activitiesRelations = relations(activities, ({ many }) => ({
   steps: many(steps),
@@ -68,7 +80,8 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
   messages: many(messages)
 }));
 
-export const messagesRelations = relations(messages, ({ one }) => ({
+// Add relation to messages
+export const messagesRelations = relations(messages, ({ one, many }) => ({
   conversation: one(conversations, {
     fields: [messages.conversationId],
     references: [conversations.id],
@@ -76,27 +89,45 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   step: one(steps, {
     fields: [messages.stepId],
     references: [steps.id],
+  }),
+  metrics: one(messageMetrics, {
+    fields: [messages.id],
+    references: [messageMetrics.messageId],
+  })
+}));
+
+// Add metrics relations
+export const messageMetricsRelations = relations(messageMetrics, ({ one }) => ({
+  message: one(messages, {
+    fields: [messageMetrics.messageId],
+    references: [messages.id],
   })
 }));
 
 // Create insert schemas
-export const insertScriptSchema = createInsertSchema(activityScripts).omit({ 
-  id: true 
+export const insertScriptSchema = createInsertSchema(activityScripts).omit({
+  id: true
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({ 
-  id: true 
+export const insertActivitySchema = createInsertSchema(activities).omit({
+  id: true
 });
 
-export const insertStepSchema = createInsertSchema(steps).omit({ 
-  id: true 
+export const insertStepSchema = createInsertSchema(steps).omit({
+  id: true
 });
 
-export const insertConversationSchema = createInsertSchema(conversations).omit({ 
-  id: true 
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true
+});
+
+// Create insert schema for metrics
+export const insertMessageMetricsSchema = createInsertSchema(messageMetrics).omit({
   id: true,
   createdAt: true
 });
@@ -112,6 +143,10 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+// Add metrics type exports
+export type MessageMetrics = typeof messageMetrics.$inferSelect;
+export type InsertMessageMetrics = z.infer<typeof insertMessageMetricsSchema>;
 
 // Message role type (used in the frontend)
 export type MessageRole = 'user' | 'assistant';

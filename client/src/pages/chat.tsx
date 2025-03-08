@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Conversation, Message, Step } from "@shared/schema";
+import { Activity, Conversation, Message, Step, MessageMetrics } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Send, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, BarChart2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Chat() {
@@ -41,7 +41,7 @@ export default function Chat() {
     id: number;
     activityId: number;
     currentStep: number;
-    messages: Message[];
+    messages: (Message & { metrics?: MessageMetrics })[];
   }>({
     queryKey: ["/api/conversation", selectedActivity],
     queryFn: async () => {
@@ -180,21 +180,48 @@ export default function Chat() {
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
             <div className="space-y-4">
               {conversation?.messages?.map((message, i) => (
-                <div
-                  key={i}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
+                <div key={i}>
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground ml-4"
-                        : "bg-muted"
+                    className={`flex ${
+                      message.role === "user" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {message.content}
+                    <div
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground ml-4"
+                          : "bg-muted"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
                   </div>
+
+                  {message.metrics && (
+                    <Collapsible className="mt-1">
+                      <CollapsibleTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`w-full flex items-center justify-center gap-2 ${
+                            message.role === "user" ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          <BarChart2 className="h-3 w-3" />
+                          <span className="text-xs">Analytics</span>
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className={`text-xs mt-1 space-y-1 ${
+                          message.role === "user" ? "text-right" : "text-left"
+                        }`}>
+                          <p>Cost: ${message.metrics.costUsd.toFixed(6)} USD</p>
+                          <p>Latency: {message.metrics.latencyMs}ms</p>
+                          <p>Tokens: {message.metrics.promptTokens} prompt, {message.metrics.completionTokens} completion ({message.metrics.totalTokens} total)</p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </div>
               ))}
             </div>
