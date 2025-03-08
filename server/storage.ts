@@ -1,69 +1,96 @@
-import { ActivityScript, Conversation, Message, type InsertConversation } from "@shared/schema";
+import { activities, steps, conversations, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
-  getScriptByStep(step: number): Promise<ActivityScript | undefined>;
-  getAllScripts(): Promise<ActivityScript[]>;
-  createConversation(): Promise<Conversation>;
+  // Activity operations
+  createActivity(activity: InsertActivity): Promise<Activity>;
+  getActivity(id: number): Promise<Activity | undefined>;
+  getAllActivities(): Promise<Activity[]>;
+
+  // Step operations
+  createStep(step: InsertStep): Promise<Step>;
+  getStepsByActivity(activityId: number): Promise<Step[]>;
+  getStepByActivityAndNumber(activityId: number, stepNumber: number): Promise<Step | undefined>;
+
+  // Conversation operations
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversation(id: number): Promise<Conversation | undefined>;
   updateConversation(id: number, messages: Message[], currentStep: number): Promise<Conversation>;
 }
 
-export class MemStorage implements IStorage {
-  private scripts: Map<number, ActivityScript>;
-  private conversations: Map<number, Conversation>;
-  private nextConvId: number;
-
-  constructor() {
-    this.scripts = new Map();
-    this.conversations = new Map();
-    this.nextConvId = 1;
-    
-    // Initialize with sample script
-    this.scripts.set(1, {
-      id: 1,
-      stepNumber: 1,
-      instruction: "Greet the child and ask their name",
-      allowedResponses: "Any name response",
-      nextPrompt: "Hello {name}! Let's learn some new words today. Are you ready?"
-    });
-    // Add more steps as needed
+export class DatabaseStorage implements IStorage {
+  // Activity operations
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [created] = await db.insert(activities).values(activity).returning();
+    return created;
   }
 
-  async getScriptByStep(step: number): Promise<ActivityScript | undefined> {
-    return this.scripts.get(step);
+  async getActivity(id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+    return activity;
   }
 
-  async getAllScripts(): Promise<ActivityScript[]> {
-    return Array.from(this.scripts.values());
+  async getAllActivities(): Promise<Activity[]> {
+    return await db.select().from(activities);
   }
 
-  async createConversation(): Promise<Conversation> {
-    const conversation: Conversation = {
-      id: this.nextConvId++,
-      currentStep: 1,
-      messages: []
-    };
-    this.conversations.set(conversation.id, conversation);
-    return conversation;
+  // Step operations
+  async createStep(step: InsertStep): Promise<Step> {
+    const [created] = await db.insert(steps).values(step).returning();
+    return created;
+  }
+
+  async getStepsByActivity(activityId: number): Promise<Step[]> {
+    return await db
+      .select()
+      .from(steps)
+      .where(eq(steps.activityId, activityId))
+      .orderBy(steps.stepNumber);
+  }
+
+  async getStepByActivityAndNumber(activityId: number, stepNumber: number): Promise<Step | undefined> {
+    const [step] = await db
+      .select()
+      .from(steps)
+      .where(
+        and(
+          eq(steps.activityId, activityId),
+          eq(steps.stepNumber, stepNumber)
+        )
+      );
+    return step;
+  }
+
+  // Conversation operations
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const [created] = await db.insert(conversations).values(conversation).returning();
+    return created;
   }
 
   async getConversation(id: number): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, id));
+    return conversation;
   }
 
   async updateConversation(
-    id: number, 
-    messages: Message[], 
+    id: number,
+    messages: Message[],
     currentStep: number
   ): Promise<Conversation> {
-    const conversation: Conversation = {
-      id,
-      messages,
-      currentStep
-    };
-    this.conversations.set(id, conversation);
-    return conversation;
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        messages: messages as any[], // Type cast needed due to array type
+        currentStep
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

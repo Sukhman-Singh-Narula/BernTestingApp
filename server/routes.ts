@@ -9,9 +9,15 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/conversation", async (req, res) => {
     try {
-      const conversation = await storage.createConversation();
+      // For now, we'll use activity ID 1 as default
+      const conversation = await storage.createConversation({
+        activityId: 1,
+        currentStep: 1,
+        messages: []
+      });
       res.json(conversation);
     } catch (error) {
+      console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });
     }
   });
@@ -24,6 +30,7 @@ export async function registerRoutes(app: Express) {
       }
       res.json(conversation);
     } catch (error) {
+      console.error("Error getting conversation:", error);
       res.status(500).json({ message: "Failed to get conversation" });
     }
   });
@@ -32,27 +39,43 @@ export async function registerRoutes(app: Express) {
     try {
       const { message } = req.body;
       const conversationId = Number(req.params.id);
-      
+
       const conversation = await storage.getConversation(conversationId);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      const script = await storage.getScriptByStep(conversation.currentStep);
-      if (!script) {
-        return res.status(404).json({ message: "Activity script not found" });
+      const step = await storage.getStepByActivityAndNumber(
+        conversation.activityId,
+        conversation.currentStep
+      );
+
+      if (!step) {
+        return res.status(404).json({ message: "Activity step not found" });
       }
 
-      const previousMessages = conversation.messages
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join("\n");
+      // Format previous messages for context
+      const previousMessages = conversation.messages.map(msg => {
+        const message = JSON.parse(msg);
+        return `${message.role}: ${message.content}`;
+      }).join("\n");
 
-      const aiResponse = await generateResponse(message, script, previousMessages);
-      
-      const updatedMessages: Message[] = [
+      // Generate AI response using the step's script
+      const aiResponse = await generateResponse(
+        message,
+        {
+          instruction: step.suggestedScript,
+          allowedResponses: step.expectedResponses,
+          nextPrompt: step.successResponse
+        },
+        previousMessages
+      );
+
+      // Create new messages array with proper JSON string format
+      const updatedMessages = [
         ...conversation.messages,
-        { role: "user", content: message },
-        { role: "assistant", content: aiResponse }
+        JSON.stringify({ role: "user", content: message }),
+        JSON.stringify({ role: "assistant", content: aiResponse })
       ];
 
       const nextStep = conversation.currentStep + 1;
@@ -67,6 +90,7 @@ export async function registerRoutes(app: Express) {
         conversation: updatedConversation
       });
     } catch (error) {
+      console.error("Error processing message:", error);
       res.status(500).json({ message: "Failed to process message" });
     }
   });
