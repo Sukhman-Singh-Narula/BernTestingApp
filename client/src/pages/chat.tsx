@@ -16,6 +16,7 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<number | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -120,59 +121,103 @@ export default function Chat() {
       </Card>
 
       {selectedActivity && (
-        <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen} className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Activity Details</h3>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm">
-                {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </CollapsibleTrigger>
-          </div>
+        <>
+          <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Activity Details</h3>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
 
-          <CollapsibleContent className="space-y-4">
-            {currentStep && (
-              <div className="rounded-lg border p-4">
-                <h4 className="font-medium mb-2">Current Step ({conversation?.currentStep})</h4>
-                <p className="text-sm text-muted-foreground mb-2">Objective: {currentStep.objective}</p>
-                <p className="text-sm text-muted-foreground">Script: {currentStep.suggestedScript}</p>
-              </div>
-            )}
+            <CollapsibleContent className="space-y-4">
+              {currentStep && (
+                <div className="rounded-lg border p-4">
+                  <h4 className="font-medium mb-2">Current Step ({conversation?.currentStep})</h4>
+                  <p className="text-sm text-muted-foreground mb-2">Objective: {currentStep.objective}</p>
+                  <p className="text-sm text-muted-foreground">Script: {currentStep.suggestedScript}</p>
+                </div>
+              )}
 
-            {steps && steps.length > 0 && (
+              {steps && steps.length > 0 && (
+                <ScrollArea className="h-64 rounded-md border">
+                  <div className="min-w-[800px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">Step</TableHead>
+                          <TableHead className="min-w-[200px]">Description</TableHead>
+                          <TableHead className="min-w-[200px]">Objective</TableHead>
+                          <TableHead className="min-w-[250px]">Suggested Script</TableHead>
+                          <TableHead className="min-w-[200px]">Expected Responses</TableHead>
+                          <TableHead className="min-w-[150px]">Spanish Words</TableHead>
+                          <TableHead className="min-w-[200px]">Success Response</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {steps.map((step) => (
+                          <TableRow key={step.id} className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}>
+                            <TableCell>{step.stepNumber}</TableCell>
+                            <TableCell>{step.description}</TableCell>
+                            <TableCell>{step.objective}</TableCell>
+                            <TableCell>{step.suggestedScript}</TableCell>
+                            <TableCell>{step.expectedResponses}</TableCell>
+                            <TableCell>{step.spanishWords}</TableCell>
+                            <TableCell>{step.successResponse}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </ScrollArea>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Message Analytics</h3>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {isAnalyticsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+
+            <CollapsibleContent className="space-y-4">
               <ScrollArea className="h-64 rounded-md border">
-                <div className="min-w-[800px]">
+                <div className="p-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[80px]">Step</TableHead>
-                        <TableHead className="min-w-[200px]">Description</TableHead>
-                        <TableHead className="min-w-[200px]">Objective</TableHead>
-                        <TableHead className="min-w-[250px]">Suggested Script</TableHead>
-                        <TableHead className="min-w-[200px]">Expected Responses</TableHead>
-                        <TableHead className="min-w-[150px]">Spanish Words</TableHead>
-                        <TableHead className="min-w-[200px]">Success Response</TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead>Cost (USD)</TableHead>
+                        <TableHead>Latency (ms)</TableHead>
+                        <TableHead>Prompt Tokens</TableHead>
+                        <TableHead>Completion Tokens</TableHead>
+                        <TableHead>Total Tokens</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {steps.map((step) => (
-                        <TableRow key={step.id} className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}>
-                          <TableCell>{step.stepNumber}</TableCell>
-                          <TableCell>{step.description}</TableCell>
-                          <TableCell>{step.objective}</TableCell>
-                          <TableCell>{step.suggestedScript}</TableCell>
-                          <TableCell>{step.expectedResponses}</TableCell>
-                          <TableCell>{step.spanishWords}</TableCell>
-                          <TableCell>{step.successResponse}</TableCell>
+                      {conversation?.messages?.filter(m => m.metrics).map((message, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="max-w-[200px] truncate">{message.content}</TableCell>
+                          <TableCell>${message.metrics!.costUsd}</TableCell>
+                          <TableCell>{message.metrics!.latencyMs}ms</TableCell>
+                          <TableCell>{message.metrics!.promptTokens}</TableCell>
+                          <TableCell>{message.metrics!.completionTokens}</TableCell>
+                          <TableCell>{message.metrics!.totalTokens}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               </ScrollArea>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
+            </CollapsibleContent>
+          </Collapsible>
+        </>
       )}
 
       {selectedActivity ? (
@@ -196,32 +241,6 @@ export default function Chat() {
                       {message.content}
                     </div>
                   </div>
-
-                  {message.metrics && (
-                    <Collapsible className="mt-1">
-                      <CollapsibleTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className={`w-full flex items-center justify-center gap-2 ${
-                            message.role === "user" ? "flex-row-reverse" : ""
-                          }`}
-                        >
-                          <BarChart2 className="h-3 w-3" />
-                          <span className="text-xs">Analytics</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className={`text-xs mt-1 space-y-1 ${
-                          message.role === "user" ? "text-right" : "text-left"
-                        }`}>
-                          <p>Cost: ${message.metrics.costUsd.toFixed(6)} USD</p>
-                          <p>Latency: {message.metrics.latencyMs}ms</p>
-                          <p>Tokens: {message.metrics.promptTokens} prompt, {message.metrics.completionTokens} completion ({message.metrics.totalTokens} total)</p>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  )}
                 </div>
               ))}
             </div>
