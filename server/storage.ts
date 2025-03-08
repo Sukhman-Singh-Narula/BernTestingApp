@@ -1,4 +1,4 @@
-import { activities, steps, conversations, messages, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage } from "@shared/schema";
+import { activities, steps, conversations, messages, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -97,10 +97,28 @@ export class DatabaseStorage implements IStorage {
 
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
     return await db
-      .select()
+      .select({
+        id: messages.id,
+        conversationId: messages.conversationId,
+        stepId: messages.stepId,
+        role: messages.role,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        metrics: {
+          id: messageMetrics.id,
+          messageId: messageMetrics.messageId,
+          promptTokens: messageMetrics.promptTokens,
+          completionTokens: messageMetrics.completionTokens,
+          totalTokens: messageMetrics.totalTokens,
+          costUsd: messageMetrics.costUsd,
+          latencyMs: messageMetrics.latencyMs,
+          createdAt: messageMetrics.createdAt
+        }
+      })
       .from(messages)
+      .leftJoin(messageMetrics, eq(messages.id, messageMetrics.messageId))
       .where(eq(messages.conversationId, conversationId))
-      .orderBy(messages.createdAt, desc);
+      .orderBy(messages.createdAt);
   }
 }
 
