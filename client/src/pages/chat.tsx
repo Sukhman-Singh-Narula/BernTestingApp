@@ -141,26 +141,34 @@ export default function Chat() {
 
             {steps && steps.length > 0 && (
               <ScrollArea className="h-64 rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Step</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Expected Responses</TableHead>
-                      <TableHead>Spanish Words</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {steps.map((step) => (
-                      <TableRow key={step.id} className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}>
-                        <TableCell>{step.stepNumber}</TableCell>
-                        <TableCell>{step.description}</TableCell>
-                        <TableCell>{step.expectedResponses}</TableCell>
-                        <TableCell>{step.spanishWords}</TableCell>
+                <div className="min-w-[800px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[80px]">Step</TableHead>
+                        <TableHead className="min-w-[200px]">Description</TableHead>
+                        <TableHead className="min-w-[200px]">Objective</TableHead>
+                        <TableHead className="min-w-[250px]">Suggested Script</TableHead>
+                        <TableHead className="min-w-[200px]">Expected Responses</TableHead>
+                        <TableHead className="min-w-[150px]">Spanish Words</TableHead>
+                        <TableHead className="min-w-[200px]">Success Response</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {steps.map((step) => (
+                        <TableRow key={step.id} className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}>
+                          <TableCell>{step.stepNumber}</TableCell>
+                          <TableCell>{step.description}</TableCell>
+                          <TableCell>{step.objective}</TableCell>
+                          <TableCell>{step.suggestedScript}</TableCell>
+                          <TableCell>{step.expectedResponses}</TableCell>
+                          <TableCell>{step.spanishWords}</TableCell>
+                          <TableCell>{step.successResponse}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </ScrollArea>
             )}
           </CollapsibleContent>
@@ -200,8 +208,8 @@ export default function Chat() {
               disabled={sendMessage.isPending}
               className="flex-1"
             />
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={sendMessage.isPending}
               size="icon"
             >
