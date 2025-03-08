@@ -26,15 +26,12 @@ export default function Chat() {
   });
 
   // Fetch steps for selected activity
-  const { data: steps, isLoading: stepsLoading } = useQuery<Step[]>({
-    queryKey: ["/api/activity/steps", selectedActivity],
+  const { data: steps } = useQuery<Step[]>({
+    queryKey: ["/api/steps", selectedActivity],
     queryFn: async () => {
       if (!selectedActivity) return [];
-      const response = await fetch(`/api/activity/${selectedActivity}/steps`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch steps');
-      }
-      return response.json();
+      const res = await fetch(`/api/activity/${selectedActivity}/steps`);
+      return res.json();
     },
     enabled: !!selectedActivity
   });
@@ -159,8 +156,8 @@ export default function Chat() {
                       </TableHeader>
                       <TableBody>
                         {steps.map((step) => (
-                          <TableRow
-                            key={step.id}
+                          <TableRow 
+                            key={step.id} 
                             className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}
                           >
                             <TableCell>{step.stepNumber}</TableCell>
@@ -214,8 +211,8 @@ export default function Chat() {
               disabled={sendMessage.isPending}
               className="flex-1"
             />
-            <Button
-              type="submit"
+            <Button 
+              type="submit" 
               disabled={sendMessage.isPending}
               size="icon"
             >
