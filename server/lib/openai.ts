@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { ActivityScript } from "@shared/schema";
+import { Step } from "@shared/schema";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable is required");
@@ -7,29 +7,34 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function generateResponse(
   userInput: string,
-  script: ActivityScript,
+  step: Step,
   previousMessages: string
 ): Promise<string> {
   const systemPrompt = `
-You are a friendly language learning assistant helping a child learn a new language.
-Current step instructions: ${script.instruction}
-Allowed responses: ${script.allowedResponses}
-Next prompt to guide towards: ${script.nextPrompt}
+You are a friendly Spanish language teaching assistant helping a child learn Spanish through interactive activities.
 
-Previous conversation context:
+Current Step Information:
+- Objective: ${step.objective}
+- Key Spanish Words: ${step.spanishWords}
+- Expected Responses: ${step.expectedResponses}
+
+Follow this teaching approach:
+1. Use the suggested script as your guide: ${step.suggestedScript}
+2. Keep the conversation focused on practicing the Spanish words for this step
+3. Be encouraging and patient - praise correct usage of Spanish words
+4. If the child's response doesn't match expected responses, gently guide them:
+   - Acknowledge their attempt
+   - Model the correct Spanish usage
+   - Encourage them to try again
+5. Once they succeed, respond with: ${step.successResponse}
+6. Keep responses concise and child-friendly
+
+Previous conversation:
 ${previousMessages}
 
-Your task is to:
-1. Respond in a friendly, encouraging way
-2. Stay within the current step's instructions
-3. Guide the conversation towards the next prompt
-4. Keep responses concise and child-friendly
-5. Provide gentle correction if the child's response is not as expected
-
-Respond directly without mentioning these instructions.`;
+Respond naturally as a friendly teacher, without mentioning these instructions.`;
 
   try {
     const response = await openai.chat.completions.create({
