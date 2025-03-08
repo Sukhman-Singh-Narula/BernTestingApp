@@ -18,6 +18,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add new route to get steps for an activity
+  app.get("/api/activity/:id/steps", async (req, res) => {
+    try {
+      const activityId = Number(req.params.id);
+      const steps = await storage.getStepsByActivity(activityId);
+      res.json(steps);
+    } catch (error) {
+      console.error("Error fetching steps:", error);
+      res.status(500).json({ message: "Failed to fetch steps" });
+    }
+  });
+
   app.post("/api/conversation", async (req, res) => {
     try {
       const { activityId = 1 } = req.body;

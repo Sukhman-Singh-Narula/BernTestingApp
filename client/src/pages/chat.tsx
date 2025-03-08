@@ -1,18 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Conversation, Message } from "@shared/schema";
+import { Activity, Conversation, Message, Step } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Send, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Chat() {
   const [input, setInput] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<number | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -20,6 +23,17 @@ export default function Chat() {
   // Fetch available activities
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ["/api/activities"],
+  });
+
+  // Fetch steps for selected activity
+  const { data: steps } = useQuery<Step[]>({
+    queryKey: ["/api/steps", selectedActivity],
+    queryFn: async () => {
+      if (!selectedActivity) return [];
+      const res = await fetch(`/api/activity/${selectedActivity}/steps`);
+      return res.json();
+    },
+    enabled: !!selectedActivity
   });
 
   // Create new conversation when activity is selected
@@ -37,6 +51,11 @@ export default function Chat() {
     },
     enabled: !!selectedActivity
   });
+
+  const getCurrentStep = () => {
+    if (!steps || !conversation) return null;
+    return steps.find(step => step.stepNumber === conversation.currentStep);
+  };
 
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
@@ -81,6 +100,8 @@ export default function Chat() {
     return <div>Loading activities...</div>;
   }
 
+  const currentStep = getCurrentStep();
+
   return (
     <div className="container mx-auto max-w-2xl h-screen p-4 flex flex-col gap-4">
       <Card className="p-4">
@@ -97,6 +118,54 @@ export default function Chat() {
           </SelectContent>
         </Select>
       </Card>
+
+      {selectedActivity && (
+        <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen} className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Activity Details</h3>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm">
+                {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+
+          <CollapsibleContent className="space-y-4">
+            {currentStep && (
+              <div className="rounded-lg border p-4">
+                <h4 className="font-medium mb-2">Current Step ({conversation?.currentStep})</h4>
+                <p className="text-sm text-muted-foreground mb-2">Objective: {currentStep.objective}</p>
+                <p className="text-sm text-muted-foreground">Script: {currentStep.suggestedScript}</p>
+              </div>
+            )}
+
+            {steps && steps.length > 0 && (
+              <ScrollArea className="h-64 rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Step</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Expected Responses</TableHead>
+                      <TableHead>Spanish Words</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {steps.map((step) => (
+                      <TableRow key={step.id} className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}>
+                        <TableCell>{step.stepNumber}</TableCell>
+                        <TableCell>{step.description}</TableCell>
+                        <TableCell>{step.expectedResponses}</TableCell>
+                        <TableCell>{step.spanishWords}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {selectedActivity ? (
         <Card className="flex-1 flex flex-col p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
