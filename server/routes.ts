@@ -7,14 +7,50 @@ import { Message } from "@shared/schema";
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  // Add new route to get all activities
+  app.get("/api/activities", async (req, res) => {
+    try {
+      const activities = await storage.getAllActivities();
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
   app.post("/api/conversation", async (req, res) => {
     try {
-      // For now, we'll use activity ID 1 as default
+      const { activityId = 1 } = req.body; // Accept activityId from request
       const conversation = await storage.createConversation({
-        activityId: 1,
-        currentStep: 1,
+        activityId,
+        currentStep: 0, // Start from step 0
         messages: []
       });
+
+      // Get initial step and generate first message
+      const initialStep = await storage.getStepByActivityAndNumber(activityId, 0);
+      if (initialStep) {
+        const aiResponse = await generateResponse(
+          "start",
+          initialStep,
+          ""
+        );
+        const updatedMessages = [
+          JSON.stringify({ role: "assistant", content: aiResponse })
+        ];
+
+        await storage.updateConversation(
+          conversation.id,
+          updatedMessages,
+          1 // Move to step 1 after initial message
+        );
+
+        return res.json({
+          ...conversation,
+          messages: updatedMessages
+        });
+      }
+
       res.json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -63,11 +99,7 @@ export async function registerRoutes(app: Express) {
       // Generate AI response using the step's script
       const aiResponse = await generateResponse(
         message,
-        {
-          instruction: step.suggestedScript,
-          allowedResponses: step.expectedResponses,
-          nextPrompt: step.successResponse
-        },
+        step,
         previousMessages
       );
 
