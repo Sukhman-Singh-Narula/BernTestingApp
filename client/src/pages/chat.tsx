@@ -140,39 +140,28 @@ export default function Chat() {
             )}
 
             {steps && steps.length > 0 && (
-              <div className="rounded-md border">
-                <ScrollArea className="h-64">
-                  <div className="min-w-[800px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-14">Step</TableHead>
-                          <TableHead className="w-48">Description</TableHead>
-                          <TableHead className="w-48">Objective</TableHead>
-                          <TableHead className="w-48">Suggested Script</TableHead>
-                          <TableHead className="w-48">Expected Responses</TableHead>
-                          <TableHead className="w-48">Spanish Words</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {steps.map((step) => (
-                          <TableRow 
-                            key={step.id} 
-                            className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}
-                          >
-                            <TableCell>{step.stepNumber}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{step.description}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{step.objective}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{step.suggestedScript}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{step.expectedResponses}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{step.spanishWords}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </ScrollArea>
-              </div>
+              <ScrollArea className="h-64 rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Step</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Expected Responses</TableHead>
+                      <TableHead>Spanish Words</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {steps.map((step) => (
+                      <TableRow key={step.id} className={step.stepNumber === conversation?.currentStep ? "bg-muted" : ""}>
+                        <TableCell>{step.stepNumber}</TableCell>
+                        <TableCell>{step.description}</TableCell>
+                        <TableCell>{step.expectedResponses}</TableCell>
+                        <TableCell>{step.spanishWords}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             )}
           </CollapsibleContent>
         </Collapsible>
