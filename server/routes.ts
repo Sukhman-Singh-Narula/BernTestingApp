@@ -108,13 +108,13 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/conversation/:id", async (req, res) => {
     try {
-      const conversation = await storage.getConversation(Number(req.params.id));
-      if (!conversation) {
+      const conversationWithPrompt = await storage.getConversationWithSystemPrompt(Number(req.params.id));
+      if (!conversationWithPrompt) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      const messages = await storage.getMessagesByConversation(conversation.id);
-      res.json({ ...conversation, messages });
+      const messages = await storage.getMessagesByConversation(conversationWithPrompt.id);
+      res.json({ ...conversationWithPrompt, messages });
     } catch (error) {
       console.error("Error getting conversation:", error);
       res.status(500).json({ message: "Failed to get conversation" });
