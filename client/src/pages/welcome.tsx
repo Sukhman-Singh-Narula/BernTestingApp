@@ -24,7 +24,13 @@ export default function Welcome() {
 
   // Fetch system prompt for selected activity
   const { data: defaultSystemPrompt } = useQuery<SystemPrompt>({
-    queryKey: ["/api/activity", selectedActivity, "system-prompt"],
+    queryKey: ["/api/activities", selectedActivity, "system-prompt"],
+    queryFn: async () => {
+      if (!selectedActivity) return null;
+      const response = await fetch(`/api/activities/${selectedActivity}/system-prompt`);
+      if (!response.ok) throw new Error('Failed to fetch system prompt');
+      return response.json();
+    },
     enabled: !!selectedActivity
   });
 
