@@ -104,6 +104,25 @@ export default function Welcome() {
         <h1 className="text-2xl font-bold mb-6 text-center">Welcome to Language Learning Chat</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
+            <Label htmlFor="activity">Select an Activity</Label>
+            <Select
+              value={selectedActivity?.toString()}
+              onValueChange={(value) => setSelectedActivity(Number(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose an activity" />
+              </SelectTrigger>
+              <SelectContent>
+                {activities?.map((activity) => (
+                  <SelectItem key={activity.id} value={activity.id.toString()}>
+                    {activity.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="name">Your Name</Label>
             <Input
               id="name"
