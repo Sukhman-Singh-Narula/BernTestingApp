@@ -7,6 +7,21 @@ import { MessageRole } from "@shared/schema";
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  // Add new route to get system prompt for an activity
+  app.get("/api/activity/:id/system-prompt", async (req, res) => {
+    try {
+      const activityId = Number(req.params.id);
+      const systemPrompt = await storage.getSystemPromptByActivity(activityId);
+      if (!systemPrompt) {
+        return res.status(404).json({ message: "System prompt not found" });
+      }
+      res.json(systemPrompt);
+    } catch (error) {
+      console.error("Error fetching system prompt:", error);
+      res.status(500).json({ message: "Failed to fetch system prompt" });
+    }
+  });
+
   // Add new route to get all activities
   app.get("/api/activities", async (req, res) => {
     try {
