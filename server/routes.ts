@@ -285,8 +285,17 @@ export async function registerRoutes(app: Express) {
   app.get("/api/conversations/:userName", async (req, res) => {
     try {
       const userName = req.params.userName;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
 
-      // First get all conversations for the user
+      // First get total count
+      const [{ count: total }] = await db
+        .select({ count: count() })
+        .from(conversations)
+        .where(eq(conversations.userName, userName));
+
+      // Then get paginated conversations
       const userConversations = await db
         .select({
           id: conversations.id,
@@ -294,12 +303,15 @@ export async function registerRoutes(app: Express) {
           currentStep: conversations.currentStep,
           userName: conversations.userName,
           systemPromptId: conversations.systemPromptId,
-          activityName: activities.name
+          activityName: activities.name,
+          createdAt: conversations.createdAt
         })
         .from(conversations)
         .where(eq(conversations.userName, userName))
         .leftJoin(activities, eq(conversations.activityId, activities.id))
-        .orderBy(desc(conversations.id));
+        .orderBy(desc(conversations.id))
+        .limit(limit)
+        .offset(offset);
 
       // Then fetch the last message for each conversation
       const conversationsWithLastMessage = await Promise.all(
@@ -320,7 +332,15 @@ export async function registerRoutes(app: Express) {
         })
       );
 
-      res.json(conversationsWithLastMessage);
+      res.json({
+        conversations: conversationsWithLastMessage,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
