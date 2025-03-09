@@ -3,9 +3,22 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { generateResponse } from "./lib/openai";
 import { MessageRole } from "@shared/schema";
+import { db } from "./db";
+import { count } from "drizzle-orm";
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
+
+  // Add new route to get activities with conversation counts
+  app.get("/api/activities/with-counts", async (req, res) => {
+    try {
+      const activitiesWithCounts = await storage.getAllActivitiesWithConversationCounts();
+      res.json(activitiesWithCounts);
+    } catch (error) {
+      console.error("Error fetching activities with counts:", error);
+      res.status(500).json({ message: "Failed to fetch activities with counts" });
+    }
+  });
 
   // Add new route to get system prompts for an activity
   app.get("/api/activities/:id/system-prompts", async (req, res) => {

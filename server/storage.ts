@@ -1,12 +1,13 @@
 import { activities, steps, conversations, messages, systemPrompts, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics, type SystemPrompt, type InsertSystemPrompt } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 
 export interface IStorage {
   // Activity operations
   createActivity(activity: InsertActivity): Promise<Activity>;
   getActivity(id: number): Promise<Activity | undefined>;
   getAllActivities(): Promise<Activity[]>;
+  getAllActivitiesWithConversationCounts(): Promise<(Activity & { conversationCount: number })[]>;
 
   // Step operations
   createStep(step: InsertStep): Promise<Step>;
@@ -43,6 +44,23 @@ export class DatabaseStorage implements IStorage {
 
   async getAllActivities(): Promise<Activity[]> {
     return await db.select().from(activities);
+  }
+
+  async getAllActivitiesWithConversationCounts(): Promise<(Activity & { conversationCount: number })[]> {
+    const activitiesWithCounts = await db
+      .select({
+        id: activities.id,
+        name: activities.name,
+        contentType: activities.contentType,
+        totalSteps: activities.totalSteps,
+        conversationCount: count(conversations.id)
+      })
+      .from(activities)
+      .leftJoin(conversations, eq(activities.id, conversations.activityId))
+      .groupBy(activities.id)
+      .orderBy(activities.id);
+
+    return activitiesWithCounts;
   }
 
   // Step operations
