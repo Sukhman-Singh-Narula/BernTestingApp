@@ -11,12 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import { Pencil } from "lucide-react";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<number | null>(null);
   const [systemPrompt, setSystemPrompt] = useState("");
-  const [isSystemPromptModified, setIsSystemPromptModified] = useState(false);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -41,7 +43,8 @@ export default function Welcome() {
   useEffect(() => {
     if (recentSystemPrompts && recentSystemPrompts.length > 0) {
       setSystemPrompt(recentSystemPrompts[0].systemPrompt);
-      setIsSystemPromptModified(false); // Reset modification flag when loading default
+      setSelectedPromptId(recentSystemPrompts[0].id.toString());
+      setIsEditingPrompt(false);
     }
   }, [recentSystemPrompts]);
 
@@ -52,7 +55,7 @@ export default function Welcome() {
         activityId: selectedActivity,
         shouldGenerateFirstResponse: true,
         userName,
-        ...(isSystemPromptModified && { systemPrompt }) // Only include systemPrompt if modified
+        ...(isEditingPrompt && { systemPrompt }) // Only include systemPrompt if editing was enabled
       });
       return response.json();
     },
@@ -97,13 +100,9 @@ export default function Welcome() {
     const selectedPrompt = recentSystemPrompts?.find(p => p.id.toString() === promptId);
     if (selectedPrompt) {
       setSystemPrompt(selectedPrompt.systemPrompt);
-      setIsSystemPromptModified(true); // Mark as modified when selecting from dropdown
+      setSelectedPromptId(promptId);
+      setIsEditingPrompt(false); // Reset editing state when selecting a new prompt
     }
-  };
-
-  const handleSystemPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSystemPrompt(e.target.value);
-    setIsSystemPromptModified(true); // Mark as modified when editing text
   };
 
   return (
@@ -146,7 +145,7 @@ export default function Welcome() {
             <>
               <div>
                 <Label htmlFor="recentPrompts">Select a recent system prompt</Label>
-                <Select onValueChange={handleSystemPromptSelect}>
+                <Select value={selectedPromptId || ''} onValueChange={handleSystemPromptSelect}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a recent prompt" />
                   </SelectTrigger>
@@ -169,16 +168,30 @@ export default function Welcome() {
               </div>
 
               <div>
-                <Label htmlFor="systemPrompt">System Prompt</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="systemPrompt">System Prompt</Label>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    {isEditingPrompt ? "Cancel Edit" : "Edit"}
+                  </Button>
+                </div>
                 <Textarea
                   id="systemPrompt"
                   placeholder="System prompt for the conversation"
                   value={systemPrompt}
-                  onChange={handleSystemPromptChange}
-                  className="min-h-[200px] font-mono text-sm"
+                  onChange={(e) => isEditingPrompt && setSystemPrompt(e.target.value)}
+                  className={`min-h-[200px] font-mono text-sm ${!isEditingPrompt ? 'bg-muted cursor-not-allowed' : ''}`}
+                  readOnly={!isEditingPrompt}
                 />
                 <p className="text-sm text-muted-foreground mt-2">
-                  You can customize the system prompt that will be used for your conversation.
+                  {isEditingPrompt 
+                    ? "You are creating a new system prompt that will be saved for future use."
+                    : "Click 'Edit' to modify the system prompt and create a new version."}
                 </p>
               </div>
             </>
