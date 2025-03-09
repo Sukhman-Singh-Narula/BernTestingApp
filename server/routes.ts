@@ -282,31 +282,45 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add this route before the return httpServer line
   app.get("/api/conversations/:userName", async (req, res) => {
     try {
       const userName = req.params.userName;
+
+      // First get all conversations for the user
       const userConversations = await db
         .select({
           id: conversations.id,
           activityId: conversations.activityId,
           currentStep: conversations.currentStep,
-          activityName: activities.name,
-          lastMessage: db
-            .select({ content: messages.content })
-            .from(messages)
-            .where(eq(messages.conversationId, conversations.id))
-            .orderBy(desc(messages.createdAt))
-            .limit(1)
-            .as('lastMessage'),
-          createdAt: conversations.createdAt
+          userName: conversations.userName,
+          systemPromptId: conversations.systemPromptId,
+          activityName: activities.name
         })
         .from(conversations)
         .where(eq(conversations.userName, userName))
         .leftJoin(activities, eq(conversations.activityId, activities.id))
         .orderBy(desc(conversations.id));
 
-      res.json(userConversations);
+      // Then fetch the last message for each conversation
+      const conversationsWithLastMessage = await Promise.all(
+        userConversations.map(async (conv) => {
+          const [lastMessage] = await db
+            .select({
+              content: messages.content
+            })
+            .from(messages)
+            .where(eq(messages.conversationId, conv.id))
+            .orderBy(desc(messages.createdAt))
+            .limit(1);
+
+          return {
+            ...conv,
+            lastMessage
+          };
+        })
+      );
+
+      res.json(conversationsWithLastMessage);
     } catch (error) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
