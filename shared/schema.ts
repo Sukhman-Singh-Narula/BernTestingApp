@@ -15,7 +15,9 @@ export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   contentType: text("content_type").notNull(),
-  totalSteps: integer("total_steps").notNull()
+  totalSteps: integer("total_steps").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
 export const steps = pgTable("steps", {

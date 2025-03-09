@@ -53,12 +53,14 @@ export class DatabaseStorage implements IStorage {
         name: activities.name,
         contentType: activities.contentType,
         totalSteps: activities.totalSteps,
+        createdBy: activities.createdBy,
+        createdAt: activities.createdAt,
         conversationCount: count(conversations.id)
       })
       .from(activities)
       .leftJoin(conversations, eq(activities.id, conversations.activityId))
       .groupBy(activities.id)
-      .orderBy(activities.id);
+      .orderBy(desc(activities.createdAt));
 
     return activitiesWithCounts;
   }
@@ -209,7 +211,7 @@ export class DatabaseStorage implements IStorage {
       .from(systemPrompts)
       .where(eq(systemPrompts.activityId, activityId))
       .orderBy(desc(systemPrompts.createdAt))
-      .limit(10); // Limit to 10 most recent prompts
+      .limit(10); 
   }
 }
 
