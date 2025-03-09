@@ -16,6 +16,7 @@ export default function Welcome() {
   const [userName, setUserName] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<number | null>(null);
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [isSystemPromptModified, setIsSystemPromptModified] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -40,6 +41,7 @@ export default function Welcome() {
   useEffect(() => {
     if (recentSystemPrompts && recentSystemPrompts.length > 0) {
       setSystemPrompt(recentSystemPrompts[0].systemPrompt);
+      setIsSystemPromptModified(false); // Reset modification flag when loading default
     }
   }, [recentSystemPrompts]);
 
@@ -50,7 +52,7 @@ export default function Welcome() {
         activityId: selectedActivity,
         shouldGenerateFirstResponse: true,
         userName,
-        systemPrompt
+        ...(isSystemPromptModified && { systemPrompt }) // Only include systemPrompt if modified
       });
       return response.json();
     },
@@ -95,7 +97,13 @@ export default function Welcome() {
     const selectedPrompt = recentSystemPrompts?.find(p => p.id.toString() === promptId);
     if (selectedPrompt) {
       setSystemPrompt(selectedPrompt.systemPrompt);
+      setIsSystemPromptModified(true); // Mark as modified when selecting from dropdown
     }
+  };
+
+  const handleSystemPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSystemPrompt(e.target.value);
+    setIsSystemPromptModified(true); // Mark as modified when editing text
   };
 
   return (
@@ -166,7 +174,7 @@ export default function Welcome() {
                   id="systemPrompt"
                   placeholder="System prompt for the conversation"
                   value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  onChange={handleSystemPromptChange}
                   className="min-h-[200px] font-mono text-sm"
                 />
                 <p className="text-sm text-muted-foreground mt-2">
