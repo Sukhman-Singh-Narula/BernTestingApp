@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Activity, Conversation, Message, Step, MessageMetrics, SystemPrompt } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,18 +21,23 @@ export default function Chat() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const params = useParams();
 
-  // Get conversation ID from localStorage
-  const conversationId = localStorage.getItem("currentConversationId");
+  // Get conversation ID from URL params or localStorage
+  const conversationId = params.id || localStorage.getItem("currentConversationId");
 
-  // Check for userName and conversationId in localStorage
+  // Check for userName
   useEffect(() => {
     const userName = localStorage.getItem("userName");
-    if (!userName || !conversationId) {
+    if (!userName) {
       setLocation("/");
       return;
     }
-  }, [setLocation, conversationId]);
+    // Only set localStorage for new conversations
+    if (!params.id && conversationId) {
+      localStorage.setItem("currentConversationId", conversationId);
+    }
+  }, [setLocation, conversationId, params.id]);
 
   // Fetch conversation data
   const { data: conversation } = useQuery<{

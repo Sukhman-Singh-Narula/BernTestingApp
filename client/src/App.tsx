@@ -6,6 +6,7 @@ import Chat from "@/pages/chat";
 import Welcome from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
 import Activities from "@/pages/activities";
+import Conversations from "@/pages/conversations";
 import Navbar from "@/components/Navbar";
 
 function Router() {
@@ -13,7 +14,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Welcome} />
       <Route path="/chat" component={Chat} />
+      <Route path="/chat/:id" component={Chat} />
       <Route path="/activities" component={Activities} />
+      <Route path="/conversations" component={Conversations} />
       <Route component={NotFound} />
     </Switch>
   );
