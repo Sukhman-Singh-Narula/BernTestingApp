@@ -5,9 +5,71 @@ import { generateResponse } from "./lib/openai";
 import { MessageRole } from "@shared/schema";
 import { db } from "./db";
 import { count } from "drizzle-orm";
+import multer from "multer";
+import { parse } from "csv-parse/sync";
+
+// Configure multer for file upload
+const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
+
+  // Add route to get example CSV
+  app.get("/api/activities/example-csv", (req, res) => {
+    const csvHeader = "name,contentType,createdBy,stepNumber,description,objective,suggestedScript,spanishWords,expectedResponses,successResponse\n";
+    const exampleRow = "Spanish Basics,conversation,system,1,Introduce yourself,Learn basic greeting,Hola! ¿Cómo estás?,hola|cómo|estás,Hola|Hi|Hello,Great job with the greeting!\n";
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=activity_example.csv');
+    res.send(csvHeader + exampleRow);
+  });
+
+  // Add route to upload activity CSV
+  app.post("/api/activities/upload", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true
+      });
+
+      if (records.length === 0) {
+        return res.status(400).json({ message: "CSV file is empty" });
+      }
+
+      // Get unique activity properties from the first row
+      const firstRow = records[0];
+      const activity = await storage.createActivity({
+        name: firstRow.name,
+        contentType: firstRow.contentType,
+        totalSteps: records.length,
+        createdBy: firstRow.createdBy
+      });
+
+      // Create steps for each row
+      for (const row of records) {
+        await storage.createStep({
+          activityId: activity.id,
+          stepNumber: parseInt(row.stepNumber),
+          description: row.description,
+          objective: row.objective,
+          suggestedScript: row.suggestedScript,
+          spanishWords: row.spanishWords,
+          expectedResponses: row.expectedResponses,
+          successResponse: row.successResponse
+        });
+      }
+
+      res.json({ message: "Activity created successfully", activity });
+    } catch (error) {
+      console.error("Error uploading activity:", error);
+      res.status(500).json({ message: "Failed to upload activity" });
+    }
+  });
 
   // Add new route to get activities with conversation counts
   app.get("/api/activities/with-counts", async (req, res) => {
