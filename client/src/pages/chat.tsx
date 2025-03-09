@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Activity, Conversation, Message, Step, MessageMetrics, SystemPrompt } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,6 +22,16 @@ export default function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+
+  // Check for userName in localStorage
+  useEffect(() => {
+    const userName = localStorage.getItem("userName");
+    if (!userName) {
+      setLocation("/");
+      return;
+    }
+  }, [setLocation]);
 
   // Fetch available activities
   const { data: activities } = useQuery<Activity[]>({
@@ -39,7 +50,32 @@ export default function Chat() {
     enabled: !!selectedActivity
   });
 
-  // Rest of the existing queries remain unchanged
+  // Update conversation creation to include userName
+  const { data: conversation } = useQuery<{
+    id: number;
+    activityId: number;
+    currentStep: number;
+    messages: (Message & { metrics?: MessageMetrics })[];
+  }>({
+    queryKey: ["/api/conversation", selectedActivity],
+    queryFn: async () => {
+      if (!selectedActivity) return null;
+      const userName = localStorage.getItem("userName");
+      if (!userName) {
+        setLocation("/");
+        return null;
+      }
+      const res = await apiRequest("POST", "/api/conversation", { 
+        activityId: selectedActivity,
+        shouldGenerateFirstResponse: true,
+        userName
+      });
+      return res.json();
+    },
+    enabled: !!selectedActivity
+  });
+
+
   const { data: steps } = useQuery<Step[]>({
     queryKey: ["/api/steps", selectedActivity],
     queryFn: async () => {
@@ -50,26 +86,6 @@ export default function Chat() {
     enabled: !!selectedActivity
   });
 
-  // Existing conversation query remains unchanged
-  const { data: conversation } = useQuery<{
-    id: number;
-    activityId: number;
-    currentStep: number;
-    messages: (Message & { metrics?: MessageMetrics })[];
-  }>({
-    queryKey: ["/api/conversation", selectedActivity],
-    queryFn: async () => {
-      if (!selectedActivity) return null;
-      const res = await apiRequest("POST", "/api/conversation", { 
-        activityId: selectedActivity,
-        shouldGenerateFirstResponse: true 
-      });
-      return res.json();
-    },
-    enabled: !!selectedActivity
-  });
-
-  // Rest of the existing functions remain unchanged
   const getCurrentStep = () => {
     if (!steps || !conversation) return null;
     return steps.find(step => step.stepNumber === conversation.currentStep);
@@ -141,7 +157,6 @@ export default function Chat() {
         {selectedActivity && (
           <>
             <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen} className="space-y-2">
-              {/* Existing Details Collapsible content remains unchanged */}
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Activity Details</h3>
                 <CollapsibleTrigger asChild>
@@ -289,7 +304,6 @@ export default function Chat() {
         )}
       </div>
 
-      {/* New System Prompt Panel */}
       {selectedActivity && (
         <div className="w-96 flex">
           <Button

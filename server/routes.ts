@@ -47,7 +47,11 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/conversation", async (req, res) => {
     try {
-      const { activityId = 1, shouldGenerateFirstResponse = true } = req.body;
+      const { activityId = 1, shouldGenerateFirstResponse = true, userName } = req.body;
+
+      if (!userName) {
+        return res.status(400).json({ message: "userName is required" });
+      }
 
       // Try to use step 0 first, fallback to 1 if step 0 does not exist
       let startingStep = 0;
@@ -58,7 +62,8 @@ export async function registerRoutes(app: Express) {
 
       const conversation = await storage.createConversation({
         activityId,
-        currentStep: startingStep
+        currentStep: startingStep,
+        userName
       });
 
       // Get the initial step based on the startingStep determined above

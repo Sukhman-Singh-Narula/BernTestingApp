@@ -33,7 +33,8 @@ export const steps = pgTable("steps", {
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   activityId: integer("activity_id").notNull().references(() => activities.id),
-  currentStep: integer("current_step").notNull().default(1)
+  currentStep: integer("current_step").notNull().default(1),
+  userName: text("user_name").notNull() // Add userName field
 });
 
 // New messages table
