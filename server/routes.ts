@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express) {
   // Add new route to get all activities
   app.get("/api/activities", async (req, res) => {
     try {
-      const activities = await storage.getAllActivities();
+      const activities = await storage.getAllVisibleActivities();
       res.json(activities);
     } catch (error) {
       console.error("Error fetching activities:", error);
