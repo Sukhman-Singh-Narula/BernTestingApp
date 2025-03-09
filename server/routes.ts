@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express) {
   app.get("/api/conversations/:userName", async (req, res) => {
     try {
       const userName = req.params.userName;
-      const conversations = await db
+      const userConversations = await db
         .select({
           id: conversations.id,
           activityId: conversations.activityId,
@@ -306,7 +306,7 @@ export async function registerRoutes(app: Express) {
         .leftJoin(activities, eq(conversations.activityId, activities.id))
         .orderBy(desc(conversations.id));
 
-      res.json(conversations);
+      res.json(userConversations);
     } catch (error) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
