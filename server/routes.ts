@@ -290,12 +290,12 @@ export async function registerRoutes(app: Express) {
       const offset = (page - 1) * limit;
 
       // First get total count
-      const [{ count: total }] = await db
-        .select({ count: count() })
+      const [{ value: total }] = await db
+        .select({ value: count() })
         .from(conversations)
         .where(eq(conversations.userName, userName));
 
-      // Then get paginated conversations
+      // Then get paginated conversations with activity names
       const userConversations = await db
         .select({
           id: conversations.id,
@@ -303,8 +303,7 @@ export async function registerRoutes(app: Express) {
           currentStep: conversations.currentStep,
           userName: conversations.userName,
           systemPromptId: conversations.systemPromptId,
-          activityName: activities.name,
-          createdAt: conversations.createdAt
+          activityName: activities.name
         })
         .from(conversations)
         .where(eq(conversations.userName, userName))
@@ -313,10 +312,10 @@ export async function registerRoutes(app: Express) {
         .limit(limit)
         .offset(offset);
 
-      // Then fetch the last message for each conversation
+      // Then fetch the last message for each conversation separately
       const conversationsWithLastMessage = await Promise.all(
         userConversations.map(async (conv) => {
-          const [lastMessage] = await db
+          const lastMessages = await db
             .select({
               content: messages.content
             })
@@ -327,7 +326,7 @@ export async function registerRoutes(app: Express) {
 
           return {
             ...conv,
-            lastMessage
+            lastMessage: lastMessages[0] || null
           };
         })
       );
