@@ -58,10 +58,20 @@ export const messageMetrics = pgTable("message_metrics", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
+// Add system_prompt table definition
+export const systemPrompts = pgTable("system_prompts", {
+  id: serial("id").primaryKey(),
+  systemPrompt: text("system_prompt").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: text("created_by").notNull(),
+  activityId: integer("activity_id").notNull().references(() => activities.id)
+});
+
 // Define relationships
 export const activitiesRelations = relations(activities, ({ many }) => ({
   steps: many(steps),
-  conversations: many(conversations)
+  conversations: many(conversations),
+  systemPrompts: many(systemPrompts)
 }));
 
 export const stepsRelations = relations(steps, ({ one, many }) => ({
@@ -104,6 +114,15 @@ export const messageMetricsRelations = relations(messageMetrics, ({ one }) => ({
   })
 }));
 
+// Add relation to activities
+export const systemPromptsRelations = relations(systemPrompts, ({ one }) => ({
+  activity: one(activities, {
+    fields: [systemPrompts.activityId],
+    references: [activities.id],
+  })
+}));
+
+
 // Create insert schemas
 export const insertScriptSchema = createInsertSchema(activityScripts).omit({
   id: true
@@ -132,6 +151,12 @@ export const insertMessageMetricsSchema = createInsertSchema(messageMetrics).omi
   createdAt: true
 });
 
+// Add insert schema for system prompts
+export const insertSystemPromptSchema = createInsertSchema(systemPrompts).omit({
+  id: true,
+  createdAt: true
+});
+
 // Export types
 export type ActivityScript = typeof activityScripts.$inferSelect;
 export type InsertActivityScript = z.infer<typeof insertScriptSchema>;
@@ -147,6 +172,10 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 // Add metrics type exports
 export type MessageMetrics = typeof messageMetrics.$inferSelect;
 export type InsertMessageMetrics = z.infer<typeof insertMessageMetricsSchema>;
+
+// Add type exports for system prompts
+export type SystemPrompt = typeof systemPrompts.$inferSelect;
+export type InsertSystemPrompt = z.infer<typeof insertSystemPromptSchema>;
 
 // Message role type (used in the frontend)
 export type MessageRole = 'user' | 'assistant';

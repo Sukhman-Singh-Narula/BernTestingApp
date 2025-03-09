@@ -1,4 +1,4 @@
-import { activities, steps, conversations, messages, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics } from "@shared/schema";
+import { activities, steps, conversations, messages, systemPrompts, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics, type SystemPrompt, type InsertSystemPrompt } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -21,6 +21,10 @@ export interface IStorage {
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
+
+  // Add system prompt operations
+  createSystemPrompt(prompt: InsertSystemPrompt): Promise<SystemPrompt>;
+  getSystemPromptByActivity(activityId: number): Promise<SystemPrompt | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -66,7 +70,7 @@ export class DatabaseStorage implements IStorage {
     return step;
   }
 
-  // Updated conversation operations
+  // Conversation operations
   async createConversation(conversation: InsertConversation): Promise<Conversation> {
     const [created] = await db.insert(conversations).values(conversation).returning();
     return created;
@@ -89,7 +93,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // New message operations
+  // Message operations
   async createMessage(message: InsertMessage): Promise<Message> {
     const [created] = await db.insert(messages).values(message).returning();
     return created;
@@ -119,6 +123,22 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(messageMetrics, eq(messages.id, messageMetrics.messageId))
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt);
+  }
+
+  // Add system prompt operations implementation
+  async createSystemPrompt(prompt: InsertSystemPrompt): Promise<SystemPrompt> {
+    const [created] = await db.insert(systemPrompts).values(prompt).returning();
+    return created;
+  }
+
+  async getSystemPromptByActivity(activityId: number): Promise<SystemPrompt | undefined> {
+    const [prompt] = await db
+      .select()
+      .from(systemPrompts)
+      .where(eq(systemPrompts.activityId, activityId))
+      .orderBy(desc(systemPrompts.createdAt))
+      .limit(1);
+    return prompt;
   }
 }
 

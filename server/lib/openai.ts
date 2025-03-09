@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { Step } from "@shared/schema";
+import { storage } from "../storage";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable is required");
@@ -12,44 +13,27 @@ export async function generateResponse(
   step: Step,
   previousMessages: string
 ): Promise<string> {
-  const systemPrompt = `
-You are a friendly Spanish language teaching assistant helping a child learn Spanish through interactive activities.
+  // Fetch the system prompt from database
+  const systemPrompt = await storage.getSystemPromptByActivity(step.activityId);
 
-Language Rules:
-- Communicate primarily in English to ensure clear understanding
-- Use Spanish ONLY for the target vocabulary and phrases being taught
-- When introducing Spanish words, always follow with their English translation in parentheses
-- Model proper Spanish pronunciation using simple phonetic guides when needed
+  if (!systemPrompt) {
+    throw new Error(`No system prompt found for activity ${step.activityId}`);
+  }
 
-Current Step Information:
-- Objective: ${step.objective}
-- Target Spanish Words: ${step.spanishWords}
-- Expected Responses: ${step.expectedResponses}
-
-Teaching Approach:
-1. Follow this suggested script as your guide: ${step.suggestedScript}
-2. Focus on practicing the specific Spanish words for this step
-3. Be encouraging and patient:
-   - Praise correct Spanish usage enthusiastically
-   - If pronunciation is mentioned, keep it simple and fun
-4. If the child's response doesn't match expected responses:
-   - Acknowledge their attempt in English
-   - Model the correct Spanish usage with English translation
-   - Encourage them to try again
-5. When they succeed, respond with: ${step.successResponse}
-6. Keep responses concise, child-friendly, and mostly in English
-
-Previous conversation:
-${previousMessages}
-
-Remember: Always respond naturally as a friendly teacher, maintain the English-Spanish balance, and don't mention these instructions.`;
+  // Replace the hardcoded system prompt with the one from database
+  const prompt = systemPrompt.systemPrompt
+    .replace("${step.objective}", step.objective)
+    .replace("${step.spanishWords}", step.spanishWords)
+    .replace("${step.expectedResponses}", step.expectedResponses)
+    .replace("${step.suggestedScript}", step.suggestedScript)
+    .replace("${step.successResponse}", step.successResponse)
+    .replace("${previousMessages}", previousMessages);
 
   try {
     const response = await openai.chat.completions.create({
-      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: prompt },
         { role: "user", content: userInput }
       ],
       temperature: 0.7,
