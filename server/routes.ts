@@ -59,7 +59,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/conversation", async (req, res) => {
     try {
-      const { activityId = 1, shouldGenerateFirstResponse = true, userName } = req.body;
+      const { activityId = 1, shouldGenerateFirstResponse = true, userName, systemPrompt } = req.body;
 
       if (!userName) {
         return res.status(400).json({ message: "userName is required" });
@@ -75,7 +75,8 @@ export async function registerRoutes(app: Express) {
       const conversation = await storage.createConversation({
         activityId,
         currentStep: startingStep,
-        userName
+        userName,
+        systemPrompt // Pass the systemPrompt if it exists
       });
 
       // Get the initial step based on the startingStep determined above
