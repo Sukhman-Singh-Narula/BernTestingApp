@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -17,7 +17,8 @@ export const activities = pgTable("activities", {
   contentType: text("content_type").notNull(),
   totalSteps: integer("total_steps").notNull(),
   createdBy: text("created_by").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow()
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  hidden: boolean("hidden").notNull().default(false)
 });
 
 export const steps = pgTable("steps", {

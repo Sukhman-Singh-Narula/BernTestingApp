@@ -263,5 +263,23 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add route to toggle activity hidden status
+  app.patch("/api/activities/:id/hidden", async (req, res) => {
+    try {
+      const activityId = Number(req.params.id);
+      const { hidden } = req.body;
+
+      if (typeof hidden !== 'boolean') {
+        return res.status(400).json({ message: "Hidden status must be a boolean" });
+      }
+
+      const updatedActivity = await storage.updateActivityHidden(activityId, hidden);
+      res.json(updatedActivity);
+    } catch (error) {
+      console.error("Error updating activity hidden status:", error);
+      res.status(500).json({ message: "Failed to update activity hidden status" });
+    }
+  });
+
   return httpServer;
 }
