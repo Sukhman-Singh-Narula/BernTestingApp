@@ -8,6 +8,9 @@ export interface IStorage {
   getActivity(id: number): Promise<Activity | undefined>;
   getAllActivities(): Promise<Activity[]>;
   getAllActivitiesWithConversationCounts(): Promise<(Activity & { conversationCount: number })[]>;
+  updateActivityHidden(id: number, hidden: boolean): Promise<Activity>;
+  getAllVisibleActivities(): Promise<Activity[]>;
+  getAllVisibleActivitiesWithConversationCounts(): Promise<(Activity & { conversationCount: number })[]>;
 
   // Step operations
   createStep(step: InsertStep): Promise<Step>;
@@ -55,6 +58,7 @@ export class DatabaseStorage implements IStorage {
         totalSteps: activities.totalSteps,
         createdBy: activities.createdBy,
         createdAt: activities.createdAt,
+        hidden: activities.hidden,
         conversationCount: count(conversations.id)
       })
       .from(activities)
@@ -64,6 +68,44 @@ export class DatabaseStorage implements IStorage {
 
     return activitiesWithCounts;
   }
+
+  async updateActivityHidden(id: number, hidden: boolean): Promise<Activity> {
+    const [updated] = await db
+      .update(activities)
+      .set({ hidden })
+      .where(eq(activities.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllVisibleActivities(): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(eq(activities.hidden, false));
+  }
+
+  async getAllVisibleActivitiesWithConversationCounts(): Promise<(Activity & { conversationCount: number })[]> {
+    const activitiesWithCounts = await db
+      .select({
+        id: activities.id,
+        name: activities.name,
+        contentType: activities.contentType,
+        totalSteps: activities.totalSteps,
+        createdBy: activities.createdBy,
+        createdAt: activities.createdAt,
+        hidden: activities.hidden,
+        conversationCount: count(conversations.id)
+      })
+      .from(activities)
+      .leftJoin(conversations, eq(activities.id, conversations.activityId))
+      .where(eq(activities.hidden, false))
+      .groupBy(activities.id)
+      .orderBy(desc(activities.createdAt));
+
+    return activitiesWithCounts;
+  }
+
 
   // Step operations
   async createStep(step: InsertStep): Promise<Step> {
@@ -211,7 +253,7 @@ export class DatabaseStorage implements IStorage {
       .from(systemPrompts)
       .where(eq(systemPrompts.activityId, activityId))
       .orderBy(desc(systemPrompts.createdAt))
-      .limit(10); 
+      .limit(10);
   }
 }
 

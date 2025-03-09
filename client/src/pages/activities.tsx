@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronUp, Download, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Upload, EyeOff, Eye } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -35,16 +35,33 @@ export default function Activities() {
     queryKey: ["/api/activities/with-counts"],
   });
 
-  // Fetch steps for selected activity
-  const { data: steps } = useQuery<Step[]>({
-    queryKey: ["/api/activity", selectedActivityId, "steps"],
-    queryFn: async () => {
-      if (!selectedActivityId) return null;
-      const response = await fetch(`/api/activity/${selectedActivityId}/steps`);
-      if (!response.ok) throw new Error('Failed to fetch steps');
+  // Toggle hidden status mutation
+  const toggleHiddenMutation = useMutation({
+    mutationFn: async ({ id, hidden }: { id: number; hidden: boolean }) => {
+      const response = await fetch(`/api/activities/${id}/hidden`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ hidden }),
+      });
+      if (!response.ok) throw new Error('Failed to update activity');
       return response.json();
     },
-    enabled: !!selectedActivityId
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/activities/with-counts"] });
+      toast({
+        title: "Success",
+        description: "Activity visibility updated",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Upload activity mutation
@@ -109,6 +126,18 @@ export default function Activities() {
     }
   };
 
+  // Fetch steps for selected activity
+  const { data: steps } = useQuery<Step[]>({
+    queryKey: ["/api/activity", selectedActivityId, "steps"],
+    queryFn: async () => {
+      if (!selectedActivityId) return null;
+      const response = await fetch(`/api/activity/${selectedActivityId}/steps`);
+      if (!response.ok) throw new Error('Failed to fetch steps');
+      return response.json();
+    },
+    enabled: !!selectedActivityId
+  });
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
@@ -145,7 +174,14 @@ export default function Activities() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold">{activity.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold">{activity.name}</h2>
+                    {activity.hidden && (
+                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                        Hidden
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Type: {activity.contentType} • Total Steps: {activity.totalSteps} • 
                     Conversations: {activity.conversationCount}
@@ -154,15 +190,34 @@ export default function Activities() {
                     Created by {activity.createdBy} • {formatDistance(new Date(activity.createdAt), new Date(), { addSuffix: true })}
                   </p>
                 </div>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    {selectedActivityId === activity.id ? (
-                      <ChevronUp className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleHiddenMutation.mutate({
+                        id: activity.id,
+                        hidden: !activity.hidden
+                      });
+                    }}
+                  >
+                    {activity.hidden ? (
+                      <Eye className="h-4 w-4" />
                     ) : (
-                      <ChevronDown className="h-4 w-4" />
+                      <EyeOff className="h-4 w-4" />
                     )}
                   </Button>
-                </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      {selectedActivityId === activity.id ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
               </div>
 
               <CollapsibleContent className="mt-4">
