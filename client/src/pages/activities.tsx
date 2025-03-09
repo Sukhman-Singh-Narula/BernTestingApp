@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { formatDistance } from "date-fns";
 
 interface ActivityWithCount extends Activity {
   conversationCount: number;
@@ -59,6 +60,9 @@ export default function Activities() {
                   <p className="text-sm text-muted-foreground">
                     Type: {activity.contentType} • Total Steps: {activity.totalSteps} • 
                     Conversations: {activity.conversationCount}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Created by {activity.createdBy} • {formatDistance(new Date(activity.createdAt), new Date(), { addSuffix: true })}
                   </p>
                 </div>
                 <CollapsibleTrigger asChild>
