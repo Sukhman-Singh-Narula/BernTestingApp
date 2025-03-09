@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { Activity, SystemPrompt } from "@shared/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
@@ -42,6 +43,31 @@ export default function Welcome() {
     }
   }, [recentSystemPrompts]);
 
+  // Create conversation mutation
+  const createConversation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/conversation", {
+        activityId: selectedActivity,
+        shouldGenerateFirstResponse: true,
+        userName,
+        systemPrompt
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      localStorage.setItem("userName", userName);
+      localStorage.setItem("currentConversationId", data.id.toString());
+      setLocation("/chat");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create conversation. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName.trim()) {
@@ -62,10 +88,7 @@ export default function Welcome() {
       return;
     }
 
-    // Store the name and system prompt in localStorage for persistence
-    localStorage.setItem("userName", userName);
-    localStorage.setItem("systemPrompt", systemPrompt);
-    setLocation("/chat");
+    createConversation.mutate();
   };
 
   const handleSystemPromptSelect = (promptId: string) => {
@@ -80,25 +103,6 @@ export default function Welcome() {
       <Card className="w-full max-w-2xl p-6">
         <h1 className="text-2xl font-bold mb-6 text-center">Welcome to Language Learning Chat</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="activity">Select an Activity</Label>
-            <Select
-              value={selectedActivity?.toString()}
-              onValueChange={(value) => setSelectedActivity(Number(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose an activity" />
-              </SelectTrigger>
-              <SelectContent>
-                {activities?.map((activity) => (
-                  <SelectItem key={activity.id} value={activity.id.toString()}>
-                    {activity.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div>
             <Label htmlFor="name">Your Name</Label>
             <Input
@@ -153,7 +157,7 @@ export default function Welcome() {
             </>
           )}
 
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full" disabled={createConversation.isPending}>
             Start Learning
           </Button>
         </form>
