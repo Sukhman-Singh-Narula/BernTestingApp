@@ -34,7 +34,8 @@ export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   activityId: integer("activity_id").notNull().references(() => activities.id),
   currentStep: integer("current_step").notNull().default(1),
-  userName: text("user_name").notNull() // Add userName field
+  userName: text("user_name").notNull(),
+  systemPromptId: integer("system_prompt_id").references(() => systemPrompts.id) // Add reference to system prompt
 });
 
 // New messages table
@@ -83,12 +84,17 @@ export const stepsRelations = relations(steps, ({ one, many }) => ({
   messages: many(messages)
 }));
 
+// Update conversation relations to include system prompt
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
   activity: one(activities, {
     fields: [conversations.activityId],
     references: [activities.id],
   }),
-  messages: many(messages)
+  messages: many(messages),
+  systemPrompt: one(systemPrompts, {
+    fields: [conversations.systemPromptId],
+    references: [systemPrompts.id],
+  })
 }));
 
 // Add relation to messages
