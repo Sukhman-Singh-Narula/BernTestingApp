@@ -2,11 +2,12 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { generateResponse } from "./lib/openai";
-import { MessageRole } from "@shared/schema";
+import { MessageRole, conversations, activities, messages } from "@shared/schema";
 import { db } from "./db";
 import { count } from "drizzle-orm";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
+import { eq, desc } from 'drizzle-orm';
 
 // Configure multer for file upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -278,6 +279,37 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error updating activity hidden status:", error);
       res.status(500).json({ message: "Failed to update activity hidden status" });
+    }
+  });
+
+  // Add this route before the return httpServer line
+  app.get("/api/conversations/:userName", async (req, res) => {
+    try {
+      const userName = req.params.userName;
+      const conversations = await db
+        .select({
+          id: conversations.id,
+          activityId: conversations.activityId,
+          currentStep: conversations.currentStep,
+          activityName: activities.name,
+          lastMessage: db
+            .select({ content: messages.content })
+            .from(messages)
+            .where(eq(messages.conversationId, conversations.id))
+            .orderBy(desc(messages.createdAt))
+            .limit(1)
+            .as('lastMessage'),
+          createdAt: conversations.createdAt
+        })
+        .from(conversations)
+        .where(eq(conversations.userName, userName))
+        .leftJoin(activities, eq(conversations.activityId, activities.id))
+        .orderBy(desc(conversations.id));
+
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
     }
   });
 
