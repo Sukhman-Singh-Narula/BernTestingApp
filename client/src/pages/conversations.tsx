@@ -22,6 +22,9 @@ export default function Conversations() {
     queryFn: async () => {
       if (!userName) return [];
       const res = await fetch(`/api/conversations/${userName}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
       return res.json();
     },
     enabled: !!userName
@@ -48,7 +51,7 @@ export default function Conversations() {
       <h1 className="text-2xl font-bold mb-4">Your Conversations</h1>
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-4">
-          {conversations?.map((conversation) => (
+          {Array.isArray(conversations) && conversations.map((conversation) => (
             <Link key={conversation.id} href={`/chat/${conversation.id}`}>
               <Card className="p-4 hover:bg-accent cursor-pointer">
                 <div className="flex justify-between items-start mb-2">
