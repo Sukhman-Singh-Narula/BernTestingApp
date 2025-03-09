@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Activity, SystemPrompt } from "@shared/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
@@ -22,13 +23,13 @@ export default function Welcome() {
     queryKey: ["/api/activities"],
   });
 
-  // Fetch system prompt for selected activity
-  const { data: defaultSystemPrompt } = useQuery<SystemPrompt>({
-    queryKey: ["/api/activities", selectedActivity, "system-prompt"],
+  // Fetch recent system prompts for selected activity
+  const { data: recentSystemPrompts } = useQuery<SystemPrompt[]>({
+    queryKey: ["/api/activities", selectedActivity, "system-prompts"],
     queryFn: async () => {
       if (!selectedActivity) return null;
-      const response = await fetch(`/api/activities/${selectedActivity}/system-prompt`);
-      if (!response.ok) throw new Error('Failed to fetch system prompt');
+      const response = await fetch(`/api/activities/${selectedActivity}/system-prompts`);
+      if (!response.ok) throw new Error('Failed to fetch system prompts');
       return response.json();
     },
     enabled: !!selectedActivity
@@ -36,10 +37,10 @@ export default function Welcome() {
 
   // Update system prompt when activity changes or default prompt is loaded
   useEffect(() => {
-    if (defaultSystemPrompt?.systemPrompt) {
-      setSystemPrompt(defaultSystemPrompt.systemPrompt);
+    if (recentSystemPrompts && recentSystemPrompts.length > 0) {
+      setSystemPrompt(recentSystemPrompts[0].systemPrompt);
     }
-  }, [defaultSystemPrompt]);
+  }, [recentSystemPrompts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +66,13 @@ export default function Welcome() {
     localStorage.setItem("userName", userName);
     localStorage.setItem("systemPrompt", systemPrompt);
     setLocation("/chat");
+  };
+
+  const handleSystemPromptSelect = (promptId: string) => {
+    const selectedPrompt = recentSystemPrompts?.find(p => p.id.toString() === promptId);
+    if (selectedPrompt) {
+      setSystemPrompt(selectedPrompt.systemPrompt);
+    }
   };
 
   return (
@@ -104,19 +112,45 @@ export default function Welcome() {
           </div>
 
           {selectedActivity && (
-            <div>
-              <Label htmlFor="systemPrompt">System Prompt</Label>
-              <Textarea
-                id="systemPrompt"
-                placeholder="System prompt for the conversation"
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                className="min-h-[200px] font-mono text-sm"
-              />
-              <p className="text-sm text-muted-foreground mt-2">
-                You can customize the system prompt that will be used for your conversation.
-              </p>
-            </div>
+            <>
+              <div>
+                <Label htmlFor="recentPrompts">Select a recent system prompt</Label>
+                <Select onValueChange={handleSystemPromptSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a recent prompt" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recentSystemPrompts?.map((prompt) => (
+                      <SelectItem key={prompt.id} value={prompt.id.toString()}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">By {prompt.createdBy}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {prompt.systemPrompt.substring(0, 40)}...
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(prompt.createdAt), "dd/MM HH:mm:ss")}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="systemPrompt">System Prompt</Label>
+                <Textarea
+                  id="systemPrompt"
+                  placeholder="System prompt for the conversation"
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  className="min-h-[200px] font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  You can customize the system prompt that will be used for your conversation.
+                </p>
+              </div>
+            </>
           )}
 
           <Button type="submit" className="w-full">
