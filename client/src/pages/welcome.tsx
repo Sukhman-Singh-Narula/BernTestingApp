@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +28,8 @@ export default function Welcome() {
     enabled: !!selectedActivity
   });
 
-  // Update system prompt when activity changes
-  useState(() => {
+  // Update system prompt when activity changes or default prompt is loaded
+  useEffect(() => {
     if (defaultSystemPrompt?.systemPrompt) {
       setSystemPrompt(defaultSystemPrompt.systemPrompt);
     }
