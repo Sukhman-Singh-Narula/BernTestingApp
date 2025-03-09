@@ -39,7 +39,7 @@ export default function Chat() {
   });
 
   // Fetch system prompt for selected activity
-  const { data: systemPrompt } = useQuery<SystemPrompt>({
+  const { data: systemPromptData } = useQuery<SystemPrompt>({
     queryKey: ["/api/activity", selectedActivity, "system-prompt"],
     queryFn: async () => {
       if (!selectedActivity) return null;
@@ -50,7 +50,7 @@ export default function Chat() {
     enabled: !!selectedActivity
   });
 
-  // Update conversation creation to include userName
+  // Update conversation creation to include systemPrompt
   const { data: conversation } = useQuery<{
     id: number;
     activityId: number;
@@ -61,6 +61,7 @@ export default function Chat() {
     queryFn: async () => {
       if (!selectedActivity) return null;
       const userName = localStorage.getItem("userName");
+      const systemPrompt = localStorage.getItem("systemPrompt");
       if (!userName) {
         setLocation("/");
         return null;
@@ -68,7 +69,8 @@ export default function Chat() {
       const res = await apiRequest("POST", "/api/conversation", { 
         activityId: selectedActivity,
         shouldGenerateFirstResponse: true,
-        userName
+        userName,
+        systemPrompt
       });
       return res.json();
     },
@@ -323,7 +325,7 @@ export default function Chat() {
               <ScrollArea className="flex-1">
                 <div className="prose prose-sm max-w-none">
                   <pre className="whitespace-pre-wrap font-mono text-xs">
-                    {systemPrompt?.systemPrompt || 'No system prompt available'}
+                    {systemPromptData?.systemPrompt || 'No system prompt available'}
                   </pre>
                 </div>
               </ScrollArea>

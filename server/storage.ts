@@ -14,9 +14,10 @@ export interface IStorage {
   getStepByActivityAndNumber(activityId: number, stepNumber: number): Promise<Step | undefined>;
 
   // Conversation operations
-  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  createConversation(conversation: InsertConversation & { systemPrompt?: string }): Promise<Conversation>;
   getConversation(id: number): Promise<Conversation | undefined>;
   updateConversationStep(id: number, currentStep: number): Promise<Conversation>;
+  getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: SystemPrompt }) | undefined>;
 
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
@@ -71,8 +72,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Conversation operations
-  async createConversation(conversation: InsertConversation): Promise<Conversation> {
-    const [created] = await db.insert(conversations).values(conversation).returning();
+  async createConversation(conversation: InsertConversation & { systemPrompt?: string }): Promise<Conversation> {
+    let systemPromptId: number | undefined;
+
+    // If a new system prompt is provided, create it
+    if (conversation.systemPrompt) {
+      const [createdPrompt] = await db.insert(systemPrompts).values({
+        systemPrompt: conversation.systemPrompt,
+        activityId: conversation.activityId,
+        createdBy: conversation.userName
+      }).returning();
+      systemPromptId = createdPrompt.id;
+    } else {
+      // Get the most recent system prompt for this activity
+      const [latestPrompt] = await db
+        .select()
+        .from(systemPrompts)
+        .where(eq(systemPrompts.activityId, conversation.activityId))
+        .orderBy(desc(systemPrompts.createdAt))
+        .limit(1);
+      systemPromptId = latestPrompt?.id;
+    }
+
+    const [created] = await db.insert(conversations)
+      .values({
+        ...conversation,
+        systemPromptId
+      })
+      .returning();
     return created;
   }
 
@@ -91,6 +118,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversations.id, id))
       .returning();
     return updated;
+  }
+
+  async getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: SystemPrompt }) | undefined> {
+    const [conversation] = await db
+      .select({
+        id: conversations.id,
+        activityId: conversations.activityId,
+        currentStep: conversations.currentStep,
+        userName: conversations.userName,
+        systemPrompt: systemPrompts
+      })
+      .from(conversations)
+      .leftJoin(systemPrompts, eq(conversations.systemPromptId, systemPrompts.id))
+      .where(eq(conversations.id, id));
+
+    return conversation;
   }
 
   // Message operations
