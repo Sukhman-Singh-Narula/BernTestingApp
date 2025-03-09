@@ -26,6 +26,7 @@ export interface IStorage {
   // Add system prompt operations
   createSystemPrompt(prompt: InsertSystemPrompt): Promise<SystemPrompt>;
   getSystemPromptByActivity(activityId: number): Promise<SystemPrompt | undefined>;
+  getSystemPromptsByActivity(activityId: number): Promise<SystemPrompt[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -182,6 +183,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(systemPrompts.createdAt))
       .limit(1);
     return prompt;
+  }
+
+  async getSystemPromptsByActivity(activityId: number): Promise<SystemPrompt[]> {
+    return await db
+      .select()
+      .from(systemPrompts)
+      .where(eq(systemPrompts.activityId, activityId))
+      .orderBy(desc(systemPrompts.createdAt))
+      .limit(10); // Limit to 10 most recent prompts
   }
 }
 
