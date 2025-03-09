@@ -6,6 +6,7 @@ import Chat from "@/pages/chat";
 import Welcome from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
 import Activities from "@/pages/activities";
+import Navbar from "@/components/Navbar";
 
 function Router() {
   return (
@@ -21,7 +22,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
+      <div className="min-h-screen bg-background text-foreground">
+        <Navbar />
+        <Router />
+      </div>
       <Toaster />
     </QueryClientProvider>
   );
