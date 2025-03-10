@@ -181,17 +181,21 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Conversation not found', status: 404 });
         }
 
-        // Check for step ID in conversation
-        const stepId = conversation.currentStep;
-        console.log('Using step ID:', stepId);
+        // Check for step number in conversation - note this is the step number, not the ID
+        const stepNumber = conversation.currentStep;
+        console.log('Using step number:', stepNumber);
 
-        if (!stepId) {
-          console.error(`No step ID found for conversation ${conversationId}`);
+        if (stepNumber === undefined || stepNumber === null) {
+          console.error(`No step number found for conversation ${conversationId}`);
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
+        // Find the step by activity ID and step number
         const step = await db.query.steps.findFirst({
-          where: eq(steps.id, stepId)
+          where: and(
+            eq(steps.activityId, conversation.activityId),
+            eq(steps.stepNumber, stepNumber)
+          )
         });
 
         if (!step) {

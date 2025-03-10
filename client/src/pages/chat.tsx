@@ -50,7 +50,7 @@ export default function Chat() {
   }, [setLocation, conversationId, params.id, shouldRedirect]);
 
   // Fetch conversation data
-  const { data: conversation, isError, isLoading } = useQuery<{
+  const { data: conversation, isError, isLoading, refetch } = useQuery<{
     id: number;
     activityId: number;
     currentStep: number;
@@ -63,10 +63,18 @@ export default function Chat() {
       console.log("Fetching conversation:", conversationId);
       const res = await fetch(`/api/conversation/${conversationId}`);
       if (!res.ok) {
-        throw new Error('Conversation not found');
+        throw new Error(`Conversation not found: ${res.statusText}`);
       }
       const data = await res.json();
       console.log("Conversation data:", data);
+      
+      // Check if messages array exists and has items
+      if (!data.messages || data.messages.length === 0) {
+        console.warn("No messages found in conversation data");
+      } else {
+        console.log(`Found ${data.messages.length} messages`);
+      }
+      
       return data;
     },
     enabled: !!conversationId,
