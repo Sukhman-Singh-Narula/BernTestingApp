@@ -60,6 +60,7 @@ export class PatronusClient {
         evaluated_model_output: "",
         evaluated_model_gold_answer: "",
         evaluated_model_retrieved_context: retrievedContext,
+        evaluated_model_system_prompt: stepData?.systemPrompt || null,
         tags: {
           environment: process.env.NODE_ENV || 'development',
           application: 'language-learning-ai',
@@ -128,6 +129,7 @@ export class PatronusClient {
         evaluated_model_output: data.output,
         evaluated_model_gold_answer: "",
         evaluated_model_retrieved_context: retrievedContext,
+        evaluated_model_system_prompt: data.metadata?.systemPrompt || null,
         tags: sanitizedMetadata
       });
     } catch (error) {
