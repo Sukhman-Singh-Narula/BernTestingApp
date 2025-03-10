@@ -33,8 +33,6 @@ export class PatronusClient {
         return null;
       }
 
-      console.log('Patronus evaluateMessage called with:', message.substring(0, 50) + '...');
-
       let retrievedContext = '';
       if (stepData) {
         retrievedContext = JSON.stringify({
@@ -63,65 +61,9 @@ export class PatronusClient {
         }
       };
 
-      console.log(`Full Patronus API URL: ${this.BASE_URL}/v1/evaluate`);
       return this.sendRequest('POST', '/v1/evaluate', payload);
     } catch (error) {
       console.error('Patronus evaluation error:', error);
-      return null;
-    }
-  }
-
-  async logInteraction(data: {
-    input: string;
-    output: string;
-    model: string;
-    metadata?: Record<string, any>;
-  }) {
-    try {
-      if (!this.apiKey) {
-        console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
-        return null;
-      }
-
-      const retrievedContext = JSON.stringify({
-        expected_responses: data.metadata?.expectedResponses || '',
-        language: data.metadata?.language || '',
-        current_step: data.metadata?.currentStep || '',
-        step_objective: data.metadata?.stepObjective || '',
-        system_prompt: data.metadata?.systemPrompt || ''
-      });
-
-      const sanitizedMetadata = {
-        userId: this.sanitizeText(data.metadata?.userId || 'unknown'),
-        activityId: String(data.metadata?.activityId || ''),
-        activityName: this.sanitizeText(data.metadata?.activityName || ''),
-        activityType: this.sanitizeText(data.metadata?.activityType || ''),
-        language: this.sanitizeText(data.metadata?.language || ''),
-        conversationId: String(data.metadata?.conversationId || ''),
-        currentStep: String(data.metadata?.currentStep || ''),
-        stepObjective: this.sanitizeText(data.metadata?.stepObjective || ''),
-        expectedResponses: this.sanitizeText(data.metadata?.expectedResponses || ''),
-        spanishWords: this.sanitizeText(data.metadata?.spanishWords || ''),
-        systemPrompt: this.sanitizeText(data.metadata?.systemPrompt || '').substring(0, 256),
-        endpoint: this.sanitizeText(data.metadata?.endpoint || ''),
-        method: this.sanitizeText(data.metadata?.method || ''),
-        timestamp: new Date().toISOString()
-      };
-
-      return this.sendRequest('POST', '/v1/evaluate', {
-        evaluators: [{ 
-          evaluator: "glider",
-          criteria: "language-compliance" 
-        }],
-        evaluated_model_input: data.input,
-        evaluated_model_output: data.output,
-        evaluated_model_gold_answer: "",
-        evaluated_model_retrieved_context: retrievedContext,
-        evaluated_model_system_prompt: data.metadata?.systemPrompt || null,
-        tags: sanitizedMetadata
-      });
-    } catch (error) {
-      console.error('Patronus logging error:', error);
       return null;
     }
   }
@@ -207,61 +149,12 @@ const patronus = new PatronusClient({
 
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const originalJson = res.json;
-
-  res.json = async function(body) {
-    if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
-      try {
-        // Get conversation details first
-        const conversationId = req.params?.id || body?.conversation?.id;
-        const conversation = conversationId ? 
-          await db.query.conversations.findFirst({
-            where: eq(conversations.id, parseInt(conversationId)),
-            with: {
-              activity: true,
-              systemPrompt: true
-            }
-          }) : null;
-
-        // Get step information
-        const stepId = body?.message?.stepId || conversation?.currentStep;
-        const step = stepId ?
-          await db.query.steps.findFirst({
-            where: eq(steps.id, stepId)
-          }) : null;
-
-        // Only log interaction, skip evaluation here since it's handled in evaluateResponse
-        await patronus.logInteraction({
-          input: req.body?.message || 'conversation_start',
-          output: body?.message || JSON.stringify(body),
-          model: 'gpt-4',
-          metadata: {
-            userId: req.body?.userName || body?.conversation?.userName || 'unknown',
-            activityId: conversation?.activityId,
-            activityName: conversation?.activity?.name,
-            activityType: conversation?.activity?.contentType,
-            language: conversation?.activity?.language,
-            conversationId: conversationId,
-            currentStep: conversation?.currentStep,
-            stepObjective: step?.objective,
-            expectedResponses: step?.expectedResponses,
-            spanishWords: step?.spanishWords,
-            systemPrompt: conversation?.systemPrompt?.systemPrompt,
-            endpoint: req.path,
-            method: req.method
-          }
-        });
-      } catch (error) {
-        console.error('Patronus logging error:', error);
-      }
-    }
-
+  res.json = function(body) {
     return originalJson.call(this, body);
   };
-
   next();
 };
 
-// Enhanced evaluation function for specific response analysis
 export async function evaluateResponse(
   userInput: string,
   aiResponse: string,
@@ -269,10 +162,8 @@ export async function evaluateResponse(
   metadata: Record<string, any> = {}
 ) {
   try {
-    // Evaluate the user input with context
     const evaluation = await patronus.evaluateMessage(userInput, stepData);
 
-    // Gather additional context about the step and activity
     const step = await db.query.steps.findFirst({
       where: eq(steps.id, stepData.id),
       with: {
@@ -292,7 +183,6 @@ export async function evaluateResponse(
       ...metadata
     };
 
-    // Return the evaluation result directly
     return evaluation;
   } catch (error) {
     console.error('Patronus evaluation error:', error);
