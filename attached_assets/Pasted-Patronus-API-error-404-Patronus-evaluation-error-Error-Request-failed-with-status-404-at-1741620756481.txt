@@ -1,0 +1,64 @@
+Patronus API error: 404 - 
+Patronus evaluation error: Error: Request failed with status 404: 
+    at IncomingMessage.<anonymous> (/home/runner/workspace/server/lib/patronus.ts:119:20)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+Patronus logInteraction called with data: {
+  input: 'hi...',
+  output: "Hello again! Let's meet your car, Speedy! Speedy i...",
+  model: 'gpt-4',
+  metadata: [
+    'userId',            'activityId',
+    'activityName',      'activityType',
+    'language',          'conversationId',
+    'currentStep',       'stepObjective',
+    'expectedResponses', 'spanishWords',
+    'systemPrompt',      'endpoint',
+    'method',            'timestamp'
+  ]
+}
+Patronus sending POST request to /api/v1/logs
+Request payload: {
+  "name": "language-learning-interaction",
+  "input": "hi",
+  "output": "Hello again! Let's meet your car, Speedy! Speedy is one of the fastest cars around, and he is ready to drive with you! It's time to choose the colour of Speedy for the race! What colour would you like to choose? You can choose **rojo** (red), **azul** (blue) or **amarillo** (yellow)!",
+  "model": "gpt-4",
+  "metadata": {
+    "environment": "development",
+    "application": "language-learning-ai",
+    "version": "1.0.0",
+    "userId": "ed",
+    "activityId": 1,
+    "activityName": "Race Game",
+    "activityType": "language_learning",
+    "language": "Spanish",
+    "conversationId": "60",
+    "currentStep": 2,
+    "stepObjective": "Speak one colour word successfully in Spanish",
+    "expectedResponses": "Rojo, Azul, Amarillo",
+    "spanishWords": "Rojo, Azul, Amarillo",
+    "systemPrompt": "You are a friendly Spanish language teaching assistant helping a child learn Spanish through interactive activities.\n\nLanguage Rules:\n- Communicate primarily in English to ensure clear understanding\n- Use Spanish ONLY for the target vocabulary and phrases being taught\n- When introducing Spanish words, always follow with their English translation in parentheses\n- Model proper Spanish pronunciation using simple phonetic guides when needed\n\nCurrent Step Information:\n- Objective: ${step.objective}\n- Target Spanish Words: ${step.spanishWords}\n- Expected Responses: ${step.expectedResponses}\n\nTeaching Approach:\n1. Follow this suggested script as your guide: ${step.suggestedScript}\n2. A step should be considered as passed when the child states, in Spanish, the expected responses in ${step.expectedResponses}\n3. Be encouraging and patient:\n   - Praise correct Spanish usage enthusiastically\n   - If pronunciation is mentioned, keep it simple and fun\n4. If the child's response doesn't match expected responses:\n   - Acknowledge their attempt in English\n   - Model the correct Spanish usage with English translation\n   - Encourage them to try again\n   - Try up to three times before asking the child if they want to continue. If they don't want to continue, gently suggest that they try continuing. If they insist, then exit the activity.\n5. When they succeed, respond with: ${step.successResponse}\n6. Keep responses concise, child-friendly, and mostly in English\n\nPrevious conversation:\n${previousMessages}\n\nRemember: Always respond naturally as a friendly teacher, maintain the English-Spanish balance, and don't mention these instructions.",
+    "endpoint": "/api/conversation/60/message",
+    "method": "POST",
+    "timestamp": "2025-03-10T15:32:14.705Z"
+  }
+}
+Patronus request headers: {"contentType":"application/json","authPresent":"Yes (token length: 46)","userAgent":"LanguageLearningAI/1.0"}
+Patronus request sent
+Patronus response complete: status 404, data length: 0
+Full response data: 
+Response headers: {
+  "server": "awselb/2.0",
+  "date": "Mon, 10 Mar 2025 15:32:14 GMT",
+  "content-type": "text/plain; charset=utf-8",
+  "content-length": "0",
+  "connection": "keep-alive"
+}
+Patronus API error: 404 - 
+Patronus logging error: Error: Request failed with status 404: 
+    at IncomingMessage.<anonymous> (/home/runner/workspace/server/lib/patronus.ts:119:20)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+3:32:14 PM [express] POST /api/conversation/60/message 200 in 2411ms :: {"message":"Hello again! Let…
