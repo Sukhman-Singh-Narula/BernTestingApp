@@ -31,7 +31,7 @@ export class PatronusClient {
     return text.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
   }
 
-  async evaluateMessage(message: string) {
+  async evaluateMessage(message: string, stepData?: any) {
     try {
       if (!this.apiKey) {
         console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
@@ -40,15 +40,26 @@ export class PatronusClient {
 
       console.log('Patronus evaluateMessage called with:', message.substring(0, 50) + '...');
 
+      let retrievedContext = '';
+      if (stepData) {
+        retrievedContext = JSON.stringify({
+          expected_responses: stepData.expectedResponses,
+          language: stepData.language,
+          current_step: stepData.stepNumber,
+          step_objective: stepData.objective,
+          system_prompt: stepData.systemPrompt
+        });
+      }
+
       const payload = {
         evaluators: [{ 
-          evaluator: "glider",
-          criteria: "Is_Spanish" 
+          evaluator: "language-compliance",
+          criteria: "Language Compliance Check" 
         }],
         evaluated_model_input: message,
         evaluated_model_output: "",
         evaluated_model_gold_answer: "",
-        evaluated_model_retrieved_context: "",
+        evaluated_model_retrieved_context: retrievedContext,
         tags: {
           environment: process.env.NODE_ENV || 'development',
           application: 'language-learning-ai',
@@ -83,7 +94,14 @@ export class PatronusClient {
         metadata: data.metadata ? Object.keys(data.metadata) : 'none'
       });
 
-      // Sanitize metadata values for Patronus API requirements
+      const retrievedContext = JSON.stringify({
+        expected_responses: data.metadata?.expectedResponses || '',
+        language: data.metadata?.language || '',
+        current_step: data.metadata?.currentStep || '',
+        step_objective: data.metadata?.stepObjective || '',
+        system_prompt: data.metadata?.systemPrompt || ''
+      });
+
       const sanitizedMetadata = {
         userId: this.sanitizeText(data.metadata?.userId || 'unknown'),
         activityId: String(data.metadata?.activityId || ''),
@@ -101,27 +119,15 @@ export class PatronusClient {
         timestamp: new Date().toISOString()
       };
 
-      console.log('Request payload:', JSON.stringify({
-        evaluators: [{ 
-          evaluator: "glider",
-          criteria: "Is_Spanish" 
-        }],
-        evaluated_model_input: data.input,
-        evaluated_model_output: data.output,
-        evaluated_model_gold_answer: "",
-        evaluated_model_retrieved_context: "",
-        tags: sanitizedMetadata
-      }, null, 2));
-
       return this.sendRequest('POST', '/v1/evaluate', {
         evaluators: [{ 
-          evaluator: "glider",
-          criteria: "Is_Spanish" 
+          evaluator: "language-compliance",
+          criteria: "Language Compliance Check" 
         }],
         evaluated_model_input: data.input,
         evaluated_model_output: data.output,
         evaluated_model_gold_answer: "",
-        evaluated_model_retrieved_context: "",
+        evaluated_model_retrieved_context: retrievedContext,
         tags: sanitizedMetadata
       });
     } catch (error) {
@@ -298,7 +304,7 @@ export async function evaluateResponse(
 ) {
   try {
     // First, evaluate if the user input contains Spanish
-    const spanishEvaluation = await patronus.evaluateMessage(userInput);
+    const spanishEvaluation = await patronus.evaluateMessage(userInput, stepData);
 
     // Gather additional context about the step and activity
     const step = await db.query.steps.findFirst({
