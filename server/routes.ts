@@ -290,10 +290,17 @@ export async function registerRoutes(app: Express, port: number = 5000) {
       );
 
       const updatedMessages = await storage.getMessagesByConversation(conversationId);
-
+      
+      // Get the system prompt to include it in the response
+      const systemPrompt = await storage.getSystemPromptByActivity(updatedConversation.activityId);
+      
       res.json({
         message: aiResponse,
-        conversation: { ...updatedConversation, messages: updatedMessages }
+        conversation: { 
+          ...updatedConversation, 
+          messages: updatedMessages,
+          systemPrompt // Include the system prompt in the response
+        }
       });
     } catch (error) {
       console.error("Error processing message:", error);

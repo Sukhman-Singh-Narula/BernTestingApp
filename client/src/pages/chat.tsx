@@ -115,7 +115,19 @@ export default function Chat() {
     },
     onSuccess: (data) => {
       setInput("");
-      queryClient.setQueryData(["/api/conversation", conversationId], data.conversation);
+      
+      // Preserve systemPrompt when updating cached conversation data
+      const currentData = queryClient.getQueryData(["/api/conversation", conversationId]);
+      
+      // Only update what changed, preserving the systemPrompt if it wasn't in the response
+      queryClient.setQueryData(["/api/conversation", conversationId], prevData => {
+        return {
+          ...prevData,
+          ...data.conversation,
+          // Ensure systemPrompt is preserved from either source
+          systemPrompt: data.conversation.systemPrompt || (prevData as any)?.systemPrompt
+        };
+      });
     },
     onError: () => {
       toast({
