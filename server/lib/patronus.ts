@@ -10,24 +10,23 @@ export class PatronusClient {
   private apiKey: string;
   private defaultMetadata: Record<string, any>;
   private readonly BASE_URL = 'https://api.patronus.ai';
-  private readonly API_VERSION = 'v2';
 
   constructor(options: { apiKey: string, defaultMetadata?: Record<string, any> }) {
     this.apiKey = options.apiKey;
     this.defaultMetadata = options.defaultMetadata || {};
 
     // Validate API key format
-    if (!this.apiKey.startsWith('pt_')) {
-      console.warn('Warning: Patronus API key does not start with "pt_". Please verify the key format.');
+    if (!this.apiKey) {
+      console.warn('Warning: Patronus API key is not set');
     }
 
     // Log API key length for debugging
-    console.log(`Patronus API key length: ${this.apiKey.length}`);
+    console.log(`Patronus API key length: ${this.apiKey?.length || 0}`);
   }
 
   async evaluateMessage(message: string) {
     try {
-      if (!this.apiKey || this.apiKey === '') {
+      if (!this.apiKey) {
         console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
         return null;
       }
@@ -35,17 +34,20 @@ export class PatronusClient {
       console.log('Patronus evaluateMessage called with:', message.substring(0, 50) + '...');
 
       const payload = {
-        name: "is-Spanish",
-        input: message,
-        metadata: {
-          ...this.defaultMetadata,
-          evaluationType: "language-detection"
+        evaluators: [{ 
+          evaluator: "is-Spanish",
+          criteria: "patronus:language-detection" 
+        }],
+        evaluated_model_input: message,
+        evaluated_model_output: "", // Not applicable for language detection
+        tags: {
+          application: "language-learning-ai",
+          type: "language-detection",
+          ...this.defaultMetadata
         }
       };
 
-      const endpoint = `/api/${this.API_VERSION}/evaluations`;
-      console.log(`Full Patronus API URL: ${this.BASE_URL}${endpoint}`);
-      return this.sendRequest('POST', endpoint, payload);
+      return this.sendRequest('POST', '/v1/evaluate', payload);
     } catch (error) {
       console.error('Patronus evaluation error:', error);
       return null;
@@ -59,7 +61,7 @@ export class PatronusClient {
     metadata?: Record<string, any>;
   }) {
     try {
-      if (!this.apiKey || this.apiKey === '') {
+      if (!this.apiKey) {
         console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
         return null;
       }
@@ -71,20 +73,23 @@ export class PatronusClient {
         metadata: data.metadata ? Object.keys(data.metadata) : 'none'
       });
 
+      // For logging, we'll use the evaluate endpoint to analyze the interaction
       const payload = {
-        name: "language-learning-interaction",
-        input: data.input,
-        output: data.output,
-        model: data.model,
-        metadata: {
+        evaluators: [{ 
+          evaluator: "is-Spanish",
+          criteria: "patronus:language-detection" 
+        }],
+        evaluated_model_input: data.input,
+        evaluated_model_output: data.output,
+        tags: {
+          model: data.model,
           ...this.defaultMetadata,
           ...data.metadata
         }
       };
 
-      const endpoint = `/api/${this.API_VERSION}/logs`;
-      console.log(`Full Patronus API URL: ${this.BASE_URL}${endpoint}`);
-      return this.sendRequest('POST', endpoint, payload);
+      console.log(`Full Patronus API URL: ${this.BASE_URL}/v1/evaluate`);
+      return this.sendRequest('POST', '/v1/evaluate', payload);
     } catch (error) {
       console.error('Patronus logging error:', error);
       return null;
@@ -104,16 +109,16 @@ export class PatronusClient {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'LanguageLearningAI/1.0',
-          'Accept': 'application/json'
+          'X-API-KEY': this.apiKey,
+          'Accept': 'application/json',
+          'User-Agent': 'LanguageLearningAI/1.0'
         },
         timeout: 5000
       };
 
       console.log('Patronus request headers:', JSON.stringify({
         contentType: options.headers['Content-Type'],
-        authPresent: options.headers['Authorization'] ? 'Yes (token length: ' + this.apiKey.length + ')' : 'No',
+        authPresent: options.headers['X-API-KEY'] ? 'Yes (token length: ' + this.apiKey.length + ')' : 'No',
         userAgent: options.headers['User-Agent']
       }));
 
