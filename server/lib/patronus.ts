@@ -53,8 +53,8 @@ export class PatronusClient {
 
       const payload = {
         evaluators: [{ 
-          evaluator: "language-compliance",
-          criteria: "Language Compliance Check" 
+          evaluator: "glider",
+          criteria: "language-compliance" 
         }],
         evaluated_model_input: message,
         evaluated_model_output: "",
@@ -121,8 +121,8 @@ export class PatronusClient {
 
       return this.sendRequest('POST', '/v1/evaluate', {
         evaluators: [{ 
-          evaluator: "language-compliance",
-          criteria: "Language Compliance Check" 
+          evaluator: "glider",
+          criteria: "language-compliance" 
         }],
         evaluated_model_input: data.input,
         evaluated_model_output: data.output,
