@@ -175,7 +175,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Conversation not found', status: 404 });
         }
 
-        // Check for step ID in the request body first, then fallback to conversation's current step
+        // Check for step ID in conversation
         const stepId = conversation.currentStep;
         console.log('Using step ID:', stepId);
 
@@ -193,6 +193,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
+        // Process message evaluation if this is a message request
         if (req.body?.message) {
           const stepData = {
             id: step.id,
