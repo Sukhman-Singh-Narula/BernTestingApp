@@ -203,7 +203,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
             systemPrompt: conversation.systemPrompt?.systemPrompt
           };
 
-          console.log('Evaluating message with step data:', stepData);
+          console.log('Step data attached to request:', stepData);
           const evaluation = await patronus.evaluateMessage(req.body.message, stepData);
 
           if (evaluation) {
