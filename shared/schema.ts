@@ -18,7 +18,8 @@ export const activities = pgTable("activities", {
   totalSteps: integer("total_steps").notNull(),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  hidden: boolean("hidden").notNull().default(false)
+  hidden: boolean("hidden").notNull().default(false),
+  language: text("language").notNull().default('Spanish')
 });
 
 export const steps = pgTable("steps", {
