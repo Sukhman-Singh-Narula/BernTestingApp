@@ -52,12 +52,14 @@ app.use((req, res, next) => {
   // Check for already used port and increment if needed
   const findAvailablePort = async (startPort: number): Promise<number> => {
     return new Promise((resolve) => {
-      const server = require('http').createServer();
-      server.listen(startPort, () => {
-        server.close(() => resolve(startPort));
-      });
-      server.on('error', () => {
-        resolve(findAvailablePort(startPort + 1));
+      import('http').then(http => {
+        const server = http.createServer();
+        server.listen(startPort, () => {
+          server.close(() => resolve(startPort));
+        });
+        server.on('error', () => {
+          resolve(findAvailablePort(startPort + 1));
+        });
       });
     });
   };
