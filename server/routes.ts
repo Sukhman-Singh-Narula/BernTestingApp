@@ -12,7 +12,7 @@ import { eq, desc } from 'drizzle-orm';
 // Configure multer for file upload
 const upload = multer({ storage: multer.memoryStorage() });
 
-export async function registerRoutes(app: Express) {
+export async function registerRoutes(app: Express, port: number = 5000) {
   const httpServer = createServer(app);
 
   // Add route to get example CSV

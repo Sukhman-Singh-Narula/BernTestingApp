@@ -22,6 +22,18 @@ class PatronusClient {
     metadata?: Record<string, any>;
   }) {
     try {
+      if (!this.apiKey || this.apiKey === '') {
+        console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
+        return null;
+      }
+      
+      console.log('Patronus logInteraction called with data:', {
+        input: data.input.substring(0, 50) + '...',
+        output: data.output.substring(0, 50) + '...',
+        model: data.model,
+        metadata: data.metadata ? Object.keys(data.metadata) : 'none'
+      });
+      
       const payload = {
         input: data.input,
         output: data.output,
@@ -41,6 +53,8 @@ class PatronusClient {
 
   private sendRequest(method: string, path: string, data: any) {
     return new Promise((resolve, reject) => {
+      console.log(`Patronus sending ${method} request to ${path}`);
+      
       const options = {
         hostname: 'app.patronus.ai', // Updated hostname
         port: 443,
@@ -53,19 +67,31 @@ class PatronusClient {
         },
         timeout: 5000 // 5 second timeout
       };
+      
+      console.log('Patronus request headers:', JSON.stringify({
+        contentType: options.headers['Content-Type'],
+        authPresent: options.headers['Authorization'] ? 'Yes (token length: ' + this.apiKey.length + ')' : 'No',
+        userAgent: options.headers['User-Agent']
+      }));
 
       const req = https.request(options, (res) => {
         let responseData = '';
+        console.log(`Patronus response started: status ${res.statusCode}`);
 
         res.on('data', (chunk) => {
           responseData += chunk;
         });
 
         res.on('end', () => {
+          console.log(`Patronus response complete: status ${res.statusCode}, data length: ${responseData.length}`);
+          
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
-              resolve(JSON.parse(responseData));
+              const parsed = JSON.parse(responseData);
+              console.log('Patronus request successful');
+              resolve(parsed);
             } catch (e) {
+              console.log('Patronus response not JSON, returning as string');
               resolve(responseData);
             }
           } else {
@@ -81,12 +107,14 @@ class PatronusClient {
       });
 
       req.on('timeout', () => {
+        console.error('Patronus request timed out after 5 seconds');
         req.destroy();
         reject(new Error('Request timeout'));
       });
 
       req.write(JSON.stringify(data));
       req.end();
+      console.log('Patronus request sent');
     });
   }
 }
