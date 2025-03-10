@@ -13,6 +13,14 @@ class PatronusClient {
   constructor(options: { apiKey: string, defaultMetadata?: Record<string, any> }) {
     this.apiKey = options.apiKey;
     this.defaultMetadata = options.defaultMetadata || {};
+
+    // Validate API key format
+    if (!this.apiKey.startsWith('pt_')) {
+      console.warn('Warning: Patronus API key does not start with "pt_". Please verify the key format.');
+    }
+
+    // Log API key length for debugging
+    console.log(`Patronus API key length: ${this.apiKey.length}`);
   }
 
   async logInteraction(data: {
@@ -55,9 +63,10 @@ class PatronusClient {
   private sendRequest(method: string, path: string, data: any) {
     return new Promise((resolve, reject) => {
       console.log(`Patronus sending ${method} request to ${path}`);
+      console.log('Request payload:', JSON.stringify(data, null, 2));
 
       const options = {
-        hostname: 'api.patronus.ai', // Updated hostname
+        hostname: 'api.patronus.ai',
         port: 443,
         path,
         method,
@@ -85,7 +94,8 @@ class PatronusClient {
 
         res.on('end', () => {
           console.log(`Patronus response complete: status ${res.statusCode}, data length: ${responseData.length}`);
-          console.log(`Response preview: ${responseData.substring(0, 100)}`); // Debug response content
+          console.log('Full response data:', responseData); 
+          console.log(`Response headers:`, JSON.stringify(res.headers, null, 2));
 
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
@@ -97,7 +107,7 @@ class PatronusClient {
               }
 
               const parsed = JSON.parse(responseData);
-              console.log('Patronus request successful');
+              console.log('Patronus request successful, parsed response:', JSON.stringify(parsed, null, 2));
               resolve(parsed);
             } catch (e) {
               console.error('Failed to parse Patronus response:', e);
