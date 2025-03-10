@@ -35,7 +35,7 @@ export class PatronusClient {
 
       const payload = {
         evaluators: [{ 
-          evaluator: "is-Spanish",
+          evaluator: "Is_Spanish",
           criteria: "patronus:language-detection" 
         }],
         evaluated_model_input: message,
@@ -76,7 +76,7 @@ export class PatronusClient {
       // For logging, we'll use the evaluate endpoint to analyze the interaction
       const payload = {
         evaluators: [{ 
-          evaluator: "is-Spanish",
+          evaluator: "Is_Spanish",
           criteria: "patronus:language-detection" 
         }],
         evaluated_model_input: data.input,
