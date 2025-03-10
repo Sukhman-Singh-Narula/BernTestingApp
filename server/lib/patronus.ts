@@ -57,7 +57,7 @@ class PatronusClient {
       console.log(`Patronus sending ${method} request to ${path}`);
 
       const options = {
-        hostname: 'app.patronus.ai',
+        hostname: 'api.patronus.ai', // Updated hostname
         port: 443,
         path,
         method,
@@ -85,9 +85,17 @@ class PatronusClient {
 
         res.on('end', () => {
           console.log(`Patronus response complete: status ${res.statusCode}, data length: ${responseData.length}`);
+          console.log(`Response preview: ${responseData.substring(0, 100)}`); // Debug response content
 
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
+              // Check if response looks like HTML
+              if (responseData.trim().startsWith('<!DOCTYPE') || responseData.trim().startsWith('<html')) {
+                console.error('Received HTML response instead of JSON');
+                reject(new Error('Received HTML response from Patronus API'));
+                return;
+              }
+
               const parsed = JSON.parse(responseData);
               console.log('Patronus request successful');
               resolve(parsed);
