@@ -35,11 +35,13 @@ export class PatronusClient {
 
       const payload = {
         evaluators: [{ 
-          evaluator: "Is_Spanish",
-          criteria: "patronus:language-detection" 
+          evaluator: "glider",
+          criteria: "Is_Spanish" 
         }],
         evaluated_model_input: message,
-        evaluated_model_output: "", // Not applicable for language detection
+        evaluated_model_output: "",
+        evaluated_model_gold_answer: "",
+        evaluated_model_retrieved_context: "",
         tags: {
           application: "language-learning-ai",
           type: "language-detection",
@@ -73,14 +75,15 @@ export class PatronusClient {
         metadata: data.metadata ? Object.keys(data.metadata) : 'none'
       });
 
-      // For logging, we'll use the evaluate endpoint to analyze the interaction
       const payload = {
         evaluators: [{ 
-          evaluator: "Is_Spanish",
-          criteria: "patronus:language-detection" 
+          evaluator: "glider",
+          criteria: "Is_Spanish" 
         }],
         evaluated_model_input: data.input,
         evaluated_model_output: data.output,
+        evaluated_model_gold_answer: "",
+        evaluated_model_retrieved_context: "",
         tags: {
           model: data.model,
           ...this.defaultMetadata,
@@ -166,7 +169,7 @@ export class PatronusClient {
       });
 
       req.on('error', (error) => {
-        console.error('Error sending request to Patronus:', error.message);
+        console.error('Error sending request to Patronus:', error);
         reject(error);
       });
 
