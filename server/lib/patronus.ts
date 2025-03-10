@@ -24,6 +24,13 @@ export class PatronusClient {
     console.log(`Patronus API key length: ${this.apiKey?.length || 0}`);
   }
 
+  // Helper function to sanitize text for Patronus API
+  private sanitizeText(text: string): string {
+    if (!text) return '';
+    // Remove any characters that don't match the Patronus pattern
+    return text.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
+  }
+
   async evaluateMessage(message: string) {
     try {
       if (!this.apiKey) {
@@ -77,22 +84,20 @@ export class PatronusClient {
 
       // Sanitize metadata values for Patronus API requirements
       const sanitizedMetadata = {
-        userId: data.metadata?.userId || 'unknown',
+        userId: this.sanitizeText(data.metadata?.userId || 'unknown'),
         activityId: String(data.metadata?.activityId || ''),
-        activityName: data.metadata?.activityName || '',
-        activityType: data.metadata?.activityType || '',
-        language: data.metadata?.language || '',
+        activityName: this.sanitizeText(data.metadata?.activityName || ''),
+        activityType: this.sanitizeText(data.metadata?.activityType || ''),
+        language: this.sanitizeText(data.metadata?.language || ''),
         conversationId: String(data.metadata?.conversationId || ''),
         currentStep: String(data.metadata?.currentStep || ''),
-        stepObjective: data.metadata?.stepObjective || '',
-        // Sanitize lists by removing commas and special characters
-        expectedResponses: data.metadata?.expectedResponses?.replace(/[^a-zA-Z0-9\s]/g, '_') || '',
-        spanishWords: data.metadata?.spanishWords?.replace(/[^a-zA-Z0-9\s]/g, '_') || '',
-        // Truncate system prompt to 256 characters
-        systemPrompt: data.metadata?.systemPrompt?.substring(0, 256) || '',
-        endpoint: data.metadata?.endpoint || '',
-        method: data.metadata?.method || '',
-        timestamp: data.metadata?.timestamp || new Date().toISOString()
+        stepObjective: this.sanitizeText(data.metadata?.stepObjective || ''),
+        expectedResponses: this.sanitizeText(data.metadata?.expectedResponses || ''),
+        spanishWords: this.sanitizeText(data.metadata?.spanishWords || ''),
+        systemPrompt: this.sanitizeText(data.metadata?.systemPrompt || '').substring(0, 256),
+        endpoint: this.sanitizeText(data.metadata?.endpoint || ''),
+        method: this.sanitizeText(data.metadata?.method || ''),
+        timestamp: new Date().toISOString()
       };
 
       const payload = {
