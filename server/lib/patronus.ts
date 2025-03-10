@@ -4,11 +4,13 @@ import { db } from '../db';
 import { activities, conversations, messages, steps, systemPrompts } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import https from 'https';
+import { URL } from 'url';
 
-// Custom Patronus client that doesn't rely on an external SDK
-class PatronusClient {
+export class PatronusClient {
   private apiKey: string;
   private defaultMetadata: Record<string, any>;
+  private readonly BASE_URL = 'https://api.patronus.ai';
+  private readonly API_VERSION = 'v2';
 
   constructor(options: { apiKey: string, defaultMetadata?: Record<string, any> }) {
     this.apiKey = options.apiKey;
@@ -53,7 +55,9 @@ class PatronusClient {
         }
       };
 
-      return this.sendRequest('POST', '/api/v1/logs', payload);
+      const endpoint = `/api/${this.API_VERSION}/logs`;
+      console.log(`Full Patronus API URL: ${this.BASE_URL}${endpoint}`);
+      return this.sendRequest('POST', endpoint, payload);
     } catch (error) {
       console.error('Patronus logging error:', error);
       return null;
@@ -65,10 +69,11 @@ class PatronusClient {
       console.log(`Patronus sending ${method} request to ${path}`);
       console.log('Request payload:', JSON.stringify(data, null, 2));
 
+      const url = new URL(path, this.BASE_URL);
       const options = {
-        hostname: 'api.patronus.ai',
+        hostname: url.hostname,
         port: 443,
-        path,
+        path: url.pathname + url.search, // include query parameters
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -103,6 +108,13 @@ class PatronusClient {
               if (responseData.trim().startsWith('<!DOCTYPE') || responseData.trim().startsWith('<html')) {
                 console.error('Received HTML response instead of JSON');
                 reject(new Error('Received HTML response from Patronus API'));
+                return;
+              }
+
+              // Handle empty response
+              if (!responseData.trim()) {
+                console.error('Received empty response from Patronus API');
+                reject(new Error('Empty response from Patronus API'));
                 return;
               }
 
