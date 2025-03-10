@@ -155,10 +155,16 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
       try {
         console.log('Processing request:', { path: req.path, method: req.method, body: req.body });
 
+        // Skip evaluation for POST to /api/conversation (creation requests)
+        if (req.method === 'POST' && req.path === '/api/conversation') {
+          console.log('Skipping evaluation for conversation creation request');
+          return originalJson.apply(this, arguments);
+        }
+
         const conversationId = req.params?.id || body?.conversation?.id;
         if (!conversationId) {
-          console.error('No conversation ID found in request');
-          return originalJson.call(this, { message: 'Conversation ID not found', status: 404 });
+          console.log('No conversation ID found in request - continuing');
+          return originalJson.apply(this, arguments);
         }
 
         // Get conversation with related data
