@@ -24,6 +24,14 @@ export default function Navbar() {
               Chat
             </a>
           </Link>
+          <Link href="/conversations">
+            <a className={cn(
+              "text-sm font-medium transition-colors hover:text-primary",
+              location === "/conversations" ? "text-primary" : "text-muted-foreground"
+            )}>
+              Conversations
+            </a>
+          </Link>
           <Link href="/activities">
             <a className={cn(
               "text-sm font-medium transition-colors hover:text-primary",
