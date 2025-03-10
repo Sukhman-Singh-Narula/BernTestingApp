@@ -43,9 +43,9 @@ export class PatronusClient {
         evaluated_model_gold_answer: "",
         evaluated_model_retrieved_context: "",
         tags: {
-          application: "language-learning-ai",
-          type: "language-detection",
-          ...this.defaultMetadata
+          environment: process.env.NODE_ENV || 'development',
+          application: 'language-learning-ai',
+          version: '1.0.0'
         }
       };
 
@@ -75,6 +75,26 @@ export class PatronusClient {
         metadata: data.metadata ? Object.keys(data.metadata) : 'none'
       });
 
+      // Sanitize metadata values for Patronus API requirements
+      const sanitizedMetadata = {
+        userId: data.metadata?.userId || 'unknown',
+        activityId: String(data.metadata?.activityId || ''),
+        activityName: data.metadata?.activityName || '',
+        activityType: data.metadata?.activityType || '',
+        language: data.metadata?.language || '',
+        conversationId: String(data.metadata?.conversationId || ''),
+        currentStep: String(data.metadata?.currentStep || ''),
+        stepObjective: data.metadata?.stepObjective || '',
+        // Sanitize lists by removing commas and special characters
+        expectedResponses: data.metadata?.expectedResponses?.replace(/[^a-zA-Z0-9\s]/g, '_') || '',
+        spanishWords: data.metadata?.spanishWords?.replace(/[^a-zA-Z0-9\s]/g, '_') || '',
+        // Truncate system prompt to 256 characters
+        systemPrompt: data.metadata?.systemPrompt?.substring(0, 256) || '',
+        endpoint: data.metadata?.endpoint || '',
+        method: data.metadata?.method || '',
+        timestamp: data.metadata?.timestamp || new Date().toISOString()
+      };
+
       const payload = {
         evaluators: [{ 
           evaluator: "glider",
@@ -84,11 +104,7 @@ export class PatronusClient {
         evaluated_model_output: data.output,
         evaluated_model_gold_answer: "",
         evaluated_model_retrieved_context: "",
-        tags: {
-          model: data.model,
-          ...this.defaultMetadata,
-          ...data.metadata
-        }
+        tags: sanitizedMetadata
       };
 
       console.log(`Full Patronus API URL: ${this.BASE_URL}/v1/evaluate`);
@@ -196,7 +212,6 @@ const patronus = new PatronusClient({
   }
 });
 
-// Enhanced middleware to capture detailed conversation data
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const originalJson = res.json;
 
@@ -207,10 +222,6 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
         if (req.body?.message) {
           const evaluationResult = await patronus.evaluateMessage(req.body.message);
           console.log('Patronus evaluation result:', evaluationResult);
-
-          // You can use the evaluation result here to make decisions
-          // For example, you might want to store it with the message
-          // or use it to provide feedback to the user
         }
 
         // Gather detailed data about the conversation
@@ -231,29 +242,26 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
             where: eq(steps.id, stepId)
           }) : null;
 
-        // Create comprehensive metadata
-        const metadata = {
-          userId: req.body?.userName || body?.conversation?.userName || 'unknown',
-          activityId: conversation?.activityId,
-          activityName: conversation?.activity?.name,
-          activityType: conversation?.activity?.contentType,
-          language: conversation?.activity?.language,
-          conversationId: conversationId,
-          currentStep: conversation?.currentStep,
-          stepObjective: step?.objective,
-          expectedResponses: step?.expectedResponses,
-          spanishWords: step?.spanishWords,
-          systemPrompt: conversation?.systemPrompt?.systemPrompt,
-          endpoint: req.path,
-          method: req.method,
-          timestamp: new Date().toISOString()
-        };
-
         await patronus.logInteraction({
           input: req.body?.message || 'conversation_start',
           output: body?.message || JSON.stringify(body),
           model: 'gpt-4',
-          metadata
+          metadata: {
+            userId: req.body?.userName || body?.conversation?.userName || 'unknown',
+            activityId: conversation?.activityId,
+            activityName: conversation?.activity?.name,
+            activityType: conversation?.activity?.contentType,
+            language: conversation?.activity?.language,
+            conversationId: conversationId,
+            currentStep: conversation?.currentStep,
+            stepObjective: step?.objective,
+            expectedResponses: step?.expectedResponses,
+            spanishWords: step?.spanishWords,
+            systemPrompt: conversation?.systemPrompt?.systemPrompt,
+            endpoint: req.path,
+            method: req.method,
+            timestamp: new Date().toISOString()
+          }
         });
       } catch (error) {
         console.error('Patronus logging error:', error);
