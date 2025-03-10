@@ -25,22 +25,32 @@ export default function Chat() {
 
   // Get conversation ID from URL params or localStorage
   const conversationId = params.id || localStorage.getItem("currentConversationId");
+  
+  // Track if we need to redirect to welcome page
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
-  // Check for userName
+  // Check for userName and handle redirects
   useEffect(() => {
     const userName = localStorage.getItem("userName");
     if (!userName) {
       setLocation("/");
       return;
     }
+    
+    // Redirect to welcome page if needed
+    if (shouldRedirect) {
+      setLocation("/");
+      return;
+    }
+    
     // Only set localStorage for new conversations
     if (!params.id && conversationId) {
       localStorage.setItem("currentConversationId", conversationId);
     }
-  }, [setLocation, conversationId, params.id]);
+  }, [setLocation, conversationId, params.id, shouldRedirect]);
 
   // Fetch conversation data
-  const { data: conversation } = useQuery<{
+  const { data: conversation, isError } = useQuery<{
     id: number;
     activityId: number;
     currentStep: number;
@@ -51,9 +61,17 @@ export default function Chat() {
     queryFn: async () => {
       if (!conversationId) return null;
       const res = await fetch(`/api/conversation/${conversationId}`);
+      if (!res.ok) {
+        throw new Error('Conversation not found');
+      }
       return res.json();
     },
-    enabled: !!conversationId
+    enabled: !!conversationId,
+    onError: () => {
+      // If we can't fetch the conversation, we should redirect to welcome page
+      localStorage.removeItem("currentConversationId");
+      setShouldRedirect(true);
+    }
   });
 
   const { data: steps } = useQuery<Step[]>({
@@ -107,6 +125,13 @@ export default function Chat() {
   }, [conversation?.messages]);
 
   if (!conversation) {
+    // If no conversationId or error, redirect to welcome page
+    if (!conversationId || isError) {
+      useEffect(() => {
+        setLocation("/");
+      }, []);
+      return <div>Redirecting to welcome page...</div>;
+    }
     return <div>Loading conversation...</div>;
   }
 
