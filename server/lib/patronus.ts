@@ -15,19 +15,14 @@ export class PatronusClient {
     this.apiKey = options.apiKey;
     this.defaultMetadata = options.defaultMetadata || {};
 
-    // Validate API key format
     if (!this.apiKey) {
       console.warn('Warning: Patronus API key is not set');
     }
-
-    // Log API key length for debugging
     console.log(`Patronus API key length: ${this.apiKey?.length || 0}`);
   }
 
-  // Helper function to sanitize text for Patronus API
   private sanitizeText(text: string): string {
     if (!text) return '';
-    // Remove any characters that don't match the Patronus pattern
     return text.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
   }
 
@@ -88,13 +83,6 @@ export class PatronusClient {
         return null;
       }
 
-      console.log('Patronus logInteraction called with data:', {
-        input: data.input.substring(0, 50) + '...',
-        output: data.output.substring(0, 50) + '...',
-        model: data.model,
-        metadata: data.metadata ? Object.keys(data.metadata) : 'none'
-      });
-
       const retrievedContext = JSON.stringify({
         expected_responses: data.metadata?.expectedResponses || '',
         language: data.metadata?.language || '',
@@ -140,9 +128,6 @@ export class PatronusClient {
 
   private sendRequest(method: string, path: string, data: any) {
     return new Promise((resolve, reject) => {
-      console.log(`Patronus sending ${method} request to ${path}`);
-      console.log('Request payload:', JSON.stringify(data, null, 2));
-
       const url = new URL(path, this.BASE_URL);
       const options = {
         hostname: url.hostname,
@@ -158,12 +143,6 @@ export class PatronusClient {
         timeout: 5000
       };
 
-      console.log('Patronus request headers:', JSON.stringify({
-        contentType: options.headers['Content-Type'],
-        authPresent: options.headers['X-API-KEY'] ? 'Yes (token length: ' + this.apiKey.length + ')' : 'No',
-        userAgent: options.headers['User-Agent']
-      }));
-
       const req = https.request(options, (res) => {
         let responseData = '';
 
@@ -172,20 +151,14 @@ export class PatronusClient {
         });
 
         res.on('end', () => {
-          console.log(`Patronus response complete: status ${res.statusCode}, data length: ${responseData.length}`);
-          console.log('Full response data:', responseData); 
-          console.log(`Response headers:`, JSON.stringify(res.headers, null, 2));
-
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
-              // Check if response looks like HTML
               if (responseData.trim().startsWith('<!DOCTYPE') || responseData.trim().startsWith('<html')) {
                 console.error('Received HTML response instead of JSON');
                 reject(new Error('Received HTML response from Patronus API'));
                 return;
               }
 
-              // Handle empty response
               if (!responseData.trim()) {
                 console.error('Received empty response from Patronus API');
                 reject(new Error('Empty response from Patronus API'));
@@ -193,7 +166,6 @@ export class PatronusClient {
               }
 
               const parsed = JSON.parse(responseData);
-              console.log('Patronus request successful, parsed response:', JSON.stringify(parsed, null, 2));
               resolve(parsed);
             } catch (e) {
               console.error('Failed to parse Patronus response:', e);
@@ -220,12 +192,10 @@ export class PatronusClient {
 
       req.write(JSON.stringify(data));
       req.end();
-      console.log('Patronus request sent');
     });
   }
 }
 
-// Initialize Patronus with the API key
 const patronus = new PatronusClient({
   apiKey: process.env.PATRONUS_API_KEY || '',
   defaultMetadata: {
@@ -241,13 +211,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
   res.json = async function(body) {
     if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
       try {
-        // If this is a user message, evaluate it for Spanish content
-        if (req.body?.message) {
-          const evaluationResult = await patronus.evaluateMessage(req.body.message);
-          console.log('Patronus evaluation result:', evaluationResult);
-        }
-
-        // Gather detailed data about the conversation
+        // Get conversation details first
         const conversationId = req.params?.id || body?.conversation?.id;
         const conversation = conversationId ? 
           await db.query.conversations.findFirst({
@@ -258,13 +222,14 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
             }
           }) : null;
 
-        // Get relevant step information
+        // Get step information
         const stepId = body?.message?.stepId || conversation?.currentStep;
         const step = stepId ?
           await db.query.steps.findFirst({
             where: eq(steps.id, stepId)
           }) : null;
 
+        // Only log interaction, skip evaluation here since it's handled in evaluateResponse
         await patronus.logInteraction({
           input: req.body?.message || 'conversation_start',
           output: body?.message || JSON.stringify(body),
@@ -282,8 +247,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
             spanishWords: step?.spanishWords,
             systemPrompt: conversation?.systemPrompt?.systemPrompt,
             endpoint: req.path,
-            method: req.method,
-            timestamp: new Date().toISOString()
+            method: req.method
           }
         });
       } catch (error) {
@@ -305,8 +269,8 @@ export async function evaluateResponse(
   metadata: Record<string, any> = {}
 ) {
   try {
-    // First, evaluate if the user input contains Spanish
-    const spanishEvaluation = await patronus.evaluateMessage(userInput, stepData);
+    // Evaluate the user input with context
+    const evaluation = await patronus.evaluateMessage(userInput, stepData);
 
     // Gather additional context about the step and activity
     const step = await db.query.steps.findFirst({
@@ -324,16 +288,12 @@ export async function evaluateResponse(
       activityName: step?.activity?.name,
       activityType: step?.activity?.contentType,
       language: step?.activity?.language,
-      spanishEvaluation: spanishEvaluation,
+      evaluation,
       ...metadata
     };
 
-    return await patronus.logInteraction({
-      input: userInput,
-      output: aiResponse,
-      model: 'gpt-4',
-      metadata: enrichedMetadata
-    });
+    // Return the evaluation result directly
+    return evaluation;
   } catch (error) {
     console.error('Patronus evaluation error:', error);
     return null;
