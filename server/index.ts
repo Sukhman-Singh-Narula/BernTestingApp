@@ -49,7 +49,22 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  // Check for already used port and increment if needed
+  const findAvailablePort = async (startPort: number): Promise<number> => {
+    return new Promise((resolve) => {
+      const server = require('http').createServer();
+      server.listen(startPort, () => {
+        server.close(() => resolve(startPort));
+      });
+      server.on('error', () => {
+        resolve(findAvailablePort(startPort + 1));
+      });
+    });
+  };
+
+  const port = await findAvailablePort(5000);
+  const server = await registerRoutes(app, port);
+  console.log(`Server running on port ${port}`);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
