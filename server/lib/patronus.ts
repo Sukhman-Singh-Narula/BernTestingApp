@@ -149,7 +149,57 @@ const patronus = new PatronusClient({
 
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const originalJson = res.json;
-  res.json = function(body) {
+  res.json = async function(body) {
+    // Only process conversation and message endpoints
+    if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
+      try {
+        const conversationId = req.params?.id || body?.conversation?.id;
+        if (!conversationId) {
+          console.error('No conversation ID found in request');
+          return originalJson.call(this, { message: 'Conversation ID not found', status: 404 });
+        }
+
+        const conversation = await db.query.conversations.findFirst({
+          where: eq(conversations.id, parseInt(conversationId)),
+          with: {
+            activity: true,
+            systemPrompt: true
+          }
+        });
+
+        if (!conversation) {
+          console.error(`Conversation ${conversationId} not found`);
+          return originalJson.call(this, { message: 'Conversation not found', status: 404 });
+        }
+
+        const stepId = conversation.currentStep;
+        if (!stepId) {
+          console.error(`No current step found for conversation ${conversationId}`);
+          return originalJson.call(this, { message: 'Activity step not found', status: 404 });
+        }
+
+        const step = await db.query.steps.findFirst({
+          where: eq(steps.id, stepId)
+        });
+
+        if (!step) {
+          console.error(`Step ${stepId} not found`);
+          return originalJson.call(this, { message: 'Activity step not found', status: 404 });
+        }
+
+        // Add step data to request for use in evaluateResponse
+        req.stepData = {
+          id: step.id,
+          objective: step.objective,
+          expectedResponses: step.expectedResponses,
+          stepNumber: step.stepNumber,
+          language: conversation.activity.language,
+          systemPrompt: conversation.systemPrompt?.systemPrompt
+        };
+      } catch (error) {
+        console.error('Error in Patronus middleware:', error);
+      }
+    }
     return originalJson.call(this, body);
   };
   next();
@@ -174,8 +224,6 @@ export async function evaluateResponse(
     const enrichedMetadata = {
       objective: step?.objective,
       expectedResponses: step?.expectedResponses,
-      spanishWords: step?.spanishWords,
-      stepNumber: step?.stepNumber,
       activityName: step?.activity?.name,
       activityType: step?.activity?.contentType,
       language: step?.activity?.language,
