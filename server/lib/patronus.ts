@@ -176,7 +176,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
         }
 
         // Check for step ID in the request body first, then fallback to conversation's current step
-        const stepId = req.body?.stepId || conversation.currentStep;
+        const stepId = conversation.currentStep;
         console.log('Using step ID:', stepId);
 
         if (!stepId) {
@@ -193,17 +193,23 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
-        // Add step data to request for use in evaluateResponse
-        (req as any).stepData = {
-          id: step.id,
-          objective: step.objective,
-          expectedResponses: step.expectedResponses,
-          stepNumber: step.stepNumber,
-          language: conversation.activity.language,
-          systemPrompt: conversation.systemPrompt?.systemPrompt
-        };
+        if (req.body?.message) {
+          const stepData = {
+            id: step.id,
+            objective: step.objective,
+            expectedResponses: step.expectedResponses,
+            stepNumber: step.stepNumber,
+            language: conversation.activity.language,
+            systemPrompt: conversation.systemPrompt?.systemPrompt
+          };
 
-        console.log('Step data attached to request:', (req as any).stepData);
+          console.log('Evaluating message with step data:', stepData);
+          const evaluation = await patronus.evaluateMessage(req.body.message, stepData);
+
+          if (evaluation) {
+            body.evaluation = evaluation;
+          }
+        }
       } catch (error) {
         console.error('Error in Patronus middleware:', error);
       }
