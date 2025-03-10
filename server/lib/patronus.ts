@@ -56,6 +56,7 @@ export class PatronusClient {
         }
       };
 
+      console.log(`Full Patronus API URL: ${this.BASE_URL}/v1/evaluate`);
       return this.sendRequest('POST', '/v1/evaluate', payload);
     } catch (error) {
       console.error('Patronus evaluation error:', error);
@@ -100,7 +101,7 @@ export class PatronusClient {
         timestamp: new Date().toISOString()
       };
 
-      const payload = {
+      console.log('Request payload:', JSON.stringify({
         evaluators: [{ 
           evaluator: "glider",
           criteria: "Is_Spanish" 
@@ -110,10 +111,19 @@ export class PatronusClient {
         evaluated_model_gold_answer: "",
         evaluated_model_retrieved_context: "",
         tags: sanitizedMetadata
-      };
+      }, null, 2));
 
-      console.log(`Full Patronus API URL: ${this.BASE_URL}/v1/evaluate`);
-      return this.sendRequest('POST', '/v1/evaluate', payload);
+      return this.sendRequest('POST', '/v1/evaluate', {
+        evaluators: [{ 
+          evaluator: "glider",
+          criteria: "Is_Spanish" 
+        }],
+        evaluated_model_input: data.input,
+        evaluated_model_output: data.output,
+        evaluated_model_gold_answer: "",
+        evaluated_model_retrieved_context: "",
+        tags: sanitizedMetadata
+      });
     } catch (error) {
       console.error('Patronus logging error:', error);
       return null;
