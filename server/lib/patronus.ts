@@ -32,7 +32,7 @@ class PatronusClient {
         }
       };
 
-      return this.sendRequest('POST', '/api/v1/interactions', payload);
+      return this.sendRequest('POST', '/v1/log', payload);
     } catch (error) {
       console.error('Patronus logging error:', error);
       return null;
@@ -42,14 +42,16 @@ class PatronusClient {
   private sendRequest(method: string, path: string, data: any) {
     return new Promise((resolve, reject) => {
       const options = {
-        hostname: 'api.patronusai.com',
+        hostname: 'app.patronus.ai', // Updated hostname
         port: 443,
         path,
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        }
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'LanguageLearningAI/1.0'
+        },
+        timeout: 5000 // 5 second timeout
       };
 
       const req = https.request(options, (res) => {
@@ -67,13 +69,20 @@ class PatronusClient {
               resolve(responseData);
             }
           } else {
+            console.error(`Patronus API error: ${res.statusCode} - ${responseData}`);
             reject(new Error(`Request failed with status ${res.statusCode}: ${responseData}`));
           }
         });
       });
 
       req.on('error', (error) => {
+        console.error('Error sending request to Patronus:', error.message);
         reject(error);
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
       });
 
       req.write(JSON.stringify(data));
@@ -87,7 +96,8 @@ const patronus = new PatronusClient({
   apiKey: process.env.PATRONUS_API_KEY || '',
   defaultMetadata: {
     environment: process.env.NODE_ENV || 'development',
-    application: 'language-learning-ai'
+    application: 'language-learning-ai',
+    version: '1.0.0'
   }
 });
 
