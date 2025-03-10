@@ -25,7 +25,7 @@ export default function Chat() {
 
   // Get conversation ID from URL params or localStorage
   const conversationId = params.id || localStorage.getItem("currentConversationId");
-  
+
   // Track if we need to redirect to welcome page
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
@@ -36,13 +36,13 @@ export default function Chat() {
       setLocation("/");
       return;
     }
-    
+
     // Redirect to welcome page if needed
     if (shouldRedirect) {
       setLocation("/");
       return;
     }
-    
+
     // Only set localStorage for new conversations
     if (!params.id && conversationId) {
       localStorage.setItem("currentConversationId", conversationId);
@@ -50,7 +50,7 @@ export default function Chat() {
   }, [setLocation, conversationId, params.id, shouldRedirect]);
 
   // Fetch conversation data
-  const { data: conversation, isError } = useQuery<{
+  const { data: conversation, isError, isLoading } = useQuery<{
     id: number;
     activityId: number;
     currentStep: number;
@@ -60,14 +60,20 @@ export default function Chat() {
     queryKey: ["/api/conversation", conversationId],
     queryFn: async () => {
       if (!conversationId) return null;
+      console.log("Fetching conversation:", conversationId);
       const res = await fetch(`/api/conversation/${conversationId}`);
       if (!res.ok) {
         throw new Error('Conversation not found');
       }
-      return res.json();
+      const data = await res.json();
+      console.log("Conversation data:", data);
+      return data;
     },
     enabled: !!conversationId,
-    onError: () => {
+    retry: 3,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error("Error fetching conversation:", error);
       // If we can't fetch the conversation, we should redirect to welcome page
       localStorage.removeItem("currentConversationId");
       setShouldRedirect(true);
@@ -123,6 +129,10 @@ export default function Chat() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [conversation?.messages]);
+
+  if (isLoading) {
+    return <div>Loading conversation...</div>;
+  }
 
   if (!conversation) {
     // If no conversationId or error, redirect to welcome page

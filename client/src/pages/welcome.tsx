@@ -51,20 +51,29 @@ export default function Welcome() {
   // Create conversation mutation
   const createConversation = useMutation({
     mutationFn: async () => {
+      console.log("Creating conversation with activity:", selectedActivity);
       const response = await apiRequest("POST", "/api/conversation", {
         activityId: selectedActivity,
         shouldGenerateFirstResponse: true,
         userName,
         ...(isEditingPrompt && { systemPrompt }) // Only include systemPrompt if editing was enabled
       });
+      if (!response.ok) {
+        throw new Error(`Failed to create conversation: ${response.statusText}`);
+      }
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("Conversation created successfully:", data);
       localStorage.setItem("userName", userName);
       localStorage.setItem("currentConversationId", data.id.toString());
-      setLocation("/chat");
+      // Add a slight delay to ensure data is properly saved before navigation
+      setTimeout(() => {
+        setLocation(`/chat/${data.id}`);
+      }, 100);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Error creating conversation:", error);
       toast({
         title: "Error",
         description: "Failed to create conversation. Please try again.",
