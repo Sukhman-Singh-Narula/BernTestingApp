@@ -26,15 +26,16 @@ class PatronusClient {
         console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
         return null;
       }
-      
+
       console.log('Patronus logInteraction called with data:', {
         input: data.input.substring(0, 50) + '...',
         output: data.output.substring(0, 50) + '...',
         model: data.model,
         metadata: data.metadata ? Object.keys(data.metadata) : 'none'
       });
-      
+
       const payload = {
+        name: "language-learning-interaction",
         input: data.input,
         output: data.output,
         model: data.model,
@@ -44,7 +45,7 @@ class PatronusClient {
         }
       };
 
-      return this.sendRequest('POST', '/v1/log', payload);
+      return this.sendRequest('POST', '/api/v1/logs', payload);
     } catch (error) {
       console.error('Patronus logging error:', error);
       return null;
@@ -54,20 +55,21 @@ class PatronusClient {
   private sendRequest(method: string, path: string, data: any) {
     return new Promise((resolve, reject) => {
       console.log(`Patronus sending ${method} request to ${path}`);
-      
+
       const options = {
-        hostname: 'app.patronus.ai', // Updated hostname
+        hostname: 'app.patronus.ai',
         port: 443,
         path,
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'LanguageLearningAI/1.0'
+          'User-Agent': 'LanguageLearningAI/1.0',
+          'Accept': 'application/json'
         },
-        timeout: 5000 // 5 second timeout
+        timeout: 5000
       };
-      
+
       console.log('Patronus request headers:', JSON.stringify({
         contentType: options.headers['Content-Type'],
         authPresent: options.headers['Authorization'] ? 'Yes (token length: ' + this.apiKey.length + ')' : 'No',
@@ -76,7 +78,6 @@ class PatronusClient {
 
       const req = https.request(options, (res) => {
         let responseData = '';
-        console.log(`Patronus response started: status ${res.statusCode}`);
 
         res.on('data', (chunk) => {
           responseData += chunk;
@@ -84,15 +85,16 @@ class PatronusClient {
 
         res.on('end', () => {
           console.log(`Patronus response complete: status ${res.statusCode}, data length: ${responseData.length}`);
-          
+
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
               const parsed = JSON.parse(responseData);
               console.log('Patronus request successful');
               resolve(parsed);
             } catch (e) {
-              console.log('Patronus response not JSON, returning as string');
-              resolve(responseData);
+              console.error('Failed to parse Patronus response:', e);
+              console.error('Raw response:', responseData);
+              reject(new Error('Invalid JSON response from Patronus'));
             }
           } else {
             console.error(`Patronus API error: ${res.statusCode} - ${responseData}`);
