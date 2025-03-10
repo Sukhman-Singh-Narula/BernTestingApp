@@ -153,12 +153,15 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
     // Only process conversation and message endpoints
     if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
       try {
+        console.log('Processing request:', { path: req.path, method: req.method, body: req.body });
+
         const conversationId = req.params?.id || body?.conversation?.id;
         if (!conversationId) {
           console.error('No conversation ID found in request');
           return originalJson.call(this, { message: 'Conversation ID not found', status: 404 });
         }
 
+        // Get conversation with related data
         const conversation = await db.query.conversations.findFirst({
           where: eq(conversations.id, parseInt(conversationId)),
           with: {
@@ -172,9 +175,12 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Conversation not found', status: 404 });
         }
 
-        const stepId = conversation.currentStep;
+        // Check for step ID in the request body first, then fallback to conversation's current step
+        const stepId = req.body?.stepId || conversation.currentStep;
+        console.log('Using step ID:', stepId);
+
         if (!stepId) {
-          console.error(`No current step found for conversation ${conversationId}`);
+          console.error(`No step ID found for conversation ${conversationId}`);
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
@@ -188,7 +194,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
         }
 
         // Add step data to request for use in evaluateResponse
-        req.stepData = {
+        (req as any).stepData = {
           id: step.id,
           objective: step.objective,
           expectedResponses: step.expectedResponses,
@@ -196,6 +202,8 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           language: conversation.activity.language,
           systemPrompt: conversation.systemPrompt?.systemPrompt
         };
+
+        console.log('Step data attached to request:', (req as any).stepData);
       } catch (error) {
         console.error('Error in Patronus middleware:', error);
       }
@@ -212,6 +220,7 @@ export async function evaluateResponse(
   metadata: Record<string, any> = {}
 ) {
   try {
+    console.log('Evaluating response with step data:', stepData);
     const evaluation = await patronus.evaluateMessage(userInput, stepData);
 
     const step = await db.query.steps.findFirst({
