@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     try {
       const conversationId = Number(req.params.id);
       console.log(`Retrieving conversation ${conversationId}`);
-      
+
       const conversationWithPrompt = await storage.getConversationWithSystemPrompt(conversationId);
       if (!conversationWithPrompt) {
         console.error(`Conversation ${conversationId} not found`);
@@ -196,16 +196,16 @@ export async function registerRoutes(app: Express, port: number = 5000) {
 
       const messages = await storage.getMessagesByConversation(conversationId);
       console.log(`Found ${messages.length} messages for conversation ${conversationId}`);
-      
+
       // If no messages but we have a valid conversation, try to generate first response
       if (messages.length === 0) {
         console.log(`No messages found for conversation ${conversationId}, generating initial message`);
-        
+
         const initialStep = await storage.getStepByActivityAndNumber(
-          conversationWithPrompt.activityId, 
+          conversationWithPrompt.activityId,
           conversationWithPrompt.currentStep
         );
-        
+
         if (initialStep) {
           console.log(`Using step ${initialStep.id} (number ${initialStep.stepNumber}) to generate initial message`);
           const aiResponse = await generateResponse(
@@ -221,13 +221,13 @@ export async function registerRoutes(app: Express, port: number = 5000) {
             role: "assistant" as MessageRole,
             content: aiResponse
           });
-          
+
           // Fetch messages again after creating the initial message
           const updatedMessages = await storage.getMessagesByConversation(conversationId);
           return res.json({ ...conversationWithPrompt, messages: updatedMessages });
         }
       }
-      
+
       res.json({ ...conversationWithPrompt, messages });
     } catch (error) {
       console.error("Error getting conversation:", error);
@@ -290,14 +290,14 @@ export async function registerRoutes(app: Express, port: number = 5000) {
       );
 
       const updatedMessages = await storage.getMessagesByConversation(conversationId);
-      
+
       // Get the system prompt to include it in the response
       const systemPrompt = await storage.getSystemPromptByActivity(updatedConversation.activityId);
-      
+
       res.json({
         message: aiResponse,
-        conversation: { 
-          ...updatedConversation, 
+        conversation: {
+          ...updatedConversation,
           messages: updatedMessages,
           systemPrompt // Include the system prompt in the response
         }
@@ -326,6 +326,7 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     }
   });
 
+  // Add new route to get conversations for a user with pagination
   app.get("/api/conversations/:userName", async (req, res) => {
     try {
       const userName = req.params.userName;
