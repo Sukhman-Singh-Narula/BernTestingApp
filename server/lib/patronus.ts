@@ -25,6 +25,33 @@ export class PatronusClient {
     console.log(`Patronus API key length: ${this.apiKey.length}`);
   }
 
+  async evaluateMessage(message: string) {
+    try {
+      if (!this.apiKey || this.apiKey === '') {
+        console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
+        return null;
+      }
+
+      console.log('Patronus evaluateMessage called with:', message.substring(0, 50) + '...');
+
+      const payload = {
+        name: "is-Spanish",
+        input: message,
+        metadata: {
+          ...this.defaultMetadata,
+          evaluationType: "language-detection"
+        }
+      };
+
+      const endpoint = `/api/${this.API_VERSION}/evaluations`;
+      console.log(`Full Patronus API URL: ${this.BASE_URL}${endpoint}`);
+      return this.sendRequest('POST', endpoint, payload);
+    } catch (error) {
+      console.error('Patronus evaluation error:', error);
+      return null;
+    }
+  }
+
   async logInteraction(data: {
     input: string;
     output: string;
@@ -73,7 +100,7 @@ export class PatronusClient {
       const options = {
         hostname: url.hostname,
         port: 443,
-        path: url.pathname + url.search, // include query parameters
+        path: url.pathname + url.search,
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -168,6 +195,16 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
   res.json = async function(body) {
     if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
       try {
+        // If this is a user message, evaluate it for Spanish content
+        if (req.body?.message) {
+          const evaluationResult = await patronus.evaluateMessage(req.body.message);
+          console.log('Patronus evaluation result:', evaluationResult);
+
+          // You can use the evaluation result here to make decisions
+          // For example, you might want to store it with the message
+          // or use it to provide feedback to the user
+        }
+
         // Gather detailed data about the conversation
         const conversationId = req.params?.id || body?.conversation?.id;
         const conversation = conversationId ? 
@@ -229,6 +266,9 @@ export async function evaluateResponse(
   metadata: Record<string, any> = {}
 ) {
   try {
+    // First, evaluate if the user input contains Spanish
+    const spanishEvaluation = await patronus.evaluateMessage(userInput);
+
     // Gather additional context about the step and activity
     const step = await db.query.steps.findFirst({
       where: eq(steps.id, stepData.id),
@@ -245,6 +285,7 @@ export async function evaluateResponse(
       activityName: step?.activity?.name,
       activityType: step?.activity?.contentType,
       language: step?.activity?.language,
+      spanishEvaluation: spanishEvaluation,
       ...metadata
     };
 
