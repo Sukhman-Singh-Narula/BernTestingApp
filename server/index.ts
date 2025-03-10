@@ -6,7 +6,17 @@ import { patronusEvaluationMiddleware } from "./lib/patronus";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(patronusEvaluationMiddleware);
+// Debug Patronus middleware
+console.log("Setting up Patronus middleware...");
+try {
+  app.use((req, res, next) => {
+    console.log(`Patronus middleware called for ${req.method} ${req.path}`);
+    patronusEvaluationMiddleware(req, res, next);
+  });
+  console.log("Patronus middleware setup complete");
+} catch (error) {
+  console.error("Error setting up Patronus middleware:", error);
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
