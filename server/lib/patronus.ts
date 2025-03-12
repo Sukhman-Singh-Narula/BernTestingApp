@@ -184,6 +184,16 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           console.log('Skipping evaluation - not an AI response message');
           return originalJson.apply(this, arguments);
         }
+        
+        // Count user messages to determine if we should evaluate
+        const userMessageCount = allMessages.filter(msg => msg.role === 'user').length;
+        console.log(`User message count: ${userMessageCount}`);
+        
+        // Only evaluate after the second user message (which means the AI's second response)
+        if (userMessageCount < 2) {
+          console.log('Skipping evaluation - waiting for second user message');
+          return originalJson.apply(this, arguments);
+        }
 
         const conversation = await db.query.conversations.findFirst({
           where: eq(conversations.id, parseInt(conversationId)),
