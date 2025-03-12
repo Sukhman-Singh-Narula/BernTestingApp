@@ -184,6 +184,13 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
 
         // Additionally, verify this is an AI response to a user message
         const currentMessageIndex = allMessages.length - 1;
+        
+        // Ensure we're only evaluating from the 3rd message onwards (index 2+)
+        if (currentMessageIndex < 2) {
+          console.log(`Skipping evaluation - message index ${currentMessageIndex} is less than 2 (not the third or later message)`);
+          return originalJson.apply(this, arguments);
+        }
+        
         if (allMessages[currentMessageIndex].role !== 'assistant' || 
             allMessages[currentMessageIndex-1].role !== 'user') {
           console.log('Skipping evaluation - not an AI response to a user message');
