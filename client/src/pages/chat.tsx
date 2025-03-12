@@ -52,7 +52,7 @@ export default function Chat() {
     }
 
     // Only set localStorage for new conversations
-    if (!params.id && conversationId) {
+    if (conversationId) {
       localStorage.setItem("currentConversationId", conversationId);
     }
   }, [setLocation, conversationId, params.id]);
@@ -93,13 +93,20 @@ export default function Chat() {
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
       if (!conversation?.id) return;
+      
+      // Ensure we have a valid numeric ID
+      const validId = Number(conversation.id);
+      if (isNaN(validId)) {
+        throw new Error('Invalid conversation ID');
+      }
+      
       const res = await apiRequest(
         "POST",
-        `/api/conversation/${conversation.id}/message`,
+        `/api/conversation/${validId}/message`,
         { message }
       );
       if (!res.ok) {
-        throw new Error('Failed to send message');
+        throw new Error(`Failed to send message: ${res.status} ${res.statusText}`);
       }
       return res.json();
     },
