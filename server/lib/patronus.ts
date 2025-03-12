@@ -192,14 +192,11 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
 
         // Find the step by activity ID and step number
         const step = await db.query.steps.findFirst({
-          where: and(
-            eq(steps.activityId, conversation.activityId),
-            eq(steps.stepNumber, stepNumber)
-          )
+          where: (eq(steps.activityId, conversation.activityId) && eq(steps.stepNumber, stepNumber))
         });
 
         if (!step) {
-          console.error(`Step ${stepId} not found`);
+          console.error(`Step ${stepNumber} not found`);
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
