@@ -172,41 +172,57 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           orderBy: (messages, { asc }) => [asc(messages.createdAt)]
         });
 
-        // We want to evaluate only from the third message onwards
-        // (Initial AI welcome → User first message → AI first response → and all subsequent messages)
-        console.log(`Total message count: ${allMessages.length}`);
-
-        // Skip if we have fewer than 3 messages
+        // Ensure we have enough messages for evaluation
         if (allMessages.length < 3) {
-          console.log(`Skipping evaluation - fewer than 3 messages (count: ${allMessages.length})`);
+          console.log(`Not enough messages for evaluation (${allMessages.length} < 3)`);
           return originalJson.apply(this, arguments);
         }
 
-        // Additionally, verify this is an AI response to a user message
-        const currentMessageIndex = allMessages.length - 1;
-        
-        // Ensure we're only evaluating from the 3rd message onwards (index 2+)
-        if (currentMessageIndex < 2) {
-          console.log(`Skipping evaluation - message index ${currentMessageIndex} is less than 2 (not the third or later message)`);
+        // Validate message positions - only evaluate messages where:
+        // 1. We have at least 3 total messages in the conversation
+        // 2. The latest message is from the assistant (response we're evaluating)
+        // 3. Only evaluate messages when we're on the 3rd or later AI response
+
+        // Count how many AI responses we have
+        const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
+        console.log(`AI response count: ${aiResponseCount}`);
+
+        if (aiResponseCount < 3) {
+          console.log(`Skipping evaluation - only ${aiResponseCount} AI responses so far (need 3+)`);
           return originalJson.apply(this, arguments);
         }
-        
+
+        const currentMessageIndex = allMessages.length - 1;
         if (allMessages[currentMessageIndex].role !== 'assistant' || 
             allMessages[currentMessageIndex-1].role !== 'user') {
           console.log('Skipping evaluation - not an AI response to a user message');
           return originalJson.apply(this, arguments);
         }
 
-        // Check if we've already evaluated this message to prevent duplicates
-        const messageId = allMessages[currentMessageIndex].id;
-        const cacheKey = `evaluated_msg_${messageId}`;
-        if (global[cacheKey]) {
-          console.log(`Skipping duplicate evaluation for message ${messageId}`);
+        // Skip if we've already added an evaluation for this message
+        if (body.evaluation) {
+          console.log('Evaluation already exists in response - skipping duplicate evaluation');
           return originalJson.apply(this, arguments);
         }
 
-        // Mark this message as evaluated
-        global[cacheKey] = true;
+        // Create a unique key for this evaluation to prevent duplicates
+        const evaluationKey = `${conversationId}-${allMessages[currentMessageIndex].id}`;
+        // Check if we've already evaluated this message in this request cycle
+        const globalAny = global as any;
+        globalAny.__evaluatedMessages = globalAny.__evaluatedMessages || new Set();
+
+        if (globalAny.__evaluatedMessages.has(evaluationKey)) {
+          console.log(`Already evaluated message ${allMessages[currentMessageIndex].id} - skipping duplicate evaluation`);
+          return originalJson.apply(this, arguments);
+        }
+
+        // Mark this message as being evaluated
+        globalAny.__evaluatedMessages.add(evaluationKey);
+
+        const userMessage = allMessages[currentMessageIndex-1];
+        const currentAiMessage = allMessages[currentMessageIndex];
+        const previousAiMessage = allMessages[currentMessageIndex-2];
+
 
         const conversation = await db.query.conversations.findFirst({
           where: eq(conversations.id, parseInt(conversationId)),
@@ -240,16 +256,16 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
 
         // Get the last three messages in the sequence (AI-User-AI)
         const lastThreeMessages = allMessages.slice(-3);
-        const [previousAiMessage, userMessage, currentAiMessage] = lastThreeMessages;
+        const [previousAiMessageCheck, userMessageCheck, currentAiMessageCheck] = lastThreeMessages;
 
         // Verify we have the correct message sequence
-        if (previousAiMessage?.role !== 'assistant' || 
-            userMessage?.role !== 'user' || 
-            currentAiMessage?.role !== 'assistant') {
+        if (previousAiMessageCheck?.role !== 'assistant' || 
+            userMessageCheck?.role !== 'user' || 
+            currentAiMessageCheck?.role !== 'assistant') {
           console.log('Message sequence is not in the expected AI-User-AI format:', {
-            previousRole: previousAiMessage?.role,
-            userRole: userMessage?.role,
-            currentRole: currentAiMessage?.role
+            previousRole: previousAiMessageCheck?.role,
+            userRole: userMessageCheck?.role,
+            currentRole: currentAiMessageCheck?.role
           });
           return originalJson.apply(this, arguments);
         }
