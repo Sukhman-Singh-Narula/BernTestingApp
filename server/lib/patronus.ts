@@ -148,6 +148,9 @@ const patronus = new PatronusClient({
 });
 
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  // Log the request path to debug middleware execution
+  console.log(`Patronus middleware called for ${req.method} ${req.path}`);
+  
   const originalJson = res.json;
   res.json = async function(body) {
     if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {

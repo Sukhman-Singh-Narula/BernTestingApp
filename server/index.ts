@@ -9,10 +9,8 @@ app.use(express.urlencoded({ extended: false }));
 // Debug Patronus middleware
 console.log("Setting up Patronus middleware...");
 try {
-  app.use((req, res, next) => {
-    console.log(`Patronus middleware called for ${req.method} ${req.path}`);
-    patronusEvaluationMiddleware(req, res, next);
-  });
+  // Register the middleware directly
+  app.use(patronusEvaluationMiddleware);
   console.log("Patronus middleware setup complete");
 } catch (error) {
   console.error("Error setting up Patronus middleware:", error);
