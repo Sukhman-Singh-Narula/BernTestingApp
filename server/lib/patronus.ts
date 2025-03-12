@@ -150,7 +150,7 @@ const patronus = new PatronusClient({
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   // Log the request path to debug middleware execution
   console.log(`Patronus middleware called for ${req.method} ${req.path}`);
-  
+
   const originalJson = res.json;
   res.json = async function(body) {
     if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
@@ -190,7 +190,15 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
         const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
         console.log(`AI response count: ${aiResponseCount}`);
 
-        if (aiResponseCount < 3) {
+        // If this is a new message being posted, we're about to add an AI response,
+        // so we need to check if the current count + 1 is still < 3
+        const willBeThirdResponse = req.method === 'POST' && 
+                                   req.path.includes('/message') && 
+                                   aiResponseCount === 2;
+
+        // Skip evaluation for conversations with fewer than 3 AI responses
+        // Unless this message will be the 3rd response
+        if (aiResponseCount < 3 && !willBeThirdResponse) {
           console.log(`Skipping evaluation - only ${aiResponseCount} AI responses so far (need 3+)`);
           return originalJson.apply(this, arguments);
         }
