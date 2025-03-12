@@ -26,7 +26,7 @@ export class PatronusClient {
     return text.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
   }
 
-  async evaluateMessage(message: string, stepData?: any) {
+  async evaluateMessage(message: string, stepData?: any, previousMessages?: { aiMessage: string, nextAiMessage: string }) {
     try {
       if (!this.apiKey) {
         console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
@@ -44,12 +44,17 @@ export class PatronusClient {
         });
       }
 
+      // Format the input sequence as: AI message + Child message + AI response
+      const formattedInput = previousMessages ? 
+        `AI: ${previousMessages.aiMessage}\nUser: ${message}\nAI: ${previousMessages.nextAiMessage}` :
+        message;
+
       const payload = {
         evaluators: [{ 
           evaluator: "glider",
           criteria: "language-compliance" 
         }],
-        evaluated_model_input: message,
+        evaluated_model_input: formattedInput,
         evaluated_model_output: "",
         evaluated_model_gold_answer: "",
         evaluated_model_retrieved_context: retrievedContext,
@@ -150,12 +155,10 @@ const patronus = new PatronusClient({
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const originalJson = res.json;
   res.json = async function(body) {
-    // Only process conversation and message endpoints
     if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
       try {
         console.log('Processing request:', { path: req.path, method: req.method, body: req.body });
 
-        // Skip evaluation for POST to /api/conversation (creation requests)
         if (req.method === 'POST' && req.path === '/api/conversation') {
           console.log('Skipping evaluation for conversation creation request');
           return originalJson.apply(this, arguments);
@@ -167,7 +170,6 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.apply(this, arguments);
         }
 
-        // Get conversation with related data
         const conversation = await db.query.conversations.findFirst({
           where: eq(conversations.id, parseInt(conversationId)),
           with: {
@@ -181,7 +183,6 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Conversation not found', status: 404 });
         }
 
-        // Check for step number in conversation - note this is the step number, not the ID
         const stepNumber = conversation.currentStep;
         console.log('Using step number:', stepNumber);
 
@@ -190,7 +191,6 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
-        // Find the step by activity ID and step number
         const step = await db.query.steps.findFirst({
           where: (eq(steps.activityId, conversation.activityId) && eq(steps.stepNumber, stepNumber))
         });
@@ -200,8 +200,27 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.call(this, { message: 'Activity step not found', status: 404 });
         }
 
-        // Process message evaluation if this is a message request
         if (req.body?.message) {
+          // Fetch last two AI messages and the current user message
+          const recentMessages = await db.query.messages.findMany({
+            where: eq(messages.conversationId, parseInt(conversationId)),
+            orderBy: (messages, { desc }) => [desc(messages.createdAt)],
+            limit: 3
+          });
+
+          let aiMessage = '';
+          let nextAiMessage = '';
+
+          // Find the most recent AI message (will be the response to user's message)
+          // and the previous AI message before user's input
+          if (recentMessages.length >= 2) {
+            // The messages are in reverse chronological order
+            // First message is the latest AI response
+            nextAiMessage = recentMessages[0].content;
+            // Look for the previous AI message
+            aiMessage = recentMessages.find(m => m.role === 'assistant' && m.content !== nextAiMessage)?.content || '';
+          }
+
           const stepData = {
             id: step.id,
             objective: step.objective,
@@ -211,8 +230,18 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
             systemPrompt: conversation.systemPrompt?.systemPrompt
           };
 
-          console.log('Step data attached to request:', stepData);
-          const evaluation = await patronus.evaluateMessage(req.body.message, stepData);
+          console.log('Step data and messages attached to request:', { 
+            stepData,
+            previousAiMessage: aiMessage,
+            userMessage: req.body.message,
+            nextAiMessage: nextAiMessage 
+          });
+
+          const evaluation = await patronus.evaluateMessage(
+            req.body.message, 
+            stepData,
+            { aiMessage, nextAiMessage }
+          );
 
           if (evaluation) {
             body.evaluation = evaluation;
@@ -235,7 +264,13 @@ export async function evaluateResponse(
 ) {
   try {
     console.log('Evaluating response with step data:', stepData);
-    const evaluation = await patronus.evaluateMessage(userInput, stepData);
+    // For the evaluateResponse function, we only have the current context
+    // so we'll use the aiResponse as the nextAiMessage
+    const evaluation = await patronus.evaluateMessage(
+      userInput, 
+      stepData,
+      { aiMessage: '', nextAiMessage: aiResponse }
+    );
 
     const step = await db.query.steps.findFirst({
       where: eq(steps.id, stepData.id),
