@@ -206,6 +206,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
+    // Ensure conversationId is a valid integer to prevent NaN errors
+    if (!conversationId || isNaN(conversationId)) {
+      console.error(`Invalid conversation ID: ${conversationId}`);
+      return [];
+    }
+    
+    // Convert to a number to ensure it's a valid integer
+    const validConversationId = Number(conversationId);
+    
     return await db
       .select({
         id: messages.id,
@@ -227,7 +236,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(messages)
       .leftJoin(messageMetrics, eq(messages.id, messageMetrics.messageId))
-      .where(eq(messages.conversationId, conversationId))
+      .where(eq(messages.conversationId, validConversationId))
       .orderBy(messages.createdAt);
   }
 

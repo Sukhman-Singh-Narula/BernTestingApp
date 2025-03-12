@@ -185,6 +185,12 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
   // For POST requests to /api/conversation/:id/message
   if (req.method === 'POST' && req.path.match(/^\/api\/conversation\/\d+\/message$/)) {
     const conversationId = parseInt(req.params.id);
+    
+    // Validate conversationId
+    if (isNaN(conversationId)) {
+      console.error(`Invalid conversation ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid conversation ID" });
+    }
 
     // Get all messages for this conversation to check count
     const allMessages = await storage.getMessagesByConversation(conversationId);

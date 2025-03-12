@@ -186,6 +186,13 @@ export async function registerRoutes(app: Express, port: number = 5000) {
   app.get("/api/conversation/:id", async (req, res) => {
     try {
       const conversationId = Number(req.params.id);
+      
+      // Validate conversationId
+      if (isNaN(conversationId)) {
+        console.error(`Invalid conversation ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+      
       console.log(`Retrieving conversation ${conversationId}`);
 
       const conversationWithPrompt = await storage.getConversationWithSystemPrompt(conversationId);
@@ -239,6 +246,12 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     try {
       const { message } = req.body;
       const conversationId = Number(req.params.id);
+      
+      // Validate conversationId
+      if (isNaN(conversationId)) {
+        console.error(`Invalid conversation ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
 
       const conversation = await storage.getConversation(conversationId);
       if (!conversation) {
