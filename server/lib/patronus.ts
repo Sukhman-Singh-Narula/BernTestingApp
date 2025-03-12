@@ -185,15 +185,32 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.apply(this, arguments);
         }
         
-        // Count user messages to determine if we should evaluate
-        const userMessageCount = allMessages.filter(msg => msg.role === 'user').length;
-        console.log(`User message count: ${userMessageCount}`);
+        // We want to evaluate only on the third message in the conversation
+        // (Initial AI welcome → User first message → AI first response)
+        console.log(`Total message count: ${allMessages.length}`);
         
-        // Only evaluate after the second user message (which means the AI's second response)
-        if (userMessageCount < 2) {
-          console.log('Skipping evaluation - waiting for second user message');
+        // Check if this is exactly the third message (count is 3) 
+        if (allMessages.length !== 3) {
+          console.log(`Skipping evaluation - not the third message (count: ${allMessages.length})`);
           return originalJson.apply(this, arguments);
         }
+        
+        // Additionally, verify this is an AI response to a user message
+        if (allMessages[1].role !== 'user' || allMessages[2].role !== 'assistant') {
+          console.log('Skipping evaluation - incorrect message sequence');
+          return originalJson.apply(this, arguments);
+        }
+        
+        // Check if we've already evaluated this conversation to prevent duplicates
+        const conversationIdNum = parseInt(conversationId);
+        const cacheKey = `evaluated_${conversationIdNum}`;
+        if (global[cacheKey]) {
+          console.log(`Skipping duplicate evaluation for conversation ${conversationId}`);
+          return originalJson.apply(this, arguments);
+        }
+        
+        // Mark this conversation as evaluated to prevent duplicates
+        global[cacheKey] = true;
 
         const conversation = await db.query.conversations.findFirst({
           where: eq(conversations.id, parseInt(conversationId)),
@@ -252,9 +269,10 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
 
         console.log('Evaluating message sequence:', {
           messageCount: allMessages.length,
-          previousAiMessage: previousAiMessage.content,
+          exactSequence: `${allMessages[0].role} → ${allMessages[1].role} → ${allMessages[2].role}`,
           userMessage: userMessage.content,
-          currentAiMessage: currentAiMessage.content
+          currentAiMessage: currentAiMessage.content,
+          conversationId
         });
 
         const evaluation = await patronus.evaluateMessage(
