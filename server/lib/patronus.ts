@@ -166,20 +166,22 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           return originalJson.apply(this, arguments);
         }
 
-        // Only evaluate AI responses (not user messages)
-        if (!body?.message || req.method !== 'POST') {
-          return originalJson.apply(this, arguments);
-        }
-
         // Get all messages for this conversation
         const allMessages = await db.query.messages.findMany({
           where: eq(messages.conversationId, parseInt(conversationId)),
           orderBy: (messages, { asc }) => [asc(messages.createdAt)]
         });
 
-        // Only evaluate if we have at least 3 messages (AI-User-AI sequence)
+        // We need at least 3 messages for a proper evaluation sequence
         if (allMessages.length < 3) {
-          console.log('Not enough messages for evaluation yet');
+          console.log('Not enough messages for evaluation yet, count:', allMessages.length);
+          return originalJson.apply(this, arguments);
+        }
+
+        // Only evaluate AI responses (not user messages)
+        const currentMessage = body?.message;
+        if (!currentMessage || req.method !== 'POST' || !currentMessage.includes(allMessages[allMessages.length - 1].content)) {
+          console.log('Skipping evaluation - not an AI response message');
           return originalJson.apply(this, arguments);
         }
 
@@ -217,10 +219,15 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
         const lastThreeMessages = allMessages.slice(-3);
         const [previousAiMessage, userMessage, currentAiMessage] = lastThreeMessages;
 
+        // Verify we have the correct message sequence
         if (previousAiMessage?.role !== 'assistant' || 
             userMessage?.role !== 'user' || 
             currentAiMessage?.role !== 'assistant') {
-          console.log('Message sequence is not in the expected AI-User-AI format');
+          console.log('Message sequence is not in the expected AI-User-AI format:', {
+            previousRole: previousAiMessage?.role,
+            userRole: userMessage?.role,
+            currentRole: currentAiMessage?.role
+          });
           return originalJson.apply(this, arguments);
         }
 
@@ -234,6 +241,7 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
         };
 
         console.log('Evaluating message sequence:', {
+          messageCount: allMessages.length,
           previousAiMessage: previousAiMessage.content,
           userMessage: userMessage.content,
           currentAiMessage: currentAiMessage.content
