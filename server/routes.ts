@@ -245,12 +245,19 @@ export async function registerRoutes(app: Express, port: number = 5000) {
   app.post("/api/conversation/:id/message", async (req, res) => {
     try {
       const { message } = req.body;
+      
+      // Enhanced validation for conversation ID
+      if (!req.params.id || req.params.id === 'undefined' || req.params.id === 'null') {
+        console.error(`Missing or invalid conversation ID format: ${req.params.id}`);
+        return res.status(400).json({ message: "Missing or invalid conversation ID format" });
+      }
+      
       const conversationId = Number(req.params.id);
       
-      // Validate conversationId
-      if (isNaN(conversationId)) {
-        console.error(`Invalid conversation ID: ${req.params.id}`);
-        return res.status(400).json({ message: "Invalid conversation ID" });
+      // Validate conversationId is a valid number
+      if (isNaN(conversationId) || conversationId <= 0) {
+        console.error(`Invalid conversation ID value: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid conversation ID value" });
       }
 
       const conversation = await storage.getConversation(conversationId);

@@ -92,22 +92,36 @@ export default function Chat() {
 
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
-      if (!conversation?.id) return;
-      
-      // Ensure we have a valid numeric ID
-      const validId = Number(conversation.id);
-      if (isNaN(validId)) {
-        throw new Error('Invalid conversation ID');
+      // More robust checks for conversation ID
+      if (!conversation) {
+        throw new Error('No active conversation');
       }
+      
+      if (conversation.id === undefined || conversation.id === null) {
+        throw new Error('Missing conversation ID');
+      }
+      
+      // Ensure we have a valid numeric ID 
+      const validId = Number(conversation.id);
+      if (isNaN(validId) || validId <= 0) {
+        console.error(`Invalid conversation ID detected: ${conversation.id}`);
+        throw new Error('Invalid conversation ID format');
+      }
+      
+      console.log(`Sending message to conversation ID: ${validId}`);
       
       const res = await apiRequest(
         "POST",
         `/api/conversation/${validId}/message`,
         { message }
       );
+      
       if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        console.error(`API Error: ${res.status} ${res.statusText}`, errorText);
         throw new Error(`Failed to send message: ${res.status} ${res.statusText}`);
       }
+      
       return res.json();
     },
     onSuccess: (data) => {
