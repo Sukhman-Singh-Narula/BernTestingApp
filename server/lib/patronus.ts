@@ -147,173 +147,128 @@ const patronus = new PatronusClient({
   }
 });
 
+/**
+ * Middleware that handles Patronus evaluation for conversations
+ * Only evaluates after 3+ AI responses or for message creation that will be the 3rd response
+ */
 export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  // Log the request path to debug middleware execution
+  // Early exit for non-conversation routes
+  if (!req.path.includes('/api/conversation') && !req.path.includes('/api/message')) {
+    return next();
+  }
+
+  // Log middleware entry point for debugging
   console.log(`Patronus middleware called for ${req.method} ${req.path}`);
 
-  const originalJson = res.json;
-  res.json = async function(body) {
-    if (req.path.includes('/api/conversation') || req.path.includes('/api/message')) {
+  // Skip evaluation for conversation creation
+  if (req.method === 'POST' && req.path === '/api/conversation') {
+    console.log('Skipping evaluation for conversation creation request');
+    return next();
+  }
+
+  // For GET requests to /api/conversation/:id, just pass through
+  if (req.method === 'GET' && req.path.match(/^\/api\/conversation\/\d+$/)) {
+    // For GET requests, check message count in the response
+    const originalJson = res.json;
+    res.json = function(body) {
+      if (body.messages) {
+        const messageCount = body.messages.length;
+        const aiCount = body.messages.filter((msg: any) => msg.role === 'assistant').length;
+        console.log(`Processing request: { path: '${req.path}', method: '${req.method}', body: ${JSON.stringify(req.body)} }`);
+        console.log(`Not enough messages for evaluation (${aiCount} < 3)`);
+      }
+      return originalJson.apply(this, arguments);
+    };
+    return next();
+  }
+
+  // For POST requests to /api/conversation/:id/message
+  if (req.method === 'POST' && req.path.match(/^\/api\/conversation\/\d+\/message$/)) {
+    const conversationId = parseInt(req.params.id);
+
+    // Get all messages for this conversation to check count
+    const allMessages = await storage.getMessagesByConversation(conversationId);
+    const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
+
+    console.log(`Processing request: { path: '${req.path}', method: '${req.method}', body: ${JSON.stringify(req.body)} }`);
+    console.log(`AI response count: ${aiResponseCount}`);
+
+    // If fewer than 2 AI responses (meaning this will be the 3rd including the one we're about to add)
+    if (aiResponseCount < 2) {
+      console.log(`Skipping evaluation - only ${aiResponseCount} AI responses so far (need 3+)`);
+      return next();
+    }
+
+    // This is the 3rd or later AI response, so we'll evaluate
+    const conversation = await storage.getConversation(conversationId);
+    if (!conversation) {
+      console.log(`Conversation ${conversationId} not found`);
+      return next();
+    }
+
+    // Get step data for evaluation
+    const stepData = await storage.getStepByActivityAndNumber(
+      conversation.activityId,
+      conversation.currentStep - 1  // Use the current step - 1 since this is for the message being processed
+    );
+
+    if (!stepData) {
+      console.log(`Step data not found for conversation ${conversationId}, step ${conversation.currentStep - 1}`);
+      return next();
+    }
+
+    console.log('Evaluating response with step data:', stepData);
+
+    // Now override the json method to process the response
+    const originalJson = res.json;
+    res.json = async function(body) {
       try {
-        console.log('Processing request:', { path: req.path, method: req.method, body: req.body });
+        if (body.message && body.conversation?.messages) {
+          const messages = body.conversation.messages;
 
-        // Skip evaluation for POST to /api/conversation (creation requests)
-        if (req.method === 'POST' && req.path === '/api/conversation') {
-          console.log('Skipping evaluation for conversation creation request');
-          return originalJson.apply(this, arguments);
-        }
+          // We should have at least 3 messages now (including the one just added)
+          if (messages.length >= 3) {
+            const userMessage = messages.filter(msg => msg.role === 'user').pop();
+            const currentAiMessage = messages.filter(msg => msg.role === 'assistant').pop();
+            const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+            const previousAiMessage = assistantMessages.length > 1 ? 
+              assistantMessages[assistantMessages.length - 2] : 
+              { content: '' };
 
-        const conversationId = req.params?.id || body?.conversation?.id;
-        if (!conversationId) {
-          console.log('No conversation ID found in request - continuing');
-          return originalJson.apply(this, arguments);
-        }
+            // Log the sequence for debugging
+            console.log('Using step number:', conversation.currentStep - 1);
+            console.log('Evaluating message sequence:', {
+              messageCount: messages.length,
+              exactSequence: `${messages[0].role} → ${messages[1].role} → ${messages[2].role}`,
+              userMessage: userMessage.content,
+              currentAiMessage: currentAiMessage.content,
+              conversationId
+            });
 
-        // Get all messages for this conversation
-        const allMessages = await db.query.messages.findMany({
-          where: eq(messages.conversationId, parseInt(conversationId)),
-          orderBy: (messages, { asc }) => [asc(messages.createdAt)]
-        });
+            // Perform the evaluation
+            const evaluation = await patronus.evaluateMessage(
+              userMessage.content,
+              currentAiMessage.content,
+              previousAiMessage.content,
+              stepData
+            );
 
-        // Ensure we have enough messages for evaluation
-        if (allMessages.length < 3) {
-          console.log(`Not enough messages for evaluation (${allMessages.length} < 3)`);
-          return originalJson.apply(this, arguments);
-        }
-
-        // Validate message positions - only evaluate messages where:
-        // 1. We have at least 3 total messages in the conversation
-        // 2. The latest message is from the assistant (response we're evaluating)
-        // 3. Only evaluate messages when we're on the 3rd or later AI response
-
-        // Count how many AI responses we have
-        const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
-        console.log(`AI response count: ${aiResponseCount}`);
-
-        // If this is a new message being posted, we're about to add an AI response,
-        // so we need to check if the current count + 1 is still < 3
-        const willBeThirdResponse = req.method === 'POST' && 
-                                   req.path.includes('/message') && 
-                                   aiResponseCount === 2;
-
-        // Skip evaluation for conversations with fewer than 3 AI responses
-        // Unless this message will be the 3rd response
-        if (aiResponseCount < 3 && !willBeThirdResponse) {
-          console.log(`Skipping evaluation - only ${aiResponseCount} AI responses so far (need 3+)`);
-          return originalJson.apply(this, arguments);
-        }
-
-        const currentMessageIndex = allMessages.length - 1;
-        if (allMessages[currentMessageIndex].role !== 'assistant' || 
-            allMessages[currentMessageIndex-1].role !== 'user') {
-          console.log('Skipping evaluation - not an AI response to a user message');
-          return originalJson.apply(this, arguments);
-        }
-
-        // Skip if we've already added an evaluation for this message
-        if (body.evaluation) {
-          console.log('Evaluation already exists in response - skipping duplicate evaluation');
-          return originalJson.apply(this, arguments);
-        }
-
-        // Create a unique key for this evaluation to prevent duplicates
-        const evaluationKey = `${conversationId}-${allMessages[currentMessageIndex].id}`;
-        // Check if we've already evaluated this message in this request cycle
-        const globalAny = global as any;
-        globalAny.__evaluatedMessages = globalAny.__evaluatedMessages || new Set();
-
-        if (globalAny.__evaluatedMessages.has(evaluationKey)) {
-          console.log(`Already evaluated message ${allMessages[currentMessageIndex].id} - skipping duplicate evaluation`);
-          return originalJson.apply(this, arguments);
-        }
-
-        // Mark this message as being evaluated
-        globalAny.__evaluatedMessages.add(evaluationKey);
-
-        const userMessage = allMessages[currentMessageIndex-1];
-        const currentAiMessage = allMessages[currentMessageIndex];
-        const previousAiMessage = allMessages[currentMessageIndex-2];
-
-
-        const conversation = await db.query.conversations.findFirst({
-          where: eq(conversations.id, parseInt(conversationId)),
-          with: {
-            activity: true,
-            systemPrompt: true
+            if (evaluation) {
+              body.evaluation = evaluation;
+            }
           }
-        });
-
-        if (!conversation) {
-          console.error(`Conversation ${conversationId} not found`);
-          return originalJson.call(this, { message: 'Conversation not found', status: 404 });
-        }
-
-        const stepNumber = conversation.currentStep;
-        console.log('Using step number:', stepNumber);
-
-        if (stepNumber === undefined || stepNumber === null) {
-          console.error(`No step number found for conversation ${conversationId}`);
-          return originalJson.call(this, { message: 'Activity step not found', status: 404 });
-        }
-
-        const step = await db.query.steps.findFirst({
-          where: (eq(steps.activityId, conversation.activityId) && eq(steps.stepNumber, stepNumber))
-        });
-
-        if (!step) {
-          console.error(`Step ${stepNumber} not found`);
-          return originalJson.call(this, { message: 'Activity step not found', status: 404 });
-        }
-
-        // Get the last three messages in the sequence (AI-User-AI)
-        const lastThreeMessages = allMessages.slice(-3);
-        const [previousAiMessageCheck, userMessageCheck, currentAiMessageCheck] = lastThreeMessages;
-
-        // Verify we have the correct message sequence
-        if (previousAiMessageCheck?.role !== 'assistant' || 
-            userMessageCheck?.role !== 'user' || 
-            currentAiMessageCheck?.role !== 'assistant') {
-          console.log('Message sequence is not in the expected AI-User-AI format:', {
-            previousRole: previousAiMessageCheck?.role,
-            userRole: userMessageCheck?.role,
-            currentRole: currentAiMessageCheck?.role
-          });
-          return originalJson.apply(this, arguments);
-        }
-
-        const stepData = {
-          id: step.id,
-          objective: step.objective,
-          expectedResponses: step.expectedResponses,
-          stepNumber: step.stepNumber,
-          language: conversation.activity.language,
-          systemPrompt: conversation.systemPrompt?.systemPrompt
-        };
-
-        console.log('Evaluating message sequence:', {
-          messageCount: allMessages.length,
-          exactSequence: `${allMessages[0].role} → ${allMessages[1].role} → ${allMessages[2].role}`,
-          userMessage: userMessage.content,
-          currentAiMessage: currentAiMessage.content,
-          conversationId
-        });
-
-        const evaluation = await patronus.evaluateMessage(
-          userMessage.content,
-          currentAiMessage.content,
-          previousAiMessage.content,
-          stepData
-        );
-
-        if (evaluation) {
-          body.evaluation = evaluation;
         }
       } catch (error) {
-        console.error('Error in Patronus middleware:', error);
+        console.error('Error in Patronus middleware evaluation:', error);
       }
-    }
-    return originalJson.call(this, body);
-  };
+
+      return originalJson.call(this, body);
+    };
+
+    return next();
+  }
+
+  // For all other routes, just pass through
   next();
 };
 
