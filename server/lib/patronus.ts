@@ -172,44 +172,33 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
           orderBy: (messages, { asc }) => [asc(messages.createdAt)]
         });
 
-        // We need at least 3 messages for a proper evaluation sequence
+        // We want to evaluate only from the third message onwards
+        // (Initial AI welcome → User first message → AI first response → and all subsequent messages)
+        console.log(`Total message count: ${allMessages.length}`);
+
+        // Skip if we have fewer than 3 messages
         if (allMessages.length < 3) {
-          console.log('Not enough messages for evaluation yet, count:', allMessages.length);
+          console.log(`Skipping evaluation - fewer than 3 messages (count: ${allMessages.length})`);
           return originalJson.apply(this, arguments);
         }
 
-        // Only evaluate AI responses (not user messages)
-        const currentMessage = body?.message;
-        if (!currentMessage || req.method !== 'POST' || !currentMessage.includes(allMessages[allMessages.length - 1].content)) {
-          console.log('Skipping evaluation - not an AI response message');
-          return originalJson.apply(this, arguments);
-        }
-        
-        // We want to evaluate only on the third message in the conversation
-        // (Initial AI welcome → User first message → AI first response)
-        console.log(`Total message count: ${allMessages.length}`);
-        
-        // Check if this is exactly the third message (count is 3) 
-        if (allMessages.length !== 3) {
-          console.log(`Skipping evaluation - not the third message (count: ${allMessages.length})`);
-          return originalJson.apply(this, arguments);
-        }
-        
         // Additionally, verify this is an AI response to a user message
-        if (allMessages[1].role !== 'user' || allMessages[2].role !== 'assistant') {
-          console.log('Skipping evaluation - incorrect message sequence');
+        const currentMessageIndex = allMessages.length - 1;
+        if (allMessages[currentMessageIndex].role !== 'assistant' || 
+            allMessages[currentMessageIndex-1].role !== 'user') {
+          console.log('Skipping evaluation - not an AI response to a user message');
           return originalJson.apply(this, arguments);
         }
-        
-        // Check if we've already evaluated this conversation to prevent duplicates
-        const conversationIdNum = parseInt(conversationId);
-        const cacheKey = `evaluated_${conversationIdNum}`;
+
+        // Check if we've already evaluated this message to prevent duplicates
+        const messageId = allMessages[currentMessageIndex].id;
+        const cacheKey = `evaluated_msg_${messageId}`;
         if (global[cacheKey]) {
-          console.log(`Skipping duplicate evaluation for conversation ${conversationId}`);
+          console.log(`Skipping duplicate evaluation for message ${messageId}`);
           return originalJson.apply(this, arguments);
         }
-        
-        // Mark this conversation as evaluated to prevent duplicates
+
+        // Mark this message as evaluated
         global[cacheKey] = true;
 
         const conversation = await db.query.conversations.findFirst({
