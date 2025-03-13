@@ -183,13 +183,18 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
   }
 
   // For POST requests to /api/conversation/:id/message
-  if (req.method === 'POST' && req.path.match(/^\/api\/conversation\/\d+\/message$/)) {
+  if (req.method === 'POST' && req.path.includes('/api/conversation/') && req.path.includes('/message')) {
+    if (!req.params.id || req.params.id === 'undefined' || req.params.id === 'null') {
+      console.error(`Invalid conversation ID parameter: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid or missing conversation ID parameter" });
+    }
+    
     const conversationId = parseInt(req.params.id);
     
     // Validate conversationId
-    if (isNaN(conversationId)) {
-      console.error(`Invalid conversation ID: ${req.params.id}`);
-      return res.status(400).json({ error: "Invalid conversation ID" });
+    if (isNaN(conversationId) || conversationId <= 0) {
+      console.error(`Invalid conversation ID value: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid conversation ID value" });
     }
 
     // Get all messages for this conversation to check count

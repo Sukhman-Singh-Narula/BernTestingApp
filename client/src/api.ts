@@ -18,13 +18,13 @@ export async function apiRequest(method: string, path: string, body?: any) {
     console.error('Empty API path detected');
     throw new Error('Empty API path');
   }
-  
+
   // Check for invalid path components
   if (path.includes('undefined') || path.includes('null')) {
     console.error(`Invalid API path detected: ${path}`);
     throw new Error(`Invalid API path: ${path}`);
   }
-  
+
   // Specifically check for conversation message endpoints with potential ID issues
   if (path.includes('/api/conversation/') && path.includes('/message')) {
     const idMatch = path.match(/\/conversation\/([^\/]+)\/message/);
@@ -36,22 +36,34 @@ export async function apiRequest(method: string, path: string, body?: any) {
       }
     }
   }
-  
+
   console.log(`Sending ${method} request to: ${API_URL}${path}`);
-  
+
   try {
+    console.log(`Executing ${method} request to ${API_URL}${path}`, { 
+      options: { 
+        method, 
+        headers: options.headers,
+        body: options.body ? '[BODY]' : undefined
+      }
+    });
+
     const response = await fetch(`${API_URL}${path}`, options);
 
-    // Enhanced error logging
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+
     if (!response.ok) {
-      console.error(`API request failed: ${method} ${path} ${response.status} (${response.statusText})`);
-      try {
-        const errorData = await response.clone().json();
-        console.error('Error details:', errorData);
-      } catch (e) {
-        // If the response isn't JSON, try to get the text
-        const errorText = await response.clone().text();
-        console.error('Error response text:', errorText);
+      console.error(`API request failed with status ${response.status} for path ${path}`);
+
+      if (isJson) {
+        const errorData = await response.json();
+        console.error('API error details:', errorData);
+        throw new Error(errorData.message || errorData.error || `API error: ${response.status}`);
+      } else {
+        const textError = await response.text();
+        console.error('API error response:', textError);
+        throw new Error(`API error: ${response.status}`);
       }
     }
 
