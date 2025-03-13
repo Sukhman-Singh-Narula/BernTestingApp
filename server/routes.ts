@@ -135,9 +135,18 @@ export async function registerRoutes(app: Express, port: number = 5000) {
 
   app.post("/api/conversation", async (req, res) => {
     try {
+      // Provide sensible defaults and validate
       const { activityId = 1, shouldGenerateFirstResponse = true, userName, systemPrompt } = req.body;
+      
+      // Validate activityId
+      const parsedActivityId = Number(activityId);
+      if (isNaN(parsedActivityId) || parsedActivityId <= 0) {
+        console.error(`Invalid activity ID: ${activityId}`);
+        return res.status(400).json({ message: "Invalid activity ID" });
+      }
 
       if (!userName) {
+        console.error("Missing required userName");
         return res.status(400).json({ message: "userName is required" });
       }
 

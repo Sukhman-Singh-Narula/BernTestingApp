@@ -40,10 +40,12 @@ export default function Chat() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
+  const [error, setError] = useState<string | null>(null); // Added error state
+
 
   // Get and validate conversation ID from URL params or localStorage
   const rawConversationId = params.id || localStorage.getItem("currentConversationId");
-  const conversationId = rawConversationId && !isNaN(Number(rawConversationId)) ? rawConversationId : null;
+  const conversationId = rawConversationId && !isNaN(Number(rawConversationId)) ? Number(rawConversationId) : null; // Changed to Number
 
   useEffect(() => {
     const userName = localStorage.getItem("userName");
@@ -53,7 +55,7 @@ export default function Chat() {
     }
 
     // Validate conversation ID
-    if (!conversationId || isNaN(Number(conversationId)) || Number(conversationId) <= 0) {
+    if (!conversationId || isNaN(conversationId) || conversationId <= 0) {
       console.warn(`Invalid conversation ID detected: ${rawConversationId}, redirecting to home`);
       localStorage.removeItem("currentConversationId");
       setLocation("/");
@@ -61,8 +63,8 @@ export default function Chat() {
     }
 
     // Only set localStorage for valid conversation IDs
-    localStorage.setItem("currentConversationId", conversationId);
-    
+    localStorage.setItem("currentConversationId", conversationId.toString()); //toString
+
     console.log(`Active conversation ID: ${conversationId}`);
   }, [setLocation, conversationId, rawConversationId, params.id]);
 
@@ -105,32 +107,32 @@ export default function Chat() {
       if (!conversation) {
         throw new Error('No active conversation');
       }
-      
+
       if (conversation.id === undefined || conversation.id === null) {
         throw new Error('Missing conversation ID');
       }
-      
+
       // Ensure we have a valid numeric ID 
       const validId = Number(conversation.id);
       if (isNaN(validId) || validId <= 0) {
         console.error(`Invalid conversation ID detected: ${conversation.id}`);
         throw new Error('Invalid conversation ID format');
       }
-      
+
       console.log(`Sending message to conversation ID: ${validId}`);
-      
+
       const res = await apiRequest(
         "POST",
         `/api/conversation/${validId}/message`,
         { message }
       );
-      
+
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
         console.error(`API Error: ${res.status} ${res.statusText}`, errorText);
         throw new Error(`Failed to send message: ${res.status} ${res.statusText}`);
       }
-      
+
       return res.json();
     },
     onSuccess: (data) => {
@@ -139,19 +141,27 @@ export default function Chat() {
         ...prevData,
         ...data.conversation
       }));
+      setError(null); // Clear error on success
     },
-    onError: () => {
+    onError: (err) => {
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: `Failed to send message: ${err.message}`, // More informative error message
         variant: "destructive"
       });
+      setError(err.message); // Set error state on failure
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
+    //Added check for conversationId
+    if (!conversationId || isNaN(conversationId) || conversationId <= 0) {
+      console.error(`Cannot send message: Invalid conversation ID: ${conversationId}`);
+      setError('Invalid conversation ID. Please refresh the page or start a new conversation.');
+      return;
+    }
     sendMessage.mutate(input);
   };
 
@@ -175,6 +185,7 @@ export default function Chat() {
 
   return (
     <div className="container mx-auto h-screen p-4 flex flex-col gap-4">
+      {error && <div className="text-red-500">{error}</div>} {/* Display error message */}
       <div className="flex justify-between items-center">
         <Link href="/chat">
           <Button variant="outline">Back to Conversations</Button>
