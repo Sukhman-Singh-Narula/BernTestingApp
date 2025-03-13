@@ -103,37 +103,18 @@ export default function Chat() {
 
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
-      // More robust checks for conversation ID
-      if (!conversation) {
-        throw new Error('No active conversation');
+      // Ensure we have a valid conversation ID before making the request
+      if (!conversationId || isNaN(Number(conversationId)) || Number(conversationId) <= 0) {
+        throw new Error(`Cannot send message - invalid conversation ID: ${conversationId}`);
       }
 
-      if (conversation.id === undefined || conversation.id === null) {
-        throw new Error('Missing conversation ID');
-      }
+      console.log(`Sending message to conversation: ${conversationId}`);
 
-      // Ensure we have a valid numeric ID 
-      const validId = Number(conversation.id);
-      if (isNaN(validId) || validId <= 0) {
-        console.error(`Invalid conversation ID detected: ${conversation.id}`);
-        throw new Error('Invalid conversation ID format');
-      }
-
-      console.log(`Sending message to conversation ID: ${validId}`);
-
-      const res = await apiRequest(
-        "POST",
-        `/api/conversation/${validId}/message`,
+      return apiRequest(
+        "POST", 
+        `/api/conversation/${conversationId}/message`, 
         { message }
       );
-
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => 'Unknown error');
-        console.error(`API Error: ${res.status} ${res.statusText}`, errorText);
-        throw new Error(`Failed to send message: ${res.status} ${res.statusText}`);
-      }
-
-      return res.json();
     },
     onSuccess: (data) => {
       setInput("");
@@ -153,16 +134,79 @@ export default function Chat() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    //Added check for conversationId
-    if (!conversationId || isNaN(conversationId) || conversationId <= 0) {
-      console.error(`Cannot send message: Invalid conversation ID: ${conversationId}`);
-      setError('Invalid conversation ID. Please refresh the page or start a new conversation.');
+
+    // Verify we have a valid conversation ID
+    if (!conversationId || isNaN(Number(conversationId)) || Number(conversationId) <= 0) {
+      setError("Invalid conversation ID. Please start a new conversation.");
+      toast({
+        title: "Error",
+        description: "Invalid conversation ID. Please start a new conversation.",
+        variant: "destructive",
+      });
       return;
     }
-    sendMessage.mutate(input);
+
+    try {
+      setInput("");
+
+      // Add user message optimistically
+      queryClient.setQueryData<ConversationResponse>(
+        ["conversation", conversationId], 
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          return {
+            ...oldData,
+            messages: [
+              ...(oldData.messages || []),
+              {
+                id: Date.now(), // Temporary ID
+                conversationId: Number(conversationId),
+                stepId: oldData.currentStep,
+                role: "user",
+                content: input,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          };
+        }
+      );
+
+      // Scroll to bottom after message is added
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
+
+      // Send message to server
+      console.log(`Sending message to conversation ${conversationId}: ${input}`);
+      const result = await sendMessage.mutateAsync(input);
+
+      // Update conversation with server response
+      queryClient.setQueryData<ConversationResponse>(
+        ["conversation", conversationId], 
+        () => result.conversation
+      );
+
+      // Scroll to bottom after response
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {

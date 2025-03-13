@@ -50,26 +50,29 @@ export async function apiRequest(method: string, path: string, body?: any) {
 
     const response = await fetch(`${API_URL}${path}`, options);
 
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType?.includes('application/json');
-
-    if (!response.ok) {
-      console.error(`API request failed with status ${response.status} for path ${path}`);
-
-      if (isJson) {
-        const errorData = await response.json();
-        console.error('API error details:', errorData);
-        throw new Error(errorData.message || errorData.error || `API error: ${response.status}`);
-      } else {
-        const textError = await response.text();
-        console.error('API error response:', textError);
-        throw new Error(`API error: ${response.status}`);
-      }
+    // First check if the response can be parsed as JSON
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      console.error(`Failed to parse JSON response from ${path}`, e);
+      throw new Error(`Invalid response format: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
-    return response;
+    // Then check if the response was successful
+    if (!response.ok) {
+      const errorMessage = data.message || data.error || `Request failed with status ${response.status}`;
+      console.error(`API request failed with status ${response.status}: ${errorMessage}`, data);
+      throw new Error(errorMessage);
+    }
+
+    return data;
   } catch (error) {
-    console.error(`Network error during API request: ${method} ${path}`, error);
+    // Enhanced error logging
+    console.error(`API request failed: ${method} ${path}`, {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
