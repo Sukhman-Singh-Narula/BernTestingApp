@@ -41,8 +41,9 @@ export default function Chat() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
 
-  // Get conversation ID from URL params or localStorage
-  const conversationId = params.id || localStorage.getItem("currentConversationId");
+  // Get and validate conversation ID from URL params or localStorage
+  const rawConversationId = params.id || localStorage.getItem("currentConversationId");
+  const conversationId = rawConversationId && !isNaN(Number(rawConversationId)) ? rawConversationId : null;
 
   useEffect(() => {
     const userName = localStorage.getItem("userName");
@@ -51,11 +52,19 @@ export default function Chat() {
       return;
     }
 
-    // Only set localStorage for new conversations
-    if (conversationId) {
-      localStorage.setItem("currentConversationId", conversationId);
+    // Validate conversation ID
+    if (!conversationId || isNaN(Number(conversationId)) || Number(conversationId) <= 0) {
+      console.warn(`Invalid conversation ID detected: ${rawConversationId}, redirecting to home`);
+      localStorage.removeItem("currentConversationId");
+      setLocation("/");
+      return;
     }
-  }, [setLocation, conversationId, params.id]);
+
+    // Only set localStorage for valid conversation IDs
+    localStorage.setItem("currentConversationId", conversationId);
+    
+    console.log(`Active conversation ID: ${conversationId}`);
+  }, [setLocation, conversationId, rawConversationId, params.id]);
 
   // Fetch conversation data
   const { data: conversation, isError, isLoading } = useQuery<ConversationResponse>({
