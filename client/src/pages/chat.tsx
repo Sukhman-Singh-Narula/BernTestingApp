@@ -12,12 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 // Import types from schema
-import type { 
-  Message, 
-  Step, 
-  MessageMetrics, 
+import type {
+  Message,
+  Step,
+  MessageMetrics,
   SystemPrompt,
-  MessageRole 
+  MessageRole
 } from "@shared/schema";
 
 interface ConversationResponse {
@@ -40,12 +40,11 @@ export default function Chat() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
-  const [error, setError] = useState<string | null>(null); // Added error state
-
+  const [error, setError] = useState<string | null>(null);
 
   // Get and validate conversation ID from URL params or localStorage
   const rawConversationId = params.id || localStorage.getItem("currentConversationId");
-  const conversationId = rawConversationId && !isNaN(Number(rawConversationId)) ? Number(rawConversationId) : null; // Changed to Number
+  const conversationId = rawConversationId && !isNaN(Number(rawConversationId)) ? Number(rawConversationId) : null;
 
   useEffect(() => {
     const userName = localStorage.getItem("userName");
@@ -63,12 +62,12 @@ export default function Chat() {
     }
 
     // Only set localStorage for valid conversation IDs
-    localStorage.setItem("currentConversationId", conversationId.toString()); //toString
+    localStorage.setItem("currentConversationId", conversationId.toString());
 
     console.log(`Active conversation ID: ${conversationId}`);
   }, [setLocation, conversationId, rawConversationId, params.id]);
 
-  // Fetch conversation data
+  // Fetch conversation data with consistent query key
   const { data: conversation, isError, isLoading } = useQuery<ConversationResponse>({
     queryKey: ["/api/conversation", conversationId],
     queryFn: async () => {
@@ -78,7 +77,8 @@ export default function Chat() {
       if (!res.ok) {
         throw new Error(`Conversation not found: ${res.statusText}`);
       }
-      return res.json();
+      const data = await res.json();
+      return data;
     },
     enabled: !!conversationId
   });
@@ -103,34 +103,72 @@ export default function Chat() {
 
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
-      // Ensure we have a valid conversation ID before making the request
       if (!conversationId || isNaN(Number(conversationId)) || Number(conversationId) <= 0) {
         throw new Error(`Cannot send message - invalid conversation ID: ${conversationId}`);
       }
 
-      console.log(`Sending message to conversation: ${conversationId}`);
-
-      return apiRequest(
+      const response = await apiRequest(
         "POST", 
         `/api/conversation/${conversationId}/message`, 
         { message }
       );
+
+      const data = await response.json();
+      return data;
+    },
+    onMutate: async (newMessage) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/conversation", conversationId] });
+      const previousConversation = queryClient.getQueryData<ConversationResponse>(["/api/conversation", conversationId]);
+
+      if (previousConversation) {
+        const optimisticMessage = {
+          id: Date.now(),
+          conversationId: Number(conversationId),
+          stepId: previousConversation.currentStep,
+          role: "user" as MessageRole,
+          content: newMessage,
+          createdAt: new Date().toISOString(),
+        };
+
+        queryClient.setQueryData<ConversationResponse>(
+          ["/api/conversation", conversationId],
+          old => ({
+            ...old!,
+            messages: [...(old?.messages || []), optimisticMessage],
+          })
+        );
+      }
+
+      return { previousConversation };
+    },
+    onError: (err, newMessage, context) => {
+      if (context?.previousConversation) {
+        queryClient.setQueryData(
+          ["/api/conversation", conversationId],
+          context.previousConversation
+        );
+      }
+      toast({
+        title: "Error",
+        description: `Failed to send message: ${err.message}`,
+        variant: "destructive"
+      });
+      setError(err.message);
     },
     onSuccess: (data) => {
       setInput("");
-      queryClient.setQueryData(["/api/conversation", conversationId], (prevData: any) => ({
-        ...prevData,
-        ...data.conversation
-      }));
-      setError(null); // Clear error on success
+      queryClient.setQueryData<ConversationResponse>(
+        ["/api/conversation", conversationId],
+        (old) => ({
+          ...old!,
+          ...data,
+          messages: [...(old?.messages || []), ...data.messages.slice(-2)]
+        })
+      );
+      setError(null);
     },
-    onError: (err) => {
-      toast({
-        title: "Error",
-        description: `Failed to send message: ${err.message}`, // More informative error message
-        variant: "destructive"
-      });
-      setError(err.message); // Set error state on failure
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversation", conversationId] });
     }
   });
 
@@ -138,7 +176,6 @@ export default function Chat() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Verify we have a valid conversation ID
     if (!conversationId || isNaN(Number(conversationId)) || Number(conversationId) <= 0) {
       setError("Invalid conversation ID. Please start a new conversation.");
       toast({
@@ -150,71 +187,10 @@ export default function Chat() {
     }
 
     try {
-      const currentInput = input;
-      setInput("");
-
-      // Add user message optimistically
-      queryClient.setQueryData<ConversationResponse>(
-        ["conversation", Number(conversationId)], 
-        (oldData) => {
-          if (!oldData) return oldData;
-
-          const newMessage = {
-            id: Date.now(),
-            conversationId: Number(conversationId),
-            stepId: oldData.currentStep,
-            role: "user" as MessageRole,
-            content: currentInput,
-            createdAt: new Date().toISOString(),
-          };
-
-          return {
-            ...oldData,
-            messages: [...(oldData.messages || []), newMessage],
-          };
-        }
-      );
-
-      const result = await sendMessage.mutateAsync(currentInput);
-
-      // Update conversation with server response including both messages
-      queryClient.setQueryData<ConversationResponse>(
-        ["conversation", Number(conversationId)],
-        (oldData) => {
-          if (!oldData) return result.conversation;
-
-          // Filter out the optimistic message
-          const filteredMessages = oldData.messages.filter(m => m.id !== Date.now());
-
-          return {
-            ...result.conversation,
-            messages: [
-              ...filteredMessages,
-              {
-                ...result.conversation.messages[result.conversation.messages.length - 2] // User message
-              },
-              {
-                ...result.conversation.messages[result.conversation.messages.length - 1] // Assistant message
-              }
-            ]
-          };
-        }
-      );
-
-      // Scroll to bottom after response
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      }, 100);
+      await sendMessage.mutateAsync(input);
     } catch (error) {
       console.error("Error sending message:", error);
       setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -238,7 +214,7 @@ export default function Chat() {
 
   return (
     <div className="container mx-auto h-screen p-4 flex flex-col gap-4">
-      {error && <div className="text-red-500">{error}</div>} {/* Display error message */}
+      {error && <div className="text-red-500">{error}</div>}
       <div className="flex justify-between items-center">
         <Link href="/chat">
           <Button variant="outline">Back to Conversations</Button>
