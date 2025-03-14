@@ -188,8 +188,26 @@ export default function Chat() {
 
       // Update conversation with server response
       queryClient.setQueryData<ConversationResponse>(
-        ["conversation", conversationId], 
-        () => result.conversation
+        ["conversation", Number(conversationId)],
+        (oldData) => ({
+          ...(oldData || {}),
+          ...result.conversation,
+          messages: [
+            ...(oldData?.messages || []),
+            {
+              conversationId: Number(conversationId),
+              content: message,
+              role: 'user' as MessageRole,
+              stepId: currentStep?.id || 0
+            },
+            {
+              conversationId: Number(conversationId),
+              content: result.message,
+              role: 'assistant' as MessageRole,
+              stepId: currentStep?.id || 0
+            }
+          ]
+        })
       );
 
       // Scroll to bottom after response
