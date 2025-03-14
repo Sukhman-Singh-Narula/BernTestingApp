@@ -184,12 +184,14 @@ export const patronusEvaluationMiddleware = async (req: Request, res: Response, 
 
   // For POST requests to /api/conversation/:id/message
   if (req.method === 'POST' && req.path.includes('/api/conversation/') && req.path.includes('/message')) {
-    if (!req.params.id || req.params.id === 'undefined' || req.params.id === 'null') {
-      console.error(`Invalid conversation ID parameter: ${req.params.id}`);
-      return res.status(400).json({ error: "Invalid or missing conversation ID parameter" });
+    // Extract conversation ID from URL path
+    const pathMatch = req.path.match(/\/api\/conversation\/(\d+)\/message/);
+    if (!pathMatch || !pathMatch[1]) {
+      console.error('Could not extract conversation ID from path:', req.path);
+      return res.status(400).json({ error: "Invalid conversation ID in URL" });
     }
     
-    const conversationId = parseInt(req.params.id);
+    const conversationId = parseInt(pathMatch[1]);
     
     // Validate conversationId
     if (isNaN(conversationId) || conversationId <= 0) {
