@@ -175,7 +175,7 @@ export default function Chat() {
         }
       );
 
-      const result = await sendMessage.mutateAsync({ message: currentInput });
+      const result = await sendMessage.mutateAsync(currentInput);
 
       // Update conversation with server response including both messages
       queryClient.setQueryData<ConversationResponse>(
