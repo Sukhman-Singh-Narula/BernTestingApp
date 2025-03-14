@@ -45,9 +45,9 @@ export class PatronusClient {
       }
 
       const payload = {
-        evaluators: [{ 
+        evaluators: [{
           evaluator: "glider",
-          criteria: "language-compliance" 
+          criteria: "language-compliance"
         }],
         evaluated_model_input: userInput,
         evaluated_model_output: aiResponse,
@@ -148,141 +148,90 @@ const patronus = new PatronusClient({
 });
 
 /**
- * Middleware that handles Patronus evaluation for conversations
- * Only evaluates after 3+ AI responses or for message creation that will be the 3rd response
+ * Non-blocking middleware that handles Patronus evaluation for conversations
+ * Evaluates messages in the background without affecting response time
  */
-export const patronusEvaluationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  // Early exit for non-conversation routes
-  if (!req.path.includes('/api/conversation') && !req.path.includes('/api/message')) {
-    return next();
-  }
-
-  // Log middleware entry point for debugging
-  console.log(`Patronus middleware called for ${req.method} ${req.path}`);
-
-  // Skip evaluation for conversation creation
-  if (req.method === 'POST' && req.path === '/api/conversation') {
-    console.log('Skipping evaluation for conversation creation request');
-    return next();
-  }
-
-  // For GET requests to /api/conversation/:id, just pass through
-  if (req.method === 'GET' && req.path.match(/^\/api\/conversation\/\d+$/)) {
-    // For GET requests, check message count in the response
-    const originalJson = res.json;
-    res.json = function(body) {
-      if (body.messages) {
-        const messageCount = body.messages.length;
-        const aiCount = body.messages.filter((msg: any) => msg.role === 'assistant').length;
-        console.log(`Processing request: { path: '${req.path}', method: '${req.method}', body: ${JSON.stringify(req.body)} }`);
-        console.log(`Not enough messages for evaluation (${aiCount} < 3)`);
-      }
-      return originalJson.apply(this, arguments);
-    };
-    return next();
-  }
-
-  // For POST requests to /api/conversation/:id/message
-  if (req.method === 'POST' && req.path.includes('/api/conversation/') && req.path.includes('/message')) {
-    // Extract conversation ID from URL path
-    const pathMatch = req.path.match(/\/api\/conversation\/(\d+)\/message/);
-    if (!pathMatch || !pathMatch[1]) {
-      console.error('Could not extract conversation ID from path:', req.path);
-      return res.status(400).json({ error: "Invalid conversation ID in URL" });
-    }
-    
-    const conversationId = parseInt(pathMatch[1]);
-    
-    // Validate conversationId
-    if (isNaN(conversationId) || conversationId <= 0) {
-      console.error(`Invalid conversation ID value: ${req.params.id}`);
-      return res.status(400).json({ error: "Invalid conversation ID value" });
-    }
-
-    // Get all messages for this conversation to check count
-    const allMessages = await storage.getMessagesByConversation(conversationId);
-    const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
-
-    console.log(`Processing request: { path: '${req.path}', method: '${req.method}', body: ${JSON.stringify(req.body)} }`);
-    console.log(`AI response count: ${aiResponseCount}`);
-
-    // If fewer than 2 AI responses (meaning this will be the 3rd including the one we're about to add)
-    if (aiResponseCount < 2) {
-      console.log(`Skipping evaluation - only ${aiResponseCount} AI responses so far (need 3+)`);
-      return next();
-    }
-
-    // This is the 3rd or later AI response, so we'll evaluate
-    const conversation = await storage.getConversation(conversationId);
-    if (!conversation) {
-      console.log(`Conversation ${conversationId} not found`);
-      return next();
-    }
-
-    // Get step data for evaluation
-    const stepData = await storage.getStepByActivityAndNumber(
-      conversation.activityId,
-      conversation.currentStep - 1  // Use the current step - 1 since this is for the message being processed
-    );
-
-    if (!stepData) {
-      console.log(`Step data not found for conversation ${conversationId}, step ${conversation.currentStep - 1}`);
-      return next();
-    }
-
-    console.log('Evaluating response with step data:', stepData);
-
-    // Now override the json method to process the response
-    const originalJson = res.json;
-    res.json = async function(body) {
-      try {
-        if (body.message && body.conversation?.messages) {
-          const messages = body.conversation.messages;
-
-          // We should have at least 3 messages now (including the one just added)
-          if (messages.length >= 3) {
-            const userMessage = messages.filter(msg => msg.role === 'user').pop();
-            const currentAiMessage = messages.filter(msg => msg.role === 'assistant').pop();
-            const assistantMessages = messages.filter(msg => msg.role === 'assistant');
-            const previousAiMessage = assistantMessages.length > 1 ? 
-              assistantMessages[assistantMessages.length - 2] : 
-              { content: '' };
-
-            // Log the sequence for debugging
-            console.log('Using step number:', conversation.currentStep - 1);
-            console.log('Evaluating message sequence:', {
-              messageCount: messages.length,
-              exactSequence: `${messages[0].role} → ${messages[1].role} → ${messages[2].role}`,
-              userMessage: userMessage.content,
-              currentAiMessage: currentAiMessage.content,
-              conversationId
-            });
-
-            // Perform the evaluation
-            const evaluation = await patronus.evaluateMessage(
-              userMessage.content,
-              currentAiMessage.content,
-              previousAiMessage.content,
-              stepData
-            );
-
-            if (evaluation) {
-              body.evaluation = evaluation;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error in Patronus middleware evaluation:', error);
-      }
-
-      return originalJson.call(this, body);
-    };
-
-    return next();
-  }
-
-  // For all other routes, just pass through
+export const patronusEvaluationMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Continue with the request immediately
   next();
+
+  // Process Patronus evaluation in the background
+  (async () => {
+    try {
+      // Skip evaluation for non-conversation routes
+      if (!req.path.includes('/api/conversation') && !req.path.includes('/api/message')) {
+        return;
+      }
+
+      // Skip evaluation for conversation creation
+      if (req.method === 'POST' && req.path === '/api/conversation') {
+        return;
+      }
+
+      // Skip for GET requests
+      if (req.method === 'GET') {
+        return;
+      }
+
+      // Extract conversation ID from URL path for POST message requests
+      const pathMatch = req.path.match(/\/api\/conversation\/(\d+)\/message/);
+      if (!pathMatch || !pathMatch[1]) {
+        return;
+      }
+
+      const conversationId = parseInt(pathMatch[1]);
+      if (isNaN(conversationId) || conversationId <= 0) {
+        console.error(`Invalid conversation ID value: ${conversationId}`);
+        return;
+      }
+
+      // Get messages for evaluation
+      const allMessages = await storage.getMessagesByConversation(conversationId);
+      const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
+
+      // Only evaluate after we have enough messages
+      if (aiResponseCount < 2) {
+        return;
+      }
+
+      // Get conversation and step data
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return;
+      }
+
+      const stepData = await storage.getStepByActivityAndNumber(
+        conversation.activityId,
+        conversation.currentStep - 1
+      );
+
+      if (!stepData) {
+        return;
+      }
+
+      // Get the relevant messages for evaluation
+      const messages = allMessages;
+      const userMessage = messages.filter(msg => msg.role === 'user').pop();
+      const currentAiMessage = messages.filter(msg => msg.role === 'assistant').pop();
+      const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+      const previousAiMessage = assistantMessages.length > 1 ?
+        assistantMessages[assistantMessages.length - 2] :
+        { content: '' };
+
+      // Fire-and-forget evaluation
+      patronus.evaluateMessage(
+        userMessage?.content,
+        currentAiMessage?.content,
+        previousAiMessage?.content,
+        stepData
+      ).catch(error => {
+        console.error('Background Patronus evaluation error:', error);
+      });
+
+    } catch (error) {
+      console.error('Error in background Patronus evaluation:', error);
+    }
+  })();
 };
 
 export async function evaluateResponse(
