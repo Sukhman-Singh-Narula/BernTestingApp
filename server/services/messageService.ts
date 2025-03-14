@@ -1,6 +1,12 @@
 import { storage } from '../storage';
 import { generateResponse } from '../lib/openai';
 import { MessageRole } from '@shared/schema';
+import { EventEmitter } from 'events';
+
+// Create a global event emitter for real-time message updates
+export const messageEvents = new EventEmitter();
+// Set higher limit for event listeners
+messageEvents.setMaxListeners(100);
 
 export class MessageService {
   async createMessage(conversationId: number, message: string) {
@@ -25,56 +31,136 @@ export class MessageService {
       throw new Error("Activity step not found");
     }
 
-    // Get previous messages for context
-    const existingMessages = await storage.getMessagesByConversation(conversationId);
-    const previousMessages = existingMessages
-      .map(msg => `${msg.role}: ${msg.content}`)
-      .join("\n");
-
-    // Generate AI response
-    const aiResponse = await generateResponse(
-      message,
-      step,
-      previousMessages
-    );
-
-    // Create user message
-    await storage.createMessage({
+    // Store user message immediately
+    const userMessage = await storage.createMessage({
       conversationId,
       stepId: step.id,
       role: "user" as MessageRole,
       content: message
     });
 
-    // Create assistant message
-    await storage.createMessage({
+    // Notify clients about the user message
+    messageEvents.emit('message', {
+      type: 'user-message',
       conversationId,
-      stepId: step.id,
-      role: "assistant" as MessageRole,
-      content: aiResponse
+      message: userMessage
     });
 
-    // Update conversation step
-    const nextStep = conversation.currentStep + 1;
-    const updatedConversation = await storage.updateConversationStep(
-      conversationId,
-      nextStep
-    );
+    // Start AI response generation in the background
+    this.generateAIResponse(conversationId, message, step, conversation);
 
-    // Get updated messages
-    const updatedMessages = await storage.getMessagesByConversation(conversationId);
-
-    // Get system prompt
-    const systemPrompt = await storage.getSystemPromptByActivity(updatedConversation.activityId);
-
+    // Return immediately with user message
     return {
-      message: aiResponse,
+      message: "Processing response...",
+      userMessage,
+      processing: true,
       conversation: {
-        ...updatedConversation,
-        messages: updatedMessages,
-        systemPrompt
+        ...conversation,
+        messages: [userMessage]
       }
     };
+  }
+
+  private async generateAIResponse(conversationId: number, userMessage: string, step: any, conversation: any) {
+    try {
+      // Get previous messages for context (limit to last 10 for performance)
+      const existingMessages = await storage.getMessagesByConversation(conversationId, 10);
+      const previousMessages = existingMessages
+        .map(msg => `${msg.role}: ${msg.content}`)
+        .join("\n");
+
+      // Emit "thinking" status event
+      messageEvents.emit('message', {
+        type: 'thinking',
+        conversationId,
+        message: "The assistant is thinking..."
+      });
+
+      // Generate AI response
+      const aiResponse = await generateResponse(
+        userMessage,
+        step,
+        previousMessages
+      );
+
+      // Store assistant message
+      const assistantMessage = await storage.createMessage({
+        conversationId,
+        stepId: step.id,
+        role: "assistant" as MessageRole,
+        content: aiResponse
+      });
+
+      // Check if we should advance to next step based on expected responses
+      let shouldAdvance = false;
+      if (step.expectedResponses) {
+        const expectedResponses = step.expectedResponses.split('|').map((r: string) => r.trim().toLowerCase());
+        const normalizedMessage = userMessage.trim().toLowerCase();
+        shouldAdvance = expectedResponses.some(response => normalizedMessage.includes(response));
+      }
+
+      // Update conversation step if needed
+      let updatedConversation = conversation;
+      if (shouldAdvance) {
+        const nextStep = conversation.currentStep + 1;
+        updatedConversation = await storage.updateConversationStep(
+          conversationId,
+          nextStep
+        );
+      }
+
+      // Notify clients about the AI response
+      messageEvents.emit('message', {
+        type: 'ai-response',
+        conversationId,
+        message: assistantMessage,
+        conversation: updatedConversation,
+        stepAdvanced: shouldAdvance
+      });
+
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      // Notify clients about the error
+      messageEvents.emit('message', {
+        type: 'error',
+        conversationId,
+        error: error.message || 'Failed to generate response'
+      });
+    }
+  }
+
+  // Method to handle SSE connections
+  setupSSEConnection(req: any, res: any, conversationId: number) {
+    // Set headers for SSE
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    // Helper to send events
+    const sendEvent = (event: string, data: any) => {
+      res.write(`event: ${event}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Send initial connection established event
+    sendEvent('connected', { conversationId });
+
+    // Message event handler
+    const messageHandler = (data: any) => {
+      if (data.conversationId === conversationId) {
+        sendEvent(data.type, data);
+      }
+    };
+
+    // Listen for message events
+    messageEvents.on('message', messageHandler);
+
+    // Handle client disconnect
+    req.on('close', () => {
+      messageEvents.removeListener('message', messageHandler);
+    });
   }
 }
 
