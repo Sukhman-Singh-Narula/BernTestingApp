@@ -159,56 +159,46 @@ export default function Chat() {
         (oldData) => {
           if (!oldData) return oldData;
 
+          const newMessage = {
+            id: Date.now(),
+            conversationId: Number(conversationId),
+            stepId: oldData.currentStep,
+            role: "user" as MessageRole,
+            content: currentInput,
+            createdAt: new Date().toISOString(),
+          };
+
           return {
             ...oldData,
-            messages: [
-              ...(oldData.messages || []),
-              {
-                id: Date.now(), // Temporary ID
-                conversationId: Number(conversationId),
-                stepId: oldData.currentStep,
-                role: "user" as MessageRole,
-                content: currentInput,
-                createdAt: new Date().toISOString(),
-              },
-            ],
+            messages: [...(oldData.messages || []), newMessage],
           };
         }
       );
 
-      // Scroll to bottom after message is added
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      }, 100);
+      const result = await sendMessage.mutateAsync({ message: currentInput });
 
-      // Send message to server
-      console.log(`Sending message to conversation ${conversationId}: ${input}`);
-      const result = await sendMessage.mutateAsync(input);
-
-      // Update conversation with server response
+      // Update conversation with server response including both messages
       queryClient.setQueryData<ConversationResponse>(
         ["conversation", Number(conversationId)],
-        (oldData) => ({
-          ...(oldData || {}),
-          ...result.conversation,
-          messages: [
-            ...(oldData?.messages || []),
-            {
-              conversationId: Number(conversationId),
-              content: input,
-              role: 'user' as MessageRole,
-              stepId: currentStep?.id || 0
-            },
-            {
-              conversationId: Number(conversationId),
-              content: result.message,
-              role: 'assistant' as MessageRole,
-              stepId: currentStep?.id || 0
-            }
-          ]
-        })
+        (oldData) => {
+          if (!oldData) return result.conversation;
+
+          // Filter out the optimistic message
+          const filteredMessages = oldData.messages.filter(m => m.id !== Date.now());
+
+          return {
+            ...result.conversation,
+            messages: [
+              ...filteredMessages,
+              {
+                ...result.conversation.messages[result.conversation.messages.length - 2] // User message
+              },
+              {
+                ...result.conversation.messages[result.conversation.messages.length - 1] // Assistant message
+              }
+            ]
+          };
+        }
       );
 
       // Scroll to bottom after response
