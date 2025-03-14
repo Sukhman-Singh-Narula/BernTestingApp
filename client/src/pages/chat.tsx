@@ -196,7 +196,7 @@ export default function Chat() {
             ...(oldData?.messages || []),
             {
               conversationId: Number(conversationId),
-              content: message,
+              content: input,
               role: 'user' as MessageRole,
               stepId: currentStep?.id || 0
             },
