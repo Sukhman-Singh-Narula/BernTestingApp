@@ -108,8 +108,8 @@ export default function Chat() {
       }
 
       const response = await apiRequest(
-        "POST", 
-        `/api/conversation/${conversationId}/message`, 
+        "POST",
+        `/api/conversation/${conversationId}/message`,
         { message }
       );
 
@@ -159,11 +159,19 @@ export default function Chat() {
       setInput("");
       queryClient.setQueryData<ConversationResponse>(
         ["/api/conversation", conversationId],
-        (old) => ({
-          ...old!,
-          ...data,
-          messages: [...(old?.messages || []), ...data.messages.slice(-2)]
-        })
+        (old) => {
+          if (!old) return data;
+
+          // Ensure data.messages exists and has content
+          const newMessages = Array.isArray(data.messages) ? data.messages : [];
+          const lastMessages = newMessages.slice(-2);
+
+          return {
+            ...old,
+            ...data,
+            messages: [...(old.messages || []), ...lastMessages]
+          };
+        }
       );
       setError(null);
     },
