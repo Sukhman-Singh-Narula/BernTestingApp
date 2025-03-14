@@ -35,7 +35,10 @@ export default function Chat() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [typingIndicator, setTypingIndicator] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -107,6 +110,8 @@ export default function Chat() {
         throw new Error(`Cannot send message - invalid conversation ID: ${conversationId}`);
       }
 
+      setIsProcessing(true);
+
       const response = await apiRequest(
         "POST",
         `/api/conversation/${conversationId}/message`,
@@ -142,6 +147,7 @@ export default function Chat() {
       return { previousConversation };
     },
     onError: (err, newMessage, context) => {
+      setIsProcessing(false);
       if (context?.previousConversation) {
         queryClient.setQueryData(
           ["/api/conversation", conversationId],
@@ -157,26 +163,7 @@ export default function Chat() {
     },
     onSuccess: (data) => {
       setInput("");
-      queryClient.setQueryData<ConversationResponse>(
-        ["/api/conversation", conversationId],
-        (old) => {
-          if (!old) return data;
-
-          // Ensure data.messages exists and has content
-          const newMessages = Array.isArray(data.messages) ? data.messages : [];
-          const lastMessages = newMessages.slice(-2);
-
-          return {
-            ...old,
-            ...data,
-            messages: [...(old.messages || []), ...lastMessages]
-          };
-        }
-      );
       setError(null);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversation", conversationId] });
     }
   });
 
@@ -201,6 +188,91 @@ export default function Chat() {
       setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    // Create EventSource for SSE connection
+    const eventSource = new EventSource(`/api/conversation/${conversationId}/stream`);
+    eventSourceRef.current = eventSource;
+
+    // Connection established
+    eventSource.addEventListener('connected', (event) => {
+      console.log('SSE connection established');
+    });
+
+    // User message received
+    eventSource.addEventListener('user-message', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('User message event:', data);
+    });
+
+    // AI thinking indication
+    eventSource.addEventListener('thinking', (event) => {
+      setTypingIndicator(true);
+      console.log('AI thinking...');
+    });
+
+    // AI response received
+    eventSource.addEventListener('ai-response', (event) => {
+      setTypingIndicator(false);
+      setIsProcessing(false);
+
+      const data = JSON.parse(event.data);
+      console.log('AI response event:', data);
+
+      // Update the conversation with the new message
+      queryClient.setQueryData<ConversationResponse>(
+        ["/api/conversation", conversationId],
+        (old) => {
+          if (!old) return old;
+
+          // Create a copy of the current messages
+          const updatedMessages = [...old.messages];
+
+          // Check if the AI message already exists (avoid duplicates)
+          const messageExists = updatedMessages.some(m => 
+            m.id === data.message.id && m.role === "assistant"
+          );
+
+          if (!messageExists) {
+            updatedMessages.push(data.message);
+          }
+
+          // Update conversation object if step was advanced
+          const updatedConversation = data.stepAdvanced 
+            ? { ...old, currentStep: data.conversation.currentStep }
+            : old;
+
+          return {
+            ...updatedConversation,
+            messages: updatedMessages
+          };
+        }
+      );
+    });
+
+    // Error handling
+    eventSource.addEventListener('error', (event: any) => {
+      const data = JSON.parse(event.data);
+      console.error('SSE error:', data);
+      setTypingIndicator(false);
+      setIsProcessing(false);
+
+      toast({
+        title: "Error",
+        description: data.error || "An error occurred during message processing",
+        variant: "destructive"
+      });
+    });
+
+    // Clean up on unmount
+    return () => {
+      console.log('Closing SSE connection');
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  }, [conversationId, queryClient]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -349,6 +421,18 @@ export default function Chat() {
                     </div>
                   </div>
                 ))}
+
+                {typingIndicator && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] rounded-lg p-3 bg-muted">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </ScrollArea>
 
@@ -357,10 +441,10 @@ export default function Chat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
-                disabled={sendMessage.isPending}
+                disabled={sendMessage.isPending || isProcessing}
                 className="flex-1"
               />
-              <Button type="submit" disabled={sendMessage.isPending} size="icon">
+              <Button type="submit" disabled={sendMessage.isPending || isProcessing} size="icon">
                 <Send className="h-4 w-4" />
               </Button>
             </form>
