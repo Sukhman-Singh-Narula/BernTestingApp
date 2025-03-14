@@ -150,11 +150,12 @@ export default function Chat() {
     }
 
     try {
+      const currentInput = input;
       setInput("");
 
       // Add user message optimistically
       queryClient.setQueryData<ConversationResponse>(
-        ["conversation", conversationId], 
+        ["conversation", Number(conversationId)], 
         (oldData) => {
           if (!oldData) return oldData;
 
@@ -166,8 +167,8 @@ export default function Chat() {
                 id: Date.now(), // Temporary ID
                 conversationId: Number(conversationId),
                 stepId: oldData.currentStep,
-                role: "user",
-                content: input,
+                role: "user" as MessageRole,
+                content: currentInput,
                 createdAt: new Date().toISOString(),
               },
             ],
