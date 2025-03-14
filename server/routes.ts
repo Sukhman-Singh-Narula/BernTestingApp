@@ -15,7 +15,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 export async function registerRoutes(app: Express, port: number = 5000) {
   const httpServer = createServer(app);
 
-  // Register modular routes
+  // Register modular routes first
   app.use('/api', apiRoutes);
 
   // Add route to get example CSV
