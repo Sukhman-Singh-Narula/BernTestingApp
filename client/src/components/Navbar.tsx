@@ -13,7 +13,7 @@ export default function Navbar() {
               "text-sm font-medium transition-colors hover:text-primary",
               location === "/" ? "text-primary" : "text-muted-foreground"
             )}>
-              Welcome
+              New Chat
             </a>
           </Link>
           <Link href="/chat">
