@@ -200,8 +200,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Message operations
-  async createMessage(message: InsertMessage): Promise<Message> {
-    const [created] = await db.insert(messages).values(message).returning();
+  async createMessage(message: InsertMessage & { metadata?: Record<string, any> }): Promise<Message> {
+    const messageData = {
+      ...message,
+      metadata: message.metadata ? JSON.stringify(message.metadata) : null
+    };
+    const [created] = await db.insert(messages).values(messageData).returning();
     return created;
   }
 

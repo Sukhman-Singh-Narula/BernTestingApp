@@ -49,6 +49,7 @@ export const messages = pgTable("messages", {
   stepId: integer("step_id").notNull().references(() => steps.id),
   role: text("role").notNull(),
   content: text("content").notNull(),
+  metadata: text("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
