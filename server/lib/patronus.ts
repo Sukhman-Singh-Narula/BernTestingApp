@@ -176,13 +176,13 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
       console.log(`[Patronus Middleware #${debugId}] Processing ${req.method} ${req.path}`);
 
       // Skip evaluation for non-conversation routes
-      if (!req.path.includes('/api/conversation') && !req.path.includes('/api/message')) {
+      if (!req.path.includes('/conversation') && !req.path.includes('/message')) {
         console.log(`[Patronus Middleware #${debugId}] Skipping: Not a conversation route`);
         return;
       }
 
       // Skip evaluation for conversation creation
-      if (req.method === 'POST' && req.path === '/api/conversation') {
+      if (req.method === 'POST' && req.path === '/conversation') {
         console.log(`[Patronus Middleware #${debugId}] Skipping: Conversation creation`);
         return;
       }
