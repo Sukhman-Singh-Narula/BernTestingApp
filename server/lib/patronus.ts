@@ -42,10 +42,16 @@ export class PatronusClient {
       console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
 
       const payload = {
-        user_input: this.sanitizeText(userInput),
-        ai_response: this.sanitizeText(aiResponse),
-        previous_ai_message: this.sanitizeText(previousAiMessage),
-        metadata: {
+        evaluators: [{
+          evaluator: "glider",
+          criteria: "language-compliance"
+        }],
+        evaluated_model_input: this.sanitizeText(userInput),
+        evaluated_model_output: this.sanitizeText(aiResponse),
+        evaluated_model_retrieved_context: this.sanitizeText(previousAiMessage),
+        evaluated_model_gold_answer: "",
+        evaluated_model_system_prompt: stepData?.systemPrompt || null,
+        tags: {
           ...this.defaultMetadata,
           ...stepData
         }
