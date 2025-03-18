@@ -223,7 +223,10 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
         userMessage?.content,
         currentAiMessage?.content,
         previousAiMessage?.content,
-        stepData
+        {
+          ...stepData,
+          llm_advancement_decision: currentAiMessage?.metadata?.shouldAdvance
+        }
       ).catch(error => {
         console.error('Background Patronus evaluation error:', error);
       });
