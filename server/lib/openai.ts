@@ -8,7 +8,7 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-import { evaluateResponse } from './patronus';
+
 
 export async function generateResponse(
   userInput: string,
@@ -43,13 +43,6 @@ export async function generateResponse(
     });
 
     const aiResponse = response.choices[0].message.content || "I'm not sure how to respond to that.";
-    
-    // Log the interaction to Patronus for evaluation
-    await evaluateResponse(userInput, aiResponse, step, {
-      systemPrompt: prompt,
-      previousMessages: previousMessages
-    });
-    
     return aiResponse;
   } catch (error) {
     console.error("OpenAI API error:", error);
