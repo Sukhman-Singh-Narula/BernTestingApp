@@ -3,6 +3,7 @@ private async generateAIResponse(conversationId: number, userMessage: string, st
     // Get previous messages for context (limit to last 10 for performance)
     const existingMessages = await storage.getMessagesByConversation(conversationId);
     const previousMessages = existingMessages
+      .slice(-10)  // Only use last 10 messages for context
       .map(msg => `${msg.role}: ${msg.content}`)
       .join("\n");
 
@@ -26,12 +27,16 @@ private async generateAIResponse(conversationId: number, userMessage: string, st
 
     console.log(`LLM decision for step advancement: ${shouldAdvance}`);
 
-    // Store assistant message
+    // Store assistant message with metadata
     const assistantMessage = await storage.createMessage({
       conversationId,
       stepId: step.id,
       role: "assistant" as MessageRole,
-      content: aiResponse
+      content: aiResponse,
+      metadata: {
+        shouldAdvance,
+        evaluatedAt: new Date().toISOString()
+      }
     });
 
     // Update conversation based on LLM's advancement decision
@@ -50,7 +55,7 @@ private async generateAIResponse(conversationId: number, userMessage: string, st
         throw error;
       }
     } else {
-      console.log(`Conversation ${conversationId} remains at step ${conversation.currentStep}`);
+      console.log(`Conversation ${conversationId} remains at step ${conversation.currentStep} - Response did not meet criteria`);
     }
 
     // Notify clients about the AI response with updated conversation state
