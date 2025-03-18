@@ -93,23 +93,30 @@ export class MessageService {
 
       // Check if we should advance to next step based on expected responses
       let shouldAdvance = false;
+      let updatedConversation = conversation;
+
       if (step.expectedResponses) {
         const expectedResponses = step.expectedResponses.split('|').map((r: string) => r.trim().toLowerCase());
         const normalizedMessage = userMessage.trim().toLowerCase();
         shouldAdvance = expectedResponses.some(response => normalizedMessage.includes(response));
+
+        // Update conversation step if response matches expected
+        if (shouldAdvance) {
+          const nextStep = conversation.currentStep + 1;
+          try {
+            updatedConversation = await storage.updateConversationStep(
+              conversationId,
+              nextStep
+            );
+            console.log(`Advanced conversation ${conversationId} to step ${nextStep}`);
+          } catch (error) {
+            console.error('Error updating conversation step:', error);
+            throw error;
+          }
+        }
       }
 
-      // Update conversation step if needed
-      let updatedConversation = conversation;
-      if (shouldAdvance) {
-        const nextStep = conversation.currentStep + 1;
-        updatedConversation = await storage.updateConversationStep(
-          conversationId,
-          nextStep
-        );
-      }
-
-      // Notify clients about the AI response
+      // Notify clients about the AI response with updated conversation state
       messageEvents.emit('message', {
         type: 'ai-response',
         conversationId,
