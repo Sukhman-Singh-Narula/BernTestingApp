@@ -1,0 +1,74 @@
+private async generateAIResponse(conversationId: number, userMessage: string, step: any, conversation: any) {
+  try {
+    // Get previous messages for context (limit to last 10 for performance)
+    const existingMessages = await storage.getMessagesByConversation(conversationId);
+    const previousMessages = existingMessages
+      .map(msg => `${msg.role}: ${msg.content}`)
+      .join("\n");
+
+    // Emit "thinking" status event
+    messageEvents.emit('message', {
+      type: 'thinking',
+      conversationId,
+      message: "The assistant is thinking..."
+    });
+
+    // Generate AI response with evaluation
+    const aiResponseData = await generateResponse(
+      userMessage,
+      step,
+      previousMessages
+    );
+
+    // Extract content and advancement decision
+    const aiResponse = aiResponseData.content;
+    const shouldAdvance = aiResponseData.shouldAdvance;
+
+    console.log(`LLM decision for step advancement: ${shouldAdvance}`);
+
+    // Store assistant message
+    const assistantMessage = await storage.createMessage({
+      conversationId,
+      stepId: step.id,
+      role: "assistant" as MessageRole,
+      content: aiResponse
+    });
+
+    // Update conversation based on LLM's advancement decision
+    let updatedConversation = conversation;
+
+    if (shouldAdvance) {
+      const nextStep = conversation.currentStep + 1;
+      try {
+        updatedConversation = await storage.updateConversationStep(
+          conversationId,
+          nextStep
+        );
+        console.log(`Advanced conversation ${conversationId} to step ${nextStep} based on LLM evaluation`);
+      } catch (error) {
+        console.error('Error updating conversation step:', error);
+        throw error;
+      }
+    } else {
+      console.log(`Conversation ${conversationId} remains at step ${conversation.currentStep}`);
+    }
+
+    // Notify clients about the AI response with updated conversation state
+    messageEvents.emit('message', {
+      type: 'ai-response',
+      conversationId,
+      message: assistantMessage,
+      conversation: updatedConversation,
+      stepAdvanced: shouldAdvance
+    });
+
+  } catch (error) {
+    console.error('Error generating AI response:', error);
+    // Notify clients about the error
+    messageEvents.emit('message', {
+      type: 'error',
+      conversationId,
+      error: error.message || 'Failed to generate response'
+    });
+  }
+}
