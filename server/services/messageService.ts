@@ -98,7 +98,18 @@ export class MessageService {
       if (step.expectedResponses) {
         const expectedResponses = step.expectedResponses.split('|').map((r: string) => r.trim().toLowerCase());
         const normalizedMessage = userMessage.trim().toLowerCase();
-        shouldAdvance = expectedResponses.some(response => normalizedMessage.includes(response));
+        
+        // Log expected responses and actual message for debugging
+        console.log('Expected responses:', expectedResponses);
+        console.log('Normalized user message:', normalizedMessage);
+        
+        shouldAdvance = expectedResponses.some(response => {
+          const matches = normalizedMessage.includes(response);
+          console.log(`Checking response "${response}": ${matches ? 'matched' : 'no match'}`);
+          return matches;
+        });
+        
+        console.log('Step should advance:', shouldAdvance);
 
         // Update conversation step if response matches expected
         if (shouldAdvance) {
@@ -152,11 +163,13 @@ export class MessageService {
     };
 
     // Send initial connection established event
+    console.log(`SSE: New connection established for conversation ${conversationId}`);
     sendEvent('connected', { conversationId });
 
     // Message event handler
     const messageHandler = (data: any) => {
       if (data.conversationId === conversationId) {
+        console.log(`SSE: Sending ${data.type} event for conversation ${conversationId}:`, data);
         sendEvent(data.type, data);
       }
     };

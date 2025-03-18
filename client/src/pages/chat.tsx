@@ -220,6 +220,8 @@ export default function Chat() {
 
       const data = JSON.parse(event.data);
       console.log('AI response event:', data);
+      console.log('Step advanced:', data.stepAdvanced);
+      console.log('Updated conversation:', data.conversation);
 
       // Update the conversation with the new message
       queryClient.setQueryData<ConversationResponse>(
