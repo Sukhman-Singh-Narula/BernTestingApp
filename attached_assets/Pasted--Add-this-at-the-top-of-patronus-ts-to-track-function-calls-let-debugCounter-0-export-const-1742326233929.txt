@@ -1,0 +1,121 @@
+// Add this at the top of patronus.ts to track function calls
+let debugCounter = 0;
+
+export const patronusEvaluationMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const debugId = ++debugCounter;
+  console.log(`[Patronus Debug #${debugId}] Middleware called: ${req.method} ${req.path}`);
+  
+  // Continue with the request immediately
+  next();
+
+  // Process Patronus evaluation in the background
+  (async () => {
+    try {
+      console.log(`[Patronus Debug #${debugId}] Starting background evaluation`);
+      
+      // Skip evaluation for non-conversation routes
+      if (!req.path.includes('/api/conversation') && !req.path.includes('/api/message')) {
+        console.log(`[Patronus Debug #${debugId}] Skipping: Not a conversation route`);
+        return;
+      }
+
+      // Skip evaluation for conversation creation
+      if (req.method === 'POST' && req.path === '/api/conversation') {
+        console.log(`[Patronus Debug #${debugId}] Skipping: Conversation creation`);
+        return;
+      }
+
+      // Skip for GET requests
+      if (req.method === 'GET') {
+        console.log(`[Patronus Debug #${debugId}] Skipping: GET request`);
+        return;
+      }
+
+      // Extract conversation ID from URL path for POST message requests
+      console.log(`[Patronus Debug #${debugId}] Path for regex: ${req.path}`);
+      const pathMatch = req.path.match(/\/api\/conversation\/(\d+)\/message/);
+      console.log(`[Patronus Debug #${debugId}] Path matching result: ${JSON.stringify(pathMatch)}`);
+      
+      if (!pathMatch || !pathMatch[1]) {
+        console.log(`[Patronus Debug #${debugId}] Skipping: No conversation ID in path`);
+        return;
+      }
+
+      const conversationId = parseInt(pathMatch[1]);
+      if (isNaN(conversationId) || conversationId <= 0) {
+        console.error(`[Patronus Debug #${debugId}] Invalid conversation ID value: ${conversationId}`);
+        return;
+      }
+      
+      console.log(`[Patronus Debug #${debugId}] Valid conversation ID: ${conversationId}`);
+      
+      // Get messages for evaluation
+      const allMessages = await storage.getMessagesByConversation(conversationId);
+      const aiResponseCount = allMessages.filter(msg => msg.role === 'assistant').length;
+      console.log(`[Patronus Debug #${debugId}] AI response count for conversation ${conversationId}: ${aiResponseCount}`);
+
+      // Only evaluate after we have enough messages
+      if (aiResponseCount < 2) {
+        console.log(`[Patronus Debug #${debugId}] Skipping: Not enough AI responses`);
+        return;
+      }
+
+      console.log(`[Patronus Debug #${debugId}] Proceeding with Patronus evaluation`);
+      
+      // Get conversation and step data
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        console.log(`[Patronus Debug #${debugId}] Skipping: Conversation ${conversationId} not found`);
+        return;
+      }
+
+      const stepData = await storage.getStepByActivityAndNumber(
+        conversation.activityId,
+        conversation.currentStep - 1
+      );
+
+      if (!stepData) {
+        console.log(`[Patronus Debug #${debugId}] Skipping: Step data not found for conversation ${conversationId}`);
+        return;
+      }
+
+      // Get the relevant messages for evaluation
+      const messages = allMessages;
+      const userMessage = messages.filter(msg => msg.role === 'user').pop();
+      const currentAiMessage = messages.filter(msg => msg.role === 'assistant').pop();
+      const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+      const previousAiMessage = assistantMessages.length > 1 ?
+        assistantMessages[assistantMessages.length - 2] :
+        { content: '' };
+
+      console.log(`[Patronus Debug #${debugId}] Prepared message data for evaluation`);
+      console.log(`[Patronus Debug #${debugId}] User message: "${userMessage?.content?.substring(0, 20)}..."`);
+      console.log(`[Patronus Debug #${debugId}] Current AI message: "${currentAiMessage?.content?.substring(0, 20)}..."`);
+      console.log(`[Patronus Debug #${debugId}] Previous AI message: "${previousAiMessage?.content?.substring(0, 20)}..."`);
+      
+      // Check API key
+      console.log(`[Patronus Debug #${debugId}] Patronus API key status: ${process.env.PATRONUS_API_KEY ? 'Set (length: ' + process.env.PATRONUS_API_KEY.length + ')' : 'Not set'}`);
+
+      // Fire-and-forget evaluation
+      console.log(`[Patronus Debug #${debugId}] Starting Patronus evaluation call`);
+      
+      try {
+        const result = await patronus.evaluateMessage(
+          userMessage?.content,
+          currentAiMessage?.content,
+          previousAiMessage?.content,
+          {
+            ...stepData,
+            llm_advancement_decision: currentAiMessage?.metadata?.shouldAdvance
+          }
+        );
+        console.log(`[Patronus Debug #${debugId}] Patronus evaluation completed successfully`, result ? 'Response received' : 'No response');
+      } catch (error) {
+        console.error(`[Patronus Debug #${debugId}] Patronus evaluation error:`, error);
+      }
+
+    } catch (error) {
+      console.error(`[Patronus Debug #${debugId}] Error in background Patronus evaluation:`, error);
+    }
+  })();
+};
