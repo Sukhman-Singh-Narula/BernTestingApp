@@ -6,6 +6,8 @@ import { eq } from 'drizzle-orm';
 import https from 'https';
 import { URL } from 'url';
 
+let debugCounter = 0; // Added counter for unique evaluation IDs
+
 export class PatronusClient {
   private apiKey: string;
   private defaultMetadata: Record<string, any>;
@@ -27,11 +29,17 @@ export class PatronusClient {
   }
 
   async evaluateMessage(userInput: string, aiResponse: string, previousAiMessage: string, stepData?: any) {
+    const evaluationId = ++debugCounter;
     try {
+      console.log(`[Patronus #${evaluationId}] Starting message evaluation`);
+
       if (!this.apiKey) {
-        console.error('Patronus API key is not set. Please set PATRONUS_API_KEY environment variable.');
+        console.error(`[Patronus #${evaluationId}] API key is not set. Please set PATRONUS_API_KEY environment variable.`);
         return null;
       }
+
+      console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
+      console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
 
       let retrievedContext = '';
       if (stepData) {
@@ -42,6 +50,9 @@ export class PatronusClient {
           step_objective: stepData.objective,
           system_prompt: stepData.systemPrompt
         });
+        console.log(`[Patronus #${evaluationId}] Step data prepared - Language: ${stepData.language}, Step: ${stepData.stepNumber}`);
+      } else {
+        console.log(`[Patronus #${evaluationId}] No step data provided`);
       }
 
       const payload = {
@@ -61,9 +72,12 @@ export class PatronusClient {
         }
       };
 
-      return this.sendRequest('POST', '/v1/evaluate', payload);
+      console.log(`[Patronus #${evaluationId}] Sending request to /v1/evaluate`);
+      const result = await this.sendRequest('POST', '/v1/evaluate', payload);
+      console.log(`[Patronus #${evaluationId}] Evaluation completed successfully`, result ? 'with response' : 'with null response');
+      return result;
     } catch (error) {
-      console.error('Patronus evaluation error:', error);
+      console.error(`[Patronus #${evaluationId}] Evaluation error:`, error);
       return null;
     }
   }
