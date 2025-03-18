@@ -41,34 +41,13 @@ export class PatronusClient {
       console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
       console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
 
-      let retrievedContext = '';
-      if (stepData) {
-        retrievedContext = JSON.stringify({
-          expected_responses: stepData.expectedResponses,
-          language: stepData.language,
-          current_step: stepData.stepNumber,
-          step_objective: stepData.objective,
-          system_prompt: stepData.systemPrompt
-        });
-        console.log(`[Patronus #${evaluationId}] Step data prepared - Language: ${stepData.language}, Step: ${stepData.stepNumber}`);
-      } else {
-        console.log(`[Patronus #${evaluationId}] No step data provided`);
-      }
-
       const payload = {
-        evaluators: [{
-          evaluator: "glider",
-          criteria: "language-compliance"
-        }],
-        evaluated_model_input: userInput,
-        evaluated_model_output: aiResponse,
-        evaluated_model_retrieved_context: previousAiMessage,
-        evaluated_model_gold_answer: "",
-        evaluated_model_system_prompt: stepData?.systemPrompt || null,
-        tags: {
-          environment: process.env.NODE_ENV || 'development',
-          application: 'language-learning-ai',
-          version: '1.0.0'
+        user_input: this.sanitizeText(userInput),
+        ai_response: this.sanitizeText(aiResponse),
+        previous_ai_message: this.sanitizeText(previousAiMessage),
+        metadata: {
+          ...this.defaultMetadata,
+          ...stepData
         }
       };
 
@@ -161,10 +140,6 @@ const patronus = new PatronusClient({
   }
 });
 
-/**
- * Non-blocking middleware that handles Patronus evaluation for conversations
- * Evaluates messages in the background without affecting response time
- */
 export const patronusEvaluationMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Continue with the request immediately
   next();
@@ -173,16 +148,17 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
   (async () => {
     try {
       const debugId = ++debugCounter;
-      console.log(`[Patronus Middleware #${debugId}] Processing ${req.method} ${req.path}`);
+      const fullPath = req.originalUrl || req.path;
+      console.log(`[Patronus Middleware #${debugId}] Processing ${req.method} ${fullPath}`);
 
       // Skip evaluation for non-conversation routes
-      if (!req.path.includes('/conversation') && !req.path.includes('/message')) {
+      if (!fullPath.includes('/conversation')) {
         console.log(`[Patronus Middleware #${debugId}] Skipping: Not a conversation route`);
         return;
       }
 
       // Skip evaluation for conversation creation
-      if (req.method === 'POST' && req.path === '/conversation') {
+      if (req.method === 'POST' && fullPath === '/api/conversation') {
         console.log(`[Patronus Middleware #${debugId}] Skipping: Conversation creation`);
         return;
       }
@@ -194,9 +170,9 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
       }
 
       // Extract conversation ID from URL path for POST message requests
-      const pathMatch = req.path.match(/\/api\/conversation\/(\d+)\/message/);
+      const pathMatch = fullPath.match(/\/api\/conversation\/(\d+)\/message/);
       if (!pathMatch || !pathMatch[1]) {
-        console.log(`[Patronus Middleware #${debugId}] Skipping: Invalid path pattern`, req.path);
+        console.log(`[Patronus Middleware #${debugId}] Skipping: Invalid path pattern`, fullPath);
         return;
       }
 
@@ -275,12 +251,7 @@ export async function evaluateResponse(
       stepData
     );
 
-    const step = await db.query.steps.findFirst({
-      where: eq(steps.id, stepData.id),
-      with: {
-        activity: true
-      }
-    });
+    const step = await storage.getStepByActivityAndNumber(stepData.activityId, stepData.stepNumber);
 
     const enrichedMetadata = {
       objective: step?.objective,
