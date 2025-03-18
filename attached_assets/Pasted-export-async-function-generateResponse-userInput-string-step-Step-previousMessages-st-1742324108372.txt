@@ -10,7 +10,7 @@ export async function generateResponse(
     throw new Error(`No system prompt found for activity ${step.activityId}`);
   }
 
-  // Create a more detailed prompt for better evaluation
+  // Replace the hardcoded system prompt with the one from database
   let prompt = systemPrompt.systemPrompt
     .replace("${step.objective}", step.objective)
     .replace("${step.spanishWords}", step.spanishWords)
@@ -19,25 +19,16 @@ export async function generateResponse(
     .replace("${step.successResponse}", step.successResponse)
     .replace("${previousMessages}", previousMessages);
 
-  // Add more specific evaluation instructions
-  prompt += "\n\nIMPORTANT: You are an educational assistant evaluating a child's response. " +
-    "You must respond with a JSON object using this format:\n" +
-    '{\n' +
-    '  "response": "Your encouraging message to the child",\n' +
-    '  "shouldAdvance": true/false,\n' +
-    '  "evaluation": "Brief reason for your decision"\n' +
-    '}\n\n' +
-    'Guidelines for evaluation:\n' +
-    '1. Focus on meaning over exact wording\n' +
-    '2. Consider age-appropriate variations\n' +
-    '3. Accept contextually appropriate responses\n' +
-    '4. Be encouraging even when not advancing\n' +
-    `Expected response patterns: ${step.expectedResponses}\n` +
-    'Current context: This is a language learning activity. Be generous with interpretations while ensuring learning objectives are met.';
+  // Add JSON output instructions to the prompt
+  prompt += "\n\nIMPORTANT: You must respond with a JSON object using the following format:\n" +
+    '{"response": "Your message to the child", "shouldAdvance": true/false}\n\n' +
+    'Set "shouldAdvance" to true if the child\'s response matches the expected responses for this step. ' +
+    'Otherwise, set it to false. Evaluate based on meaning, not exact wording. ' +
+    'Consider contextual and approximate matches as valid.';
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: prompt },
         { role: "user", content: userInput }
@@ -48,18 +39,16 @@ export async function generateResponse(
     });
 
     const responseContent = response.choices[0].message.content || "{}";
-
+    
     try {
       const parsedResponse = JSON.parse(responseContent);
-
-      // Extract response data with evaluation logging
+      
+      // Ensure we have the expected fields
       const content = parsedResponse.response || "I'm not sure how to respond to that.";
       const shouldAdvance = !!parsedResponse.shouldAdvance;
-      const evaluation = parsedResponse.evaluation || "";
-
-      console.log(`LLM evaluation: ${evaluation}`);
-      console.log(`Step should advance: ${shouldAdvance}`);
-
+      
+      console.log(`LLM evaluation: shouldAdvance=${shouldAdvance}`);
+      
       return { content, shouldAdvance };
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
