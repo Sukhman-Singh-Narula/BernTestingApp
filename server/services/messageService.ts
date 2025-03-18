@@ -76,12 +76,18 @@ export class MessageService {
         message: "The assistant is thinking..."
       });
 
-      // Generate AI response with advancement evaluation
-      const { content: aiResponse, shouldAdvance } = await generateResponse(
+      // Generate AI response with evaluation
+      const aiResponseData = await generateResponse(
         userMessage,
         step,
         previousMessages
       );
+
+      // Extract content and advancement decision
+      const aiResponse = aiResponseData.content;
+      const shouldAdvance = aiResponseData.shouldAdvance;
+
+      console.log(`LLM decision for step advancement: ${shouldAdvance}`);
 
       // Store assistant message
       const assistantMessage = await storage.createMessage({
@@ -91,7 +97,7 @@ export class MessageService {
         content: aiResponse
       });
 
-      // Check if we should advance to next step based on expected responses
+      // Update conversation based on LLM's advancement decision
       let updatedConversation = conversation;
 
       // Update conversation step if response matches expected
