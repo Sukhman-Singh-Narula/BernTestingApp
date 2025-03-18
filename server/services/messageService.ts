@@ -76,8 +76,8 @@ export class MessageService {
         message: "The assistant is thinking..."
       });
 
-      // Generate AI response
-      const aiResponse = await generateResponse(
+      // Generate AI response with advancement evaluation
+      const { content: aiResponse, shouldAdvance } = await generateResponse(
         userMessage,
         step,
         previousMessages
@@ -92,38 +92,20 @@ export class MessageService {
       });
 
       // Check if we should advance to next step based on expected responses
-      let shouldAdvance = false;
       let updatedConversation = conversation;
 
-      if (step.expectedResponses) {
-        const expectedResponses = step.expectedResponses.split('|').map((r: string) => r.trim().toLowerCase());
-        const normalizedMessage = userMessage.trim().toLowerCase();
-        
-        // Log expected responses and actual message for debugging
-        console.log('Expected responses:', expectedResponses);
-        console.log('Normalized user message:', normalizedMessage);
-        
-        shouldAdvance = expectedResponses.some(response => {
-          const matches = normalizedMessage.includes(response);
-          console.log(`Checking response "${response}": ${matches ? 'matched' : 'no match'}`);
-          return matches;
-        });
-        
-        console.log('Step should advance:', shouldAdvance);
-
-        // Update conversation step if response matches expected
-        if (shouldAdvance) {
-          const nextStep = conversation.currentStep + 1;
-          try {
-            updatedConversation = await storage.updateConversationStep(
-              conversationId,
-              nextStep
-            );
-            console.log(`Advanced conversation ${conversationId} to step ${nextStep}`);
-          } catch (error) {
-            console.error('Error updating conversation step:', error);
-            throw error;
-          }
+      // Update conversation step if response matches expected
+      if (shouldAdvance) {
+        const nextStep = conversation.currentStep + 1;
+        try {
+          updatedConversation = await storage.updateConversationStep(
+            conversationId,
+            nextStep
+          );
+          console.log(`Advanced conversation ${conversationId} to step ${nextStep}`);
+        } catch (error) {
+          console.error('Error updating conversation step:', error);
+          throw error;
         }
       }
 
