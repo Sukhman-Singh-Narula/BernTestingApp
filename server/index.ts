@@ -8,12 +8,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Debug Patronus middleware
-console.log("Setting up Patronus middleware...");
+const debugId = Math.floor(Math.random() * 1000);
+console.log(`[Patronus Setup #${debugId}] Starting middleware setup...`);
+console.log(`[Patronus Setup #${debugId}] API Key present:`, !!process.env.PATRONUS_API_KEY);
+console.log(`[Patronus Setup #${debugId}] API Key length:`, process.env.PATRONUS_API_KEY?.length || 0);
+
 try {
-  app.use(patronusEvaluationMiddleware);
-  console.log("Patronus middleware setup complete");
+  app.use((req, res, next) => {
+    console.log(`[Patronus Debug] Incoming request: ${req.method} ${req.path}`);
+    return patronusEvaluationMiddleware(req, res, next);
+  });
+  console.log(`[Patronus Setup #${debugId}] Middleware setup complete`);
 } catch (error) {
-  console.error("Error setting up Patronus middleware:", error);
+  console.error(`[Patronus Setup #${debugId}] Error setting up middleware:`, error);
 }
 
 app.use((req, res, next) => {

@@ -172,26 +172,35 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
   // Process Patronus evaluation in the background
   (async () => {
     try {
+      const debugId = ++debugCounter;
+      console.log(`[Patronus Middleware #${debugId}] Processing ${req.method} ${req.path}`);
+
       // Skip evaluation for non-conversation routes
       if (!req.path.includes('/api/conversation') && !req.path.includes('/api/message')) {
+        console.log(`[Patronus Middleware #${debugId}] Skipping: Not a conversation route`);
         return;
       }
 
       // Skip evaluation for conversation creation
       if (req.method === 'POST' && req.path === '/api/conversation') {
+        console.log(`[Patronus Middleware #${debugId}] Skipping: Conversation creation`);
         return;
       }
 
       // Skip for GET requests
       if (req.method === 'GET') {
+        console.log(`[Patronus Middleware #${debugId}] Skipping: GET request`);
         return;
       }
 
       // Extract conversation ID from URL path for POST message requests
       const pathMatch = req.path.match(/\/api\/conversation\/(\d+)\/message/);
       if (!pathMatch || !pathMatch[1]) {
+        console.log(`[Patronus Middleware #${debugId}] Skipping: Invalid path pattern`, req.path);
         return;
       }
+
+      console.log(`[Patronus Middleware #${debugId}] Processing message for conversation ${pathMatch[1]}`);
 
       const conversationId = parseInt(pathMatch[1]);
       if (isNaN(conversationId) || conversationId <= 0) {
