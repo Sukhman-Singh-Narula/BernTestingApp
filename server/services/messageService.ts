@@ -94,7 +94,8 @@ export class MessageService {
         conversationId,
         stepId: step.id,
         role: "assistant" as MessageRole,
-        content: aiResponse
+        content: aiResponse,
+        metadata: { shouldAdvance }
       });
 
       // Update conversation based on LLM's advancement decision
