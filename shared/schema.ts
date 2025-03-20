@@ -65,6 +65,22 @@ export const messageMetrics = pgTable("message_metrics", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
+// Add new evaluators table after the messageMetrics table
+export const evaluators = pgTable("evaluators", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  criteria: text("criteria").notNull(),
+  metadata: text("metadata")
+});
+
+export const conversationEvaluators = pgTable("conversation_evaluators", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  evaluatorId: integer("evaluator_id").notNull().references(() => evaluators.id),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
 // Add system_prompt table definition
 export const systemPrompts = pgTable("system_prompts", {
   id: serial("id").primaryKey(),
@@ -89,7 +105,7 @@ export const stepsRelations = relations(steps, ({ one, many }) => ({
   messages: many(messages)
 }));
 
-// Update conversation relations to include system prompt
+// Update conversation relations to include system prompt and evaluators
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
   activity: one(activities, {
     fields: [conversations.activityId],
@@ -99,7 +115,8 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
   systemPrompt: one(systemPrompts, {
     fields: [conversations.systemPromptId],
     references: [systemPrompts.id],
-  })
+  }),
+  evaluators: many(conversationEvaluators)
 }));
 
 // Add relation to messages
@@ -131,6 +148,22 @@ export const systemPromptsRelations = relations(systemPrompts, ({ one }) => ({
   activity: one(activities, {
     fields: [systemPrompts.activityId],
     references: [activities.id],
+  })
+}));
+
+// Add these relations after the existing relations
+export const evaluatorsRelations = relations(evaluators, ({ many }) => ({
+  conversationEvaluators: many(conversationEvaluators)
+}));
+
+export const conversationEvaluatorsRelations = relations(conversationEvaluators, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [conversationEvaluators.conversationId],
+    references: [conversations.id],
+  }),
+  evaluator: one(evaluators, {
+    fields: [conversationEvaluators.evaluatorId],
+    references: [evaluators.id],
   })
 }));
 
@@ -169,6 +202,16 @@ export const insertSystemPromptSchema = createInsertSchema(systemPrompts).omit({
   createdAt: true
 });
 
+// Add insert schemas for new tables
+export const insertEvaluatorSchema = createInsertSchema(evaluators).omit({
+  id: true
+});
+
+export const insertConversationEvaluatorSchema = createInsertSchema(conversationEvaluators).omit({
+  id: true,
+  createdAt: true
+});
+
 // Export types
 export type ActivityScript = typeof activityScripts.$inferSelect;
 export type InsertActivityScript = z.infer<typeof insertScriptSchema>;
@@ -188,6 +231,12 @@ export type InsertMessageMetrics = z.infer<typeof insertMessageMetricsSchema>;
 // Add type exports for system prompts
 export type SystemPrompt = typeof systemPrompts.$inferSelect;
 export type InsertSystemPrompt = z.infer<typeof insertSystemPromptSchema>;
+
+// Add type exports
+export type Evaluator = typeof evaluators.$inferSelect;
+export type InsertEvaluator = z.infer<typeof insertEvaluatorSchema>;
+export type ConversationEvaluator = typeof conversationEvaluators.$inferSelect;
+export type InsertConversationEvaluator = z.infer<typeof insertConversationEvaluatorSchema>;
 
 // Message role type (used in the frontend)
 export type MessageRole = 'user' | 'assistant';
