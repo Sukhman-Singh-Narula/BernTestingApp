@@ -1,16 +1,22 @@
 
 import { Router } from 'express';
 import { storage } from '../storage';
+import { patronus } from '../lib/patronus';
 
 const router = Router();
 
 router.get('/', async (req, res) => {
   try {
-    const evaluators = await storage.getAllEvaluators();
-    res.json(evaluators);
+    const evaluators = await patronus.getAvailableEvaluators();
+    
+    if (!evaluators) {
+      return res.status(500).json({ error: "Failed to fetch evaluators from Patronus" });
+    }
+    
+    res.status(200).json(evaluators);
   } catch (error) {
-    console.error('Error fetching evaluators:', error);
-    res.status(500).json({ message: 'Failed to fetch evaluators' });
+    console.error("Error fetching evaluators:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
