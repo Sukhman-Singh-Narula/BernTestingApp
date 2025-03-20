@@ -70,6 +70,13 @@ export default function Welcome() {
     }
   });
 
+  // Add debug logging for evaluators data
+  useEffect(() => {
+    console.log("Current evaluators:", availableEvaluators);
+    console.log("Loading state:", evaluatorsLoading);
+    console.log("Error state:", evaluatorsError);
+  }, [availableEvaluators, evaluatorsLoading, evaluatorsError]);
+
   // Update system prompt when activity changes or default prompt is loaded
   useEffect(() => {
     if (recentSystemPrompts && recentSystemPrompts.length > 0) {
@@ -255,11 +262,16 @@ export default function Welcome() {
                   <PopoverContent className="w-full p-0">
                     <Command>
                       <CommandInput placeholder="Search evaluators..." />
-                      <CommandEmpty>No evaluators found.</CommandEmpty>
+                      <CommandEmpty>
+                        {evaluatorsLoading ? "Loading..." : 
+                         evaluatorsError ? "Error loading evaluators" : 
+                         "No evaluators found."}
+                      </CommandEmpty>
                       <CommandGroup>
                         {availableEvaluators?.map((evaluator) => (
                           <CommandItem
                             key={evaluator.id}
+                            value={evaluator.name}
                             onSelect={() => {
                               const newSelection = selectedEvaluators.includes(evaluator.id)
                                 ? selectedEvaluators.filter(id => id !== evaluator.id)
@@ -273,10 +285,10 @@ export default function Welcome() {
                                 selectedEvaluators.includes(evaluator.id) ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {evaluator.name}
-                            <Badge variant="outline" className="ml-2">
-                              {evaluator.criteria}
-                            </Badge>
+                            <div className="flex flex-col">
+                              <span>{evaluator.name}</span>
+                              <span className="text-xs text-muted-foreground">{evaluator.criteria}</span>
+                            </div>
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -284,8 +296,10 @@ export default function Welcome() {
                   </PopoverContent>
                 </Popover>
                 <p className="text-sm text-muted-foreground">
-                  Choose which evaluators to use for assessing language performance.
-                  {selectedEvaluators.length === 0 && " Default evaluator will be used if none selected."}
+                  {evaluatorsLoading ? "Loading evaluators..." :
+                   evaluatorsError ? "Failed to load evaluators" :
+                   selectedEvaluators.length === 0 ? "Default evaluator will be used if none selected." :
+                   "Choose which evaluators to use for assessing language performance."}
                 </p>
               </div>
             </>
