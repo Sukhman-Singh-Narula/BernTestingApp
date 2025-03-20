@@ -36,6 +36,16 @@ export class PatronusClient {
     }, {} as Record<string, string>);
   }
 
+  async getAvailableEvaluators() {
+    try {
+      const result = await this.sendRequest('GET', '/v1/evaluators', null);
+      return result;
+    } catch (error) {
+      console.error('Error fetching Patronus evaluators:', error);
+      return null;
+    }
+  }
+
   async evaluateMessage(userInput: string, aiResponse: string, previousAiMessage: string, stepData?: any) {
     const evaluationId = ++debugCounter;
     try {
