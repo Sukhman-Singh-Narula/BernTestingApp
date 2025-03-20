@@ -283,6 +283,22 @@ export default function Welcome() {
             </>
           )}
 
+          <Button
+            type="button"
+            className="w-full mb-2"
+            onClick={() => setIsOpen(true)}
+            disabled={!userName || !selectedActivity}
+          >
+            Select Evaluators
+          </Button>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!userName || !selectedActivity}
+          >
+            Start Chat
+          </Button>
+
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent>
               <DialogHeader>
