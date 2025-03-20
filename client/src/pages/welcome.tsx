@@ -55,36 +55,10 @@ export default function Welcome() {
     enabled: !!selectedActivity
   });
 
-  // Update the evaluators query to include error and loading states
-  const { data: availableEvaluators, isLoading: evaluatorsLoading, error: evaluatorsError } = useQuery<Evaluator[]>({
+  // Fetch available evaluators
+  const { data: availableEvaluators } = useQuery<Evaluator[]>({
     queryKey: ["/api/evaluators"],
-    queryFn: async () => {
-      console.log("Fetching evaluators from API...");
-      try {
-        const response = await fetch("/api/evaluators");
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error("Evaluators fetch failed:", errorData);
-          throw new Error(`Failed to fetch evaluators: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log("Received evaluators:", data);
-        return data;
-      } catch (error) {
-        console.error("Error in evaluators fetch:", error);
-        throw error;
-      }
-    }
   });
-
-  // Add debug logging for evaluators data
-  useEffect(() => {
-    console.log("Current evaluators:", availableEvaluators);
-    console.log("Loading state:", evaluatorsLoading);
-    if (evaluatorsError) {
-      console.error("Evaluators error:", evaluatorsError);
-    }
-  }, [availableEvaluators, evaluatorsLoading, evaluatorsError]);
 
   // Update system prompt when activity changes or default prompt is loaded
   useEffect(() => {
@@ -158,7 +132,7 @@ export default function Welcome() {
     if (selectedPrompt) {
       setSystemPrompt(selectedPrompt.systemPrompt);
       setSelectedPromptId(promptId);
-      setIsEditingPrompt(false);
+      setIsEditingPrompt(false); // Reset editing state when selecting a new prompt
     }
   };
 
@@ -271,16 +245,11 @@ export default function Welcome() {
                   <PopoverContent className="w-full p-0">
                     <Command>
                       <CommandInput placeholder="Search evaluators..." />
-                      <CommandEmpty>
-                        {evaluatorsLoading ? "Loading..." :
-                         evaluatorsError ? "Error loading evaluators" :
-                         "No evaluators found."}
-                      </CommandEmpty>
+                      <CommandEmpty>No evaluators found.</CommandEmpty>
                       <CommandGroup>
                         {availableEvaluators?.map((evaluator) => (
                           <CommandItem
                             key={evaluator.id}
-                            value={evaluator.name}
                             onSelect={() => {
                               const newSelection = selectedEvaluators.includes(evaluator.id)
                                 ? selectedEvaluators.filter(id => id !== evaluator.id)
@@ -294,10 +263,10 @@ export default function Welcome() {
                                 selectedEvaluators.includes(evaluator.id) ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            <div className="flex flex-col">
-                              <span>{evaluator.name}</span>
-                              <span className="text-xs text-muted-foreground">{evaluator.criteria}</span>
-                            </div>
+                            {evaluator.name}
+                            <Badge variant="outline" className="ml-2">
+                              {evaluator.criteria}
+                            </Badge>
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -305,10 +274,8 @@ export default function Welcome() {
                   </PopoverContent>
                 </Popover>
                 <p className="text-sm text-muted-foreground">
-                  {evaluatorsLoading ? "Loading evaluators..." :
-                   evaluatorsError ? "Failed to load evaluators" :
-                   selectedEvaluators.length === 0 ? "Default evaluator will be used if none selected." :
-                   "Choose which evaluators to use for assessing language performance."}
+                  Choose which evaluators to use for assessing language performance.
+                  {selectedEvaluators.length === 0 && " Default evaluator will be used if none selected."}
                 </p>
               </div>
             </>
