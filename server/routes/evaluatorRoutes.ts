@@ -6,7 +6,9 @@ const router = Router();
 // GET /api/evaluators
 router.get("/", async (req, res) => {
   try {
+    console.log("Fetching evaluators...");
     const evaluators = await storage.getAllEvaluators();
+    console.log("Found evaluators:", evaluators);
     res.json(evaluators);
   } catch (error) {
     console.error("Error fetching evaluators:", error);
