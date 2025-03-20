@@ -23,9 +23,17 @@ export class PatronusClient {
     console.log(`Patronus API key length: ${this.apiKey?.length || 0}`);
   }
 
-  private sanitizeText(text: string): string {
-    if (!text) return '';
-    return text.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
+  private sanitizeText(text: string | number | null | undefined): string {
+    if (text === null || text === undefined) return '';
+    const stringValue = String(text);
+    return stringValue.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
+  }
+
+  private sanitizeTags(tags: Record<string, any>): Record<string, string> {
+    return Object.entries(tags).reduce((acc, [key, value]) => {
+      acc[key] = this.sanitizeText(value);
+      return acc;
+    }, {} as Record<string, string>);
   }
 
   async evaluateMessage(userInput: string, aiResponse: string, previousAiMessage: string, stepData?: any) {
@@ -51,10 +59,10 @@ export class PatronusClient {
         evaluated_model_retrieved_context: this.sanitizeText(previousAiMessage),
         evaluated_model_gold_answer: "",
         evaluated_model_system_prompt: stepData?.systemPrompt || null,
-        tags: {
+        tags: this.sanitizeTags({
           ...this.defaultMetadata,
           ...stepData
-        }
+        })
       };
 
       console.log(`[Patronus #${evaluationId}] Sending request to /v1/evaluate`);
