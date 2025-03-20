@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { Pencil } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 
@@ -283,88 +283,51 @@ export default function Welcome() {
             </>
           )}
 
-          <Button
-            type="button"
-            className="w-full mb-2"
-            onClick={() => setIsOpen(true)}
-            disabled={!userName || !selectedActivity}
-          >
-            Select Evaluators
-          </Button>
+          <div className="space-y-4 mb-4">
+            <Select
+              disabled={!userName || !selectedActivity || isLoadingEvaluators}
+              value={Object.keys(selectedEvaluators).find(key => selectedEvaluators[key])?.toString()}
+              onValueChange={(value) => {
+                const newSelections = {};
+                availableEvaluators.forEach(e => {
+                  newSelections[e.id] = e.id === value;
+                });
+                setSelectedEvaluators(newSelections);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an evaluator" />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingEvaluators ? (
+                  <div className="flex justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : (
+                  availableEvaluators.map((evaluator) => (
+                    <SelectItem key={evaluator.id} value={evaluator.id}>
+                      {evaluator.name} ({evaluator.criteria})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Button
             type="submit"
             className="w-full"
-            disabled={!userName || !selectedActivity}
+            disabled={!userName || !selectedActivity || isLoading}
           >
-            Start Chat
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              'Start Chat'
+            )}
           </Button>
-
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Start New Conversation</DialogTitle>
-                <DialogDescription>
-                  Select evaluators for your conversation
-                </DialogDescription>
-              </DialogHeader>
-
-              {isLoadingEvaluators ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-4 mb-4">
-                  <h3 className="text-sm font-medium">Select Evaluators</h3>
-
-                  {isLoadingEvaluators ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                      <span className="text-sm">Loading evaluators...</span>
-                    </div>
-                  ) : (
-                    availableEvaluators.map((evaluator) => (
-                      <div key={evaluator.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`evaluator-${evaluator.id}`}
-                          checked={selectedEvaluators[evaluator.id] || false}
-                          onCheckedChange={(checked) => {
-                            setSelectedEvaluators({
-                              ...selectedEvaluators,
-                              [evaluator.id]: !!checked
-                            });
-                          }}
-                        />
-                        <div>
-                          <label htmlFor={`evaluator-${evaluator.id}`} className="text-sm font-medium">
-                            {evaluator.name} ({evaluator.criteria})
-                          </label>
-                          {evaluator.description && (
-                            <p className="text-xs text-muted-foreground">{evaluator.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              <DialogFooter>
-                <Button
-                  onClick={handleStartChat}
-                  disabled={isLoading || isLoadingEvaluators}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    'Start Chat'
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </form>
       </Card>
     </div>
