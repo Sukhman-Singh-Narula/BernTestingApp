@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import messagesRoutes from './messagesRoutes';
 import conversationRoutes from './conversationRoutes';
-import evaluatorsRoutes from './evaluatorsRoutes'; // Added import
+import evaluatorsRoutes from './evaluators'; // Added import
 
 const router = Router();
 
