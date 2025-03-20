@@ -180,7 +180,7 @@ export class PatronusClient {
   }
 }
 
-const patronus = new PatronusClient({
+export const patronus = new PatronusClient({
   apiKey: process.env.PATRONUS_API_KEY || '',
   defaultMetadata: {
     environment: process.env.NODE_ENV || 'development',

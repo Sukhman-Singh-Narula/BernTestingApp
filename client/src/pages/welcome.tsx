@@ -1,31 +1,20 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
-import { Activity, SystemPrompt, Evaluator } from "@shared/schema";
+import { Activity, SystemPrompt } from "@shared/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
-import { Pencil, ChevronsUpDown, Check } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
@@ -34,9 +23,13 @@ export default function Welcome() {
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([]);
-  const [evaluatorSelectOpen, setEvaluatorSelectOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [availableEvaluators, setAvailableEvaluators] = useState([]);
+  const [selectedEvaluators, setSelectedEvaluators] = useState({});
+  const [isLoadingEvaluators, setIsLoadingEvaluators] = useState(false);
 
   // Fetch available activities
   const { data: activities } = useQuery<Activity[]>({
@@ -56,9 +49,45 @@ export default function Welcome() {
   });
 
   // Fetch available evaluators
-  const { data: availableEvaluators } = useQuery<Evaluator[]>({
-    queryKey: ["/api/evaluators"],
-  });
+  useEffect(() => {
+    const fetchEvaluators = async () => {
+      setIsLoadingEvaluators(true);
+      try {
+        const response = await fetch('/api/evaluators');
+        if (!response.ok) {
+          throw new Error('Failed to fetch evaluators');
+        }
+        const data = await response.json();
+        setAvailableEvaluators(data);
+
+        // Initialize selection state
+        const initialSelections = {};
+        data.forEach(evaluator => {
+          initialSelections[evaluator.id] = evaluator.name === 'glider' && 
+                                          evaluator.criteria === 'language-compliance';
+        });
+        setSelectedEvaluators(initialSelections);
+      } catch (error) {
+        console.error('Error fetching evaluators:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load evaluators. Using default evaluator.",
+          variant: "destructive"
+        });
+        setAvailableEvaluators([{
+          id: 'default',
+          name: 'glider',
+          criteria: 'language-compliance',
+          description: 'Default language evaluator'
+        }]);
+        setSelectedEvaluators({ default: true });
+      } finally {
+        setIsLoadingEvaluators(false);
+      }
+    };
+
+    fetchEvaluators();
+  }, []);
 
   // Update system prompt when activity changes or default prompt is loaded
   useEffect(() => {
@@ -69,40 +98,56 @@ export default function Welcome() {
     }
   }, [recentSystemPrompts]);
 
-  // Create conversation mutation
-  const createConversation = useMutation({
-    mutationFn: async () => {
-      console.log("Creating conversation with activity:", selectedActivity);
-      const response = await apiRequest("POST", "/api/conversation", {
-        activityId: selectedActivity,
-        shouldGenerateFirstResponse: true,
-        userName,
-        evaluatorIds: selectedEvaluators,
-        ...(isEditingPrompt && { systemPrompt })
+  const handleSystemPromptSelect = (promptId: string) => {
+    const selectedPrompt = recentSystemPrompts?.find(p => p.id.toString() === promptId);
+    if (selectedPrompt) {
+      setSystemPrompt(selectedPrompt.systemPrompt);
+      setSelectedPromptId(promptId);
+      setIsEditingPrompt(false); 
+    }
+  };
+
+  const handleStartChat = async () => {
+    setIsLoading(true);
+    try {
+      const selectedEvaluatorIds = Object.entries(selectedEvaluators)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([id]) => id);
+
+      const response = await fetch('/api/conversation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          evaluatorIds: selectedEvaluatorIds,
+          userName: userName,
+          activityId: selectedActivity,
+          systemPrompt: systemPrompt
+        }),
       });
+
       if (!response.ok) {
-        throw new Error(`Failed to create conversation: ${response.statusText}`);
+        throw new Error('Failed to create conversation');
       }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      console.log("Conversation created successfully:", data);
+
+      const data = await response.json();
       localStorage.setItem("userName", userName);
       localStorage.setItem("currentConversationId", data.id.toString());
-      // Add a slight delay to ensure data is properly saved before navigation
       setTimeout(() => {
-        setLocation(`/chat/${data.id}`);
+        navigate(`/chat/${data.id}`);
       }, 100);
-    },
-    onError: (error) => {
-      console.error("Error creating conversation:", error);
+    } catch (error) {
+      console.error('Error creating conversation:', error);
       toast({
         title: "Error",
-        description: "Failed to create conversation. Please try again.",
+        description: "Failed to create conversation",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,27 +167,9 @@ export default function Welcome() {
       });
       return;
     }
-
-    if (!selectedActivity) {
-      toast({
-        title: "Error",
-        description: "Please select an activity",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    createConversation.mutate();
+    setIsOpen(true);
   };
 
-  const handleSystemPromptSelect = (promptId: string) => {
-    const selectedPrompt = recentSystemPrompts?.find(p => p.id.toString() === promptId);
-    if (selectedPrompt) {
-      setSystemPrompt(selectedPrompt.systemPrompt);
-      setSelectedPromptId(promptId);
-      setIsEditingPrompt(false); // Reset editing state when selecting a new prompt
-    }
-  };
 
   return (
     <div className="container mx-auto h-screen flex items-center justify-center">
@@ -233,65 +260,61 @@ export default function Welcome() {
                     : "Click 'Edit' to modify the system prompt and create a new version."}
                 </p>
               </div>
-
-              <div className="space-y-2">
-                <Label>Select Evaluators</Label>
-                <Popover open={evaluatorSelectOpen} onOpenChange={setEvaluatorSelectOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={evaluatorSelectOpen}
-                      className="w-full justify-between"
-                    >
-                      {selectedEvaluators.length > 0
-                        ? `${selectedEvaluators.length} evaluator${selectedEvaluators.length === 1 ? '' : 's'} selected`
-                        : "Select evaluators..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search evaluators..." />
-                      <CommandEmpty>No evaluators found.</CommandEmpty>
-                      <CommandGroup>
-                        {availableEvaluators?.map((evaluator) => (
-                          <CommandItem
-                            key={evaluator.id}
-                            onSelect={() => {
-                              const newSelection = selectedEvaluators.includes(evaluator.id)
-                                ? selectedEvaluators.filter(id => id !== evaluator.id)
-                                : [...selectedEvaluators, evaluator.id];
-                              setSelectedEvaluators(newSelection);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedEvaluators.includes(evaluator.id) ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {evaluator.name}
-                            <Badge variant="outline" className="ml-2">
-                              {evaluator.criteria}
-                            </Badge>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <p className="text-sm text-muted-foreground">
-                  Choose which evaluators to use for assessing language performance.
-                  {selectedEvaluators.length === 0 && " Default evaluator will be used if none selected."}
-                </p>
-              </div>
             </>
           )}
 
-          <Button type="submit" className="w-full" disabled={createConversation.isPending}>
-            Start Learning
-          </Button>
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Start New Conversation</DialogTitle>
+                <DialogDescription>
+                  Select evaluators for your conversation
+                </DialogDescription>
+              </DialogHeader>
+
+              {isLoadingEvaluators ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {availableEvaluators.map((evaluator) => (
+                    <div key={evaluator.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`evaluator-${evaluator.id}`}
+                        checked={selectedEvaluators[evaluator.id]}
+                        onCheckedChange={(checked) =>
+                          setSelectedEvaluators(prev => ({
+                            ...prev,
+                            [evaluator.id]: checked
+                          }))
+                        }
+                      />
+                      <label htmlFor={`evaluator-${evaluator.id}`} className="text-sm font-medium">
+                        {evaluator.name} ({evaluator.criteria})
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  onClick={handleStartChat}
+                  disabled={isLoading || isLoadingEvaluators}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    'Start Chat'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </form>
       </Card>
     </div>
