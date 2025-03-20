@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -23,7 +23,7 @@ export default function Welcome() {
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [, setLocation] = useLocation();
-  const navigate = useNavigate();
+  const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
