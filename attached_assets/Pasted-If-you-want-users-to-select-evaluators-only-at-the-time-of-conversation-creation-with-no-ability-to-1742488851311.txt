@@ -1,0 +1,234 @@
+If you want users to select evaluators only at the time of conversation creation (with no ability to change later), we can simplify the approach. Here's a streamlined implementation:
+
+## 1. Update Database Schema
+
+Add a new table to store the evaluators selected for each conversation:
+
+```typescript
+// Add to your schema.ts
+export const conversationEvaluators = pgTable('conversation_evaluators', {
+  id: serial('id').primaryKey(),
+  conversationId: integer('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  evaluatorName: varchar('evaluator_name', { length: 100 }).notNull(),
+  evaluatorCriteria: varchar('evaluator_criteria', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+```
+
+## 2. Modify the Conversation Creation UI
+
+Update your homepage or conversation creation form to include evaluator selection:
+
+```typescript
+// In your Home.tsx or equivalent component where users create new conversations
+const [selectedEvaluators, setSelectedEvaluators] = useState([
+  { name: "glider", criteria: "language-compliance", selected: true },
+  { name: "genie", criteria: "education-quality", selected: false },
+  // Add other available evaluators
+]);
+
+// In your form JSX
+<div className="space-y-4 mb-4">
+  <h3 className="text-sm font-medium">Select Evaluators</h3>
+  {selectedEvaluators.map((evaluator, index) => (
+    <div key={index} className="flex items-center space-x-2">
+      <Checkbox 
+        id={`evaluator-${index}`}
+        checked={evaluator.selected}
+        onCheckedChange={(checked) => {
+          const newEvaluators = [...selectedEvaluators];
+          newEvaluators[index].selected = !!checked;
+          setSelectedEvaluators(newEvaluators);
+        }}
+      />
+      <label htmlFor={`evaluator-${index}`} className="text-sm">
+        {evaluator.name} ({evaluator.criteria})
+      </label>
+    </div>
+  ))}
+</div>
+
+// When submitting the form, include the selected evaluators
+const createNewConversation = async () => {
+  const activeEvaluators = selectedEvaluators
+    .filter(e => e.selected)
+    .map(({ name, criteria }) => ({ name, criteria }));
+    
+  const response = await apiRequest(
+    "POST",
+    "/api/conversation",
+    {
+      userName,
+      activityId: selectedActivityId,
+      systemPromptId: systemPromptId,
+      evaluators: activeEvaluators
+    }
+  );
+  
+  // Rest of your existing code to handle the response
+};
+```
+
+## 3. Update the API Endpoint
+
+Modify your conversation creation endpoint to handle and store evaluator selections:
+
+```typescript
+// In your conversation creation route handler
+router.post("/api/conversation", async (req, res) => {
+  try {
+    const { userName, activityId, systemPromptId, evaluators } = req.body;
+    
+    // Create the conversation
+    const conversation = await storage.createConversation({
+      userName,
+      activityId,
+      systemPromptId,
+      currentStep: 0
+    });
+    
+    // Store selected evaluators (if any were provided)
+    if (evaluators && evaluators.length > 0) {
+      for (const evaluator of evaluators) {
+        await storage.createConversationEvaluator({
+          conversationId: conversation.id,
+          evaluatorName: evaluator.name,
+          evaluatorCriteria: evaluator.criteria
+        });
+      }
+    } else {
+      // Store default evaluator if none selected
+      await storage.createConversationEvaluator({
+        conversationId: conversation.id,
+        evaluatorName: "glider",
+        evaluatorCriteria: "language-compliance"
+      });
+    }
+    
+    res.status(201).json(conversation);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+```
+
+## 4. Update Storage Service
+
+Add methods to handle the new evaluator data:
+
+```typescript
+// Add to your storage.ts
+async createConversationEvaluator(data: {
+  conversationId: number;
+  evaluatorName: string;
+  evaluatorCriteria: string;
+}) {
+  return await db.insert(conversationEvaluators).values(data).returning();
+}
+
+async getConversationEvaluators(conversationId: number) {
+  return await db
+    .select()
+    .from(conversationEvaluators)
+    .where(eq(conversationEvaluators.conversationId, conversationId));
+}
+```
+
+## 5. Update the PatronusClient Class
+
+Modify the `evaluateMessage` method to use the provided evaluators:
+
+```typescript
+// In patronus.ts
+async evaluateMessage(
+  userInput: string, 
+  aiResponse: string, 
+  previousAiMessage: string, 
+  stepData?: any,
+  evaluators?: Array<{evaluator: string; criteria: string}>
+) {
+  const evaluationId = ++debugCounter;
+  try {
+    // ... existing code ...
+    
+    // Use passed evaluators or default to language-compliance
+    const evaluatorsConfig = evaluators && evaluators.length > 0 
+      ? evaluators 
+      : [{
+          evaluator: "glider",
+          criteria: "language-compliance"
+        }];
+    
+    const payload = {
+      evaluators: evaluatorsConfig,
+      // ... rest of your existing payload
+    };
+    
+    // ... rest of existing code ...
+  } catch (error) {
+    console.error(`[Patronus #${evaluationId}] Evaluation error:`, error);
+    return null;
+  }
+}
+```
+
+## 6. Update the Middleware
+
+Modify the patronus middleware to fetch and use the conversation-specific evaluators:
+
+```typescript
+// In patronus.ts
+export const patronusEvaluationMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Continue with the request immediately
+  next();
+
+  // Process Patronus evaluation in the background
+  (async () => {
+    try {
+      // ... existing code ...
+      
+      // Get conversation and step data
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return;
+      }
+      
+      // Get the evaluators configured for this conversation
+      const conversationEvaluators = await storage.getConversationEvaluators(conversationId);
+      
+      // Format evaluators for the Patronus API
+      const formattedEvaluators = conversationEvaluators.map(e => ({
+        evaluator: e.evaluatorName,
+        criteria: e.evaluatorCriteria
+      }));
+      
+      // ... existing code to get step data and messages ...
+      
+      // Fire-and-forget evaluation with conversation-specific evaluators
+      patronus.evaluateMessage(
+        userMessage?.content,
+        currentAiMessage?.content,
+        previousAiMessage?.content,
+        {
+          ...stepData,
+          llm_advancement_decision: currentAiMessage?.metadata?.shouldAdvance
+        },
+        formattedEvaluators
+      ).catch(error => {
+        console.error('Background Patronus evaluation error:', error);
+      });
+      
+    } catch (error) {
+      console.error('Error in background Patronus evaluation:', error);
+    }
+  })();
+};
+```
+
+This approach allows users to select evaluators only at conversation creation time, with the selections persisting throughout the conversation. The changes are focused on:
+
+1. Adding UI elements to the conversation creation form
+2. Storing the evaluator selections when creating a conversation
+3. Using those selections for all Patronus evaluations within that conversation
+
+There's no need for a settings page or update functionality since users won't be changing evaluators mid-conversation.
