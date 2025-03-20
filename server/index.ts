@@ -13,16 +13,6 @@ console.log(`[Patronus Setup #${debugId}] Starting middleware setup...`);
 console.log(`[Patronus Setup #${debugId}] API Key present:`, !!process.env.PATRONUS_API_KEY);
 console.log(`[Patronus Setup #${debugId}] API Key length:`, process.env.PATRONUS_API_KEY?.length || 0);
 
-try {
-  app.use((req, res, next) => {
-    console.log(`[Patronus Debug] Incoming request: ${req.method} ${req.path}`);
-    return patronusEvaluationMiddleware(req, res, next);
-  });
-  console.log(`[Patronus Setup #${debugId}] Middleware setup complete`);
-} catch (error) {
-  console.error(`[Patronus Setup #${debugId}] Error setting up middleware:`, error);
-}
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -75,8 +65,20 @@ app.use((req, res, next) => {
     const port = await findAvailablePort(5000);
     console.log(`Found available port: ${port}`);
 
+    // Set up routes first, before any static file handling
     const server = await registerRoutes(app, port);
     console.log(`Routes registered successfully`);
+
+    // Add Patronus middleware after routes are registered
+    try {
+      app.use((req, res, next) => {
+        console.log(`[Patronus Debug] Incoming request: ${req.method} ${req.path}`);
+        return patronusEvaluationMiddleware(req, res, next);
+      });
+      console.log(`[Patronus Setup #${debugId}] Middleware setup complete`);
+    } catch (error) {
+      console.error(`[Patronus Setup #${debugId}] Error setting up middleware:`, error);
+    }
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -84,7 +86,6 @@ app.use((req, res, next) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       res.status(status).json({ message });
-      // Removed throw err to prevent crashing the server
     });
 
     // importantly only setup vite in development and after
