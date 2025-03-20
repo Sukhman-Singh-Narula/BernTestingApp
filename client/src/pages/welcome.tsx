@@ -60,13 +60,20 @@ export default function Welcome() {
     queryKey: ["/api/evaluators"],
     queryFn: async () => {
       console.log("Fetching evaluators from API...");
-      const response = await fetch("/api/evaluators");
-      if (!response.ok) {
-        throw new Error("Failed to fetch evaluators");
+      try {
+        const response = await fetch("/api/evaluators");
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error("Evaluators fetch failed:", errorData);
+          throw new Error(`Failed to fetch evaluators: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log("Received evaluators:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in evaluators fetch:", error);
+        throw error;
       }
-      const data = await response.json();
-      console.log("Received evaluators:", data);
-      return data;
     }
   });
 
@@ -74,7 +81,9 @@ export default function Welcome() {
   useEffect(() => {
     console.log("Current evaluators:", availableEvaluators);
     console.log("Loading state:", evaluatorsLoading);
-    console.log("Error state:", evaluatorsError);
+    if (evaluatorsError) {
+      console.error("Evaluators error:", evaluatorsError);
+    }
   }, [availableEvaluators, evaluatorsLoading, evaluatorsError]);
 
   // Update system prompt when activity changes or default prompt is loaded
@@ -149,7 +158,7 @@ export default function Welcome() {
     if (selectedPrompt) {
       setSystemPrompt(selectedPrompt.systemPrompt);
       setSelectedPromptId(promptId);
-      setIsEditingPrompt(false); 
+      setIsEditingPrompt(false);
     }
   };
 
@@ -263,8 +272,8 @@ export default function Welcome() {
                     <Command>
                       <CommandInput placeholder="Search evaluators..." />
                       <CommandEmpty>
-                        {evaluatorsLoading ? "Loading..." : 
-                         evaluatorsError ? "Error loading evaluators" : 
+                        {evaluatorsLoading ? "Loading..." :
+                         evaluatorsError ? "Error loading evaluators" :
                          "No evaluators found."}
                       </CommandEmpty>
                       <CommandGroup>
