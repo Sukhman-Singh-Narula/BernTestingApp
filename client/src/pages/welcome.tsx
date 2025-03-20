@@ -277,24 +277,38 @@ export default function Welcome() {
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {availableEvaluators.map((evaluator) => (
-                    <div key={evaluator.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`evaluator-${evaluator.id}`}
-                        checked={selectedEvaluators[evaluator.id]}
-                        onCheckedChange={(checked) =>
-                          setSelectedEvaluators(prev => ({
-                            ...prev,
-                            [evaluator.id]: checked
-                          }))
-                        }
-                      />
-                      <label htmlFor={`evaluator-${evaluator.id}`} className="text-sm font-medium">
-                        {evaluator.name} ({evaluator.criteria})
-                      </label>
+                <div className="space-y-4 mb-4">
+                  <h3 className="text-sm font-medium">Select Evaluators</h3>
+                  
+                  {isLoadingEvaluators ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                      <span className="text-sm">Loading evaluators...</span>
                     </div>
-                  ))}
+                  ) : (
+                    availableEvaluators.map((evaluator) => (
+                      <div key={evaluator.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`evaluator-${evaluator.id}`}
+                          checked={selectedEvaluators[evaluator.id] || false}
+                          onCheckedChange={(checked) => {
+                            setSelectedEvaluators({
+                              ...selectedEvaluators,
+                              [evaluator.id]: !!checked
+                            });
+                          }}
+                        />
+                        <div>
+                          <label htmlFor={`evaluator-${evaluator.id}`} className="text-sm font-medium">
+                            {evaluator.name} ({evaluator.criteria})
+                          </label>
+                          {evaluator.description && (
+                            <p className="text-xs text-muted-foreground">{evaluator.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
