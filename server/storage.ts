@@ -304,6 +304,12 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async removeConversationEvaluators(conversationId: number): Promise<void> {
+    await db
+      .delete(conversationEvaluators)
+      .where(eq(conversationEvaluators.conversationId, conversationId));
+  }
+
   async getConversationEvaluators(conversationId: number): Promise<ConversationEvaluator[]> {
     return await db
       .select()

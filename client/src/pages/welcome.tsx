@@ -114,6 +114,14 @@ export default function Welcome() {
       });
       return;
     }
+    if (!selectedActivity) {
+      toast({
+        title: "Error",
+        description: "Please select an activity",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (!selectedActivity) {
       toast({
