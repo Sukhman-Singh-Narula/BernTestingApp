@@ -110,42 +110,61 @@ export default function Welcome() {
   const handleStartChat = async () => {
     setIsLoading(true);
     try {
-      const selectedEvaluatorIds = Object.entries(selectedEvaluators)
-        .filter(([_, isSelected]) => isSelected)
-        .map(([id]) => id);
+      const createNewConversation = async () => {
+        setIsLoading(true);
+        try {
+          // Get selected evaluators
+          const activeEvaluators = Object.entries(selectedEvaluators)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([id, _]) => {
+              const evaluator = availableEvaluators.find(e => e.id === id);
+              return {
+                name: evaluator.name,
+                criteria: evaluator.criteria
+              };
+            });
 
-      const response = await fetch('/api/conversation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          evaluatorIds: selectedEvaluatorIds,
-          userName: userName,
-          activityId: selectedActivity,
-          systemPrompt: systemPrompt
-        }),
-      });
+          // If no evaluators selected, use default
+          if (activeEvaluators.length === 0) {
+            activeEvaluators.push({
+              name: "glider",
+              criteria: "language-compliance"
+            });
+          }
 
-      if (!response.ok) {
-        throw new Error('Failed to create conversation');
-      }
-
-      const data = await response.json();
-      localStorage.setItem("userName", userName);
-      localStorage.setItem("currentConversationId", data.id.toString());
-      setTimeout(() => {
-        navigate(`/chat/${data.id}`);
-      }, 100);
+          const response = await fetch('/api/conversation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userName,
+              activityId: selectedActivity,
+              systemPromptId: selectedPromptId,
+              evaluators: activeEvaluators
+            })
+          });
+          const data = await response.json();
+          localStorage.setItem("userName", userName);
+          localStorage.setItem("currentConversationId", data.id.toString());
+          setTimeout(() => {
+            navigate(`/chat/${data.id}`);
+          }, 100);
+        } catch (error) {
+          console.error('Error creating conversation:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create conversation",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      await createNewConversation();
     } catch (error) {
-      console.error('Error creating conversation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create conversation",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+      console.error("Error in handleStartChat:", error);
+      // Add error handling here if needed
     }
   };
 
@@ -279,7 +298,7 @@ export default function Welcome() {
               ) : (
                 <div className="space-y-4 mb-4">
                   <h3 className="text-sm font-medium">Select Evaluators</h3>
-                  
+
                   {isLoadingEvaluators ? (
                     <div className="flex items-center space-x-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
