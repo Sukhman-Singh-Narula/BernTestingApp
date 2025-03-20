@@ -6,12 +6,26 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
-import { Activity, SystemPrompt } from "@shared/schema";
+import { Activity, SystemPrompt, Evaluator } from "@shared/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
-import { Pencil } from "lucide-react";
+import { Pencil, ChevronsUpDown, Check } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
@@ -21,6 +35,8 @@ export default function Welcome() {
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([]);
+  const [evaluatorSelectOpen, setEvaluatorSelectOpen] = useState(false);
 
   // Fetch available activities
   const { data: activities } = useQuery<Activity[]>({
@@ -37,6 +53,11 @@ export default function Welcome() {
       return response.json();
     },
     enabled: !!selectedActivity
+  });
+
+  // Fetch available evaluators
+  const { data: availableEvaluators } = useQuery<Evaluator[]>({
+    queryKey: ["/api/evaluators"],
   });
 
   // Update system prompt when activity changes or default prompt is loaded
@@ -56,7 +77,8 @@ export default function Welcome() {
         activityId: selectedActivity,
         shouldGenerateFirstResponse: true,
         userName,
-        ...(isEditingPrompt && { systemPrompt }) // Only include systemPrompt if editing was enabled
+        evaluatorIds: selectedEvaluators,
+        ...(isEditingPrompt && { systemPrompt })
       });
       if (!response.ok) {
         throw new Error(`Failed to create conversation: ${response.statusText}`);
@@ -179,9 +201,9 @@ export default function Welcome() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label htmlFor="systemPrompt">System Prompt</Label>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     size="sm"
                     onClick={() => setIsEditingPrompt(!isEditingPrompt)}
                   >
@@ -198,9 +220,62 @@ export default function Welcome() {
                   readOnly={!isEditingPrompt}
                 />
                 <p className="text-sm text-muted-foreground mt-2">
-                  {isEditingPrompt 
+                  {isEditingPrompt
                     ? "You are creating a new system prompt that will be saved for future use."
                     : "Click 'Edit' to modify the system prompt and create a new version."}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Select Evaluators</Label>
+                <Popover open={evaluatorSelectOpen} onOpenChange={setEvaluatorSelectOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={evaluatorSelectOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedEvaluators.length > 0
+                        ? `${selectedEvaluators.length} evaluator${selectedEvaluators.length === 1 ? '' : 's'} selected`
+                        : "Select evaluators..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search evaluators..." />
+                      <CommandEmpty>No evaluators found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableEvaluators?.map((evaluator) => (
+                          <CommandItem
+                            key={evaluator.id}
+                            onSelect={() => {
+                              const newSelection = selectedEvaluators.includes(evaluator.id)
+                                ? selectedEvaluators.filter(id => id !== evaluator.id)
+                                : [...selectedEvaluators, evaluator.id];
+                              setSelectedEvaluators(newSelection);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedEvaluators.includes(evaluator.id) ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {evaluator.name}
+                            <Badge variant="outline" className="ml-2">
+                              {evaluator.criteria}
+                            </Badge>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-sm text-muted-foreground">
+                  Choose which evaluators to use for assessing language performance.
+                  {selectedEvaluators.length === 0 && " Default evaluator will be used if none selected."}
                 </p>
               </div>
             </>

@@ -49,6 +49,23 @@ export class PatronusClient {
       console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
       console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
 
+      // Get conversation evaluators
+      const conversationEvaluators = stepData?.conversationId ?
+        await storage.getConversationEvaluators(stepData.conversationId) :
+        [];
+
+      // Use default evaluator if none are assigned
+      const evaluatorsConfig = conversationEvaluators.length > 0 ?
+        conversationEvaluators.map(ce => ({
+          evaluator: ce.evaluator.name,
+          criteria: ce.evaluator.criteria,
+          ...(ce.evaluator.metadata ? JSON.parse(ce.evaluator.metadata) : {})
+        })) :
+        [{
+          evaluator: "glider",
+          criteria: "language-compliance"
+        }];
+
       const taskContext = {
         objective: stepData?.objective || '',
         expectedResponses: stepData?.expectedResponses || '',
@@ -60,10 +77,7 @@ export class PatronusClient {
       };
 
       const payload = {
-        evaluators: [{
-          evaluator: "glider",
-          criteria: "language-compliance"
-        }],
+        evaluators: evaluatorsConfig,
         evaluated_model_input: this.sanitizeText(userInput),
         evaluated_model_output: this.sanitizeText(aiResponse),
         evaluated_model_retrieved_context: this.sanitizeText(previousAiMessage),
@@ -76,7 +90,7 @@ export class PatronusClient {
         })
       };
 
-      console.log(`[Patronus #${evaluationId}] Sending request to /v1/evaluate`);
+      console.log(`[Patronus #${evaluationId}] Sending request to /v1/evaluate with evaluators:`, evaluatorsConfig);
       const result = await this.sendRequest('POST', '/v1/evaluate', payload);
       console.log(`[Patronus #${evaluationId}] Evaluation completed successfully`, result ? 'with response' : 'with null response');
       return result;

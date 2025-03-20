@@ -1,4 +1,5 @@
 import { activities, steps, conversations, messages, systemPrompts, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics, type SystemPrompt, type InsertSystemPrompt } from "@shared/schema";
+import { evaluators, conversationEvaluators, type Evaluator, type InsertEvaluator, type ConversationEvaluator, type InsertConversationEvaluator } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
 
@@ -24,13 +25,23 @@ export interface IStorage {
   getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: SystemPrompt }) | undefined>;
 
   // Message operations
-  createMessage(message: InsertMessage): Promise<Message>;
+  createMessage(message: InsertMessage & { metadata?: Record<string, any> }): Promise<Message>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
 
   // Add system prompt operations
   createSystemPrompt(prompt: InsertSystemPrompt): Promise<SystemPrompt>;
   getSystemPromptByActivity(activityId: number): Promise<SystemPrompt | undefined>;
   getSystemPromptsByActivity(activityId: number): Promise<SystemPrompt[]>;
+
+  // Evaluator operations
+  createEvaluator(evaluator: InsertEvaluator): Promise<Evaluator>;
+  getEvaluator(id: number): Promise<Evaluator | undefined>;
+  getAllEvaluators(): Promise<Evaluator[]>;
+
+  // Conversation evaluator operations
+  assignEvaluatorToConversation(data: InsertConversationEvaluator): Promise<ConversationEvaluator>;
+  getConversationEvaluators(conversationId: number): Promise<ConversationEvaluator[]>;
+  toggleEvaluator(conversationId: number, evaluatorId: number, isActive: boolean): Promise<ConversationEvaluator>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -267,6 +278,51 @@ export class DatabaseStorage implements IStorage {
       .where(eq(systemPrompts.activityId, activityId))
       .orderBy(desc(systemPrompts.createdAt))
       .limit(10);
+  }
+
+  // Evaluator operations
+  async createEvaluator(evaluator: InsertEvaluator): Promise<Evaluator> {
+    const [created] = await db.insert(evaluators).values(evaluator).returning();
+    return created;
+  }
+
+  async getEvaluator(id: number): Promise<Evaluator | undefined> {
+    const [evaluator] = await db
+      .select()
+      .from(evaluators)
+      .where(eq(evaluators.id, id));
+    return evaluator;
+  }
+
+  async getAllEvaluators(): Promise<Evaluator[]> {
+    return await db.select().from(evaluators);
+  }
+
+  // Conversation evaluator operations
+  async assignEvaluatorToConversation(data: InsertConversationEvaluator): Promise<ConversationEvaluator> {
+    const [created] = await db.insert(conversationEvaluators).values(data).returning();
+    return created;
+  }
+
+  async getConversationEvaluators(conversationId: number): Promise<ConversationEvaluator[]> {
+    return await db
+      .select()
+      .from(conversationEvaluators)
+      .where(eq(conversationEvaluators.conversationId, conversationId));
+  }
+
+  async toggleEvaluator(conversationId: number, evaluatorId: number, isActive: boolean): Promise<ConversationEvaluator> {
+    const [updated] = await db
+      .update(conversationEvaluators)
+      .set({ isActive })
+      .where(
+        and(
+          eq(conversationEvaluators.conversationId, conversationId),
+          eq(conversationEvaluators.evaluatorId, evaluatorId)
+        )
+      )
+      .returning();
+    return updated;
   }
 }
 
