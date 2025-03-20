@@ -55,9 +55,19 @@ export default function Welcome() {
     enabled: !!selectedActivity
   });
 
-  // Fetch available evaluators
-  const { data: availableEvaluators } = useQuery<Evaluator[]>({
+  // Update the evaluators query to include error and loading states
+  const { data: availableEvaluators, isLoading: evaluatorsLoading, error: evaluatorsError } = useQuery<Evaluator[]>({
     queryKey: ["/api/evaluators"],
+    queryFn: async () => {
+      console.log("Fetching evaluators from API...");
+      const response = await fetch("/api/evaluators");
+      if (!response.ok) {
+        throw new Error("Failed to fetch evaluators");
+      }
+      const data = await response.json();
+      console.log("Received evaluators:", data);
+      return data;
+    }
   });
 
   // Update system prompt when activity changes or default prompt is loaded
@@ -132,7 +142,7 @@ export default function Welcome() {
     if (selectedPrompt) {
       setSystemPrompt(selectedPrompt.systemPrompt);
       setSelectedPromptId(promptId);
-      setIsEditingPrompt(false); // Reset editing state when selecting a new prompt
+      setIsEditingPrompt(false); 
     }
   };
 
