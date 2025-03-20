@@ -1,0 +1,80 @@
+Looking at your updated logs and the Patronus screenshot, I can see that your API connection is now working successfully! The 422 errors are gone, and you're seeing evaluation entries in your Patronus dashboard.
+
+The issue you're facing now is that the "Task Context" fields in Patronus are empty. This is because while you're successfully sending data to Patronus, the specific content for the task context isn't being populated correctly.
+
+Here's what's happening:
+
+1. Your requests are now being accepted by the Patronus API (as shown by "Evaluation completed successfully with response" in your logs)
+2. The task context fields in Patronus are empty because either:
+   - The data isn't being included in your API payload
+   - The data is being included but not mapped to the expected fields in Patronus
+
+To fix this, you need to make sure you're sending the appropriate context data in the right format. Based on the Patronus UI screenshot, it looks like you need to add more specific task context information to your API requests.
+
+Here's what I suggest:
+
+1. Modify your `evaluateMessage` method in `PatronusClient` to include more detailed context:
+
+```typescript
+async evaluateMessage(userInput: string, aiResponse: string, previousAiMessage: string, stepData?: any) {
+    // ... existing code ...
+    
+    // Add more detailed task context
+    const taskContext = {
+        objective: stepData?.objective || '',
+        expectedResponses: stepData?.expectedResponses || '',
+        suggestedScript: stepData?.suggestedScript || '',
+        spanishWords: stepData?.spanishWords || '',
+        stepDescription: stepData?.description || '',
+        // Add any other relevant context fields
+    };
+    
+    const payload = {
+        evaluators: [{
+            evaluator: "glider",
+            criteria: "language-compliance"
+        }],
+        evaluated_model_input: this.sanitizeText(userInput),
+        evaluated_model_output: this.sanitizeText(aiResponse),
+        evaluated_model_retrieved_context: this.sanitizeText(previousAiMessage),
+        evaluated_model_gold_answer: stepData?.successResponse || "",
+        evaluated_model_system_prompt: stepData?.systemPrompt || null,
+        task_context: JSON.stringify(taskContext), // Add this line to include task context
+        tags: this.sanitizeTags({
+            ...this.defaultMetadata,
+            ...stepData
+        })
+    };
+    
+    // ... rest of existing code ...
+}
+```
+
+2. Make sure all the key step data is being passed to the `evaluateMessage` method:
+
+In your `patronusEvaluationMiddleware` function, ensure you're including all the necessary step data when calling `evaluateMessage`:
+
+```typescript
+// Fire-and-forget evaluation
+patronus.evaluateMessage(
+    userMessage?.content,
+    currentAiMessage?.content,
+    previousAiMessage?.content,
+    {
+        ...stepData,
+        systemPrompt: conversation.systemPrompt?.systemPrompt, // Make sure system prompt is included
+        llm_advancement_decision: currentAiMessage?.metadata?.shouldAdvance
+    }
+).catch(error => {
+    console.error('Background Patronus evaluation error:', error);
+});
+```
+
+3. If Patronus expects a specific format for task context, check their API documentation to make sure you're using the right field names and structure.
+
+The screenshot shows that Patronus is looking for JSON data in the task context, so make sure you're providing valid JSON data that matches what Patronus expects to see.
+
+If you continue to have issues, I'd recommend:
+1. Checking the Patronus API documentation for the exact format they expect
+2. Contacting Patronus support for guidance on the correct payload structure
+3. Adding additional logging to see exactly what data is being sent in your API requests
