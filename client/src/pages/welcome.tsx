@@ -58,7 +58,11 @@ export default function Welcome() {
           throw new Error('Failed to fetch evaluators');
         }
         const data = await response.json();
-        setAvailableEvaluators(data);
+        if (data && data.evaluators) {
+          setAvailableEvaluators(data.evaluators);
+        } else {
+          throw new Error('Invalid evaluators data format');
+        }
 
         // Initialize selection state
         const initialSelections = {};
