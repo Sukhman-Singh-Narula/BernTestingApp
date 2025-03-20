@@ -5,9 +5,9 @@ import evaluatorRoutes from './evaluatorRoutes';
 
 const router = Router();
 
-// Register routes
+// Mount API routes first, before any static file handling
+router.use('/api/evaluators', evaluatorRoutes);
 router.use(conversationRoutes);
 router.use(messagesRoutes);
-router.use('/api/evaluators', evaluatorRoutes);
 
 export { router };
