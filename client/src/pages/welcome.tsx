@@ -58,15 +58,12 @@ export default function Welcome() {
           throw new Error('Failed to fetch evaluators');
         }
         const data = await response.json();
-        if (data && data.evaluators) {
-          setAvailableEvaluators(data.evaluators);
-        } else {
-          throw new Error('Invalid evaluators data format');
-        }
+        const evaluators = data.evaluators || [];
+        setAvailableEvaluators(evaluators);
 
         // Initialize selection state
         const initialSelections = {};
-        data.forEach(evaluator => {
+        evaluators.forEach(evaluator => {
           initialSelections[evaluator.id] = evaluator.name === 'glider' && 
                                           evaluator.criteria === 'language-compliance';
         });
