@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { storage } from '../storage';
 
-export const router = Router();
+const router = Router();
 
 router.get('/', async (req, res) => {
   try {
@@ -26,3 +26,5 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch evaluator' });
   }
 });
+
+export default router;
