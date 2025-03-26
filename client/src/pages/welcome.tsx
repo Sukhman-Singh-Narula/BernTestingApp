@@ -16,7 +16,12 @@ export default function Welcome() {
 
   const { data: systemPrompts } = useQuery({
     queryKey: ["/api/activities/1/system-prompts"],
-    queryFn: () => apiRequest<Array<{ id: number; systemPrompt: string; name?: string }>>("GET", "/api/activities/1/system-prompts")
+    queryFn: () => apiRequest<Array<{ 
+      id: number; 
+      systemPrompt: string; 
+      createdBy: string;
+      createdAt: string;
+    }>>("GET", "/api/activities/1/system-prompts")
   });
 
   useEffect(() => {
@@ -69,10 +74,21 @@ export default function Welcome() {
               <SelectTrigger className="mb-4">
                 <SelectValue placeholder="Choose a system prompt" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 {systemPrompts?.map((prompt) => (
-                  <SelectItem key={prompt.id} value={prompt.id.toString()}>
-                    {prompt.name || `Prompt ${prompt.id}`}
+                  <SelectItem 
+                    key={prompt.id} 
+                    value={prompt.id.toString()}
+                    className="flex flex-col space-y-1 py-2"
+                  >
+                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                      <span>By {prompt.createdBy}</span>
+                      <span>{new Date(prompt.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="line-clamp-2 text-sm">
+                      {prompt.systemPrompt.substring(0, 100)}
+                      {prompt.systemPrompt.length > 100 ? '...' : ''}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
