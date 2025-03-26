@@ -109,8 +109,7 @@ export class PatronusClient {
           evaluator_family: "Repetition-Checker",
           config: { pass_criteria: 'score > 0.5' },
           is_patronus_managed: true,
-          public_id: "judge-repetition-1",
-          metadata: { type: "default" }
+          public_id: "judge-repetition-1"
         });
       }
 
@@ -125,7 +124,7 @@ export class PatronusClient {
               description: evaluator.description,
               is_patronus_managed: evaluator.is_patronus_managed,
               public_id: evaluator.public_id,
-              metadata: JSON.stringify(evaluator.metadata || {})
+              metadata: evaluator.metadata ? JSON.stringify(evaluator.metadata) : null
             });
             return result;
           } catch (err) {
