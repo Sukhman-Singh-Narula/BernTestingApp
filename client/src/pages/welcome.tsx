@@ -16,7 +16,7 @@ export default function Welcome() {
 
   const { data: systemPrompts } = useQuery({
     queryKey: ["systemPrompts"],
-    queryFn: () => apiRequest<Array<{ id: number; systemPrompt: string; name?: string }>>("/api/activities/1/system-prompts") //Corrected API endpoint and added optional name field
+    queryFn: () => apiRequest<Array<{ id: number; systemPrompt: string; name?: string }>>("/api/activities/1/system-prompts", "GET")
   });
 
   useEffect(() => {
