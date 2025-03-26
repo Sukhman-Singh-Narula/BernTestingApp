@@ -39,43 +39,36 @@ export class PatronusClient {
 
   async getAvailableEvaluators() {
     try {
-      // Removed console.log('[Patronus] Fetching evaluators from API...');
+      console.log('[Patronus] Fetching evaluators from API...');
       // Using query parameter to only fetch non-Patronus managed evaluators
       const result = await this.sendRequest('GET', '/v1/evaluator-criteria?is_patronus_managed=false', null);
-
-      // If the API returns no evaluators, return default ones
-      if (!result || !Array.isArray(result) || result.length === 0) {
-        // Removed console.log('[Patronus] Using default evaluators');
-        return [
-          { 
-            name: 'pronunciation', 
-            description: 'Evaluates pronunciation accuracy and fluency',
-            evaluator_family: 'speech',
-            config: { pass_criteria: 'score > 0.6' },
-            is_patronus_managed: false,
-            public_id: 'pronunciation-1'
-          },
-          { 
-            name: 'grammar', 
-            description: 'Checks grammatical correctness and structure',
-            evaluator_family: 'language',
-            config: { pass_criteria: 'score > 0.7' },
-            is_patronus_managed: false,
-            public_id: 'grammar-1'
-          },
-          { 
-            name: 'vocabulary', 
-            description: 'Assesses vocabulary usage and appropriateness',
-            evaluator_family: 'language',
-            config: { pass_criteria: 'score > 0.65' },
-            is_patronus_managed: false,
-            public_id: 'vocabulary-1'
-          }
-        ];
+      
+      // Extract the evaluator_criteria array from the response
+      const apiResponse = result as any;
+      const evaluatorCriteria = apiResponse && apiResponse.evaluator_criteria ? 
+        apiResponse.evaluator_criteria : [];
+      
+      console.log(`[Patronus] Raw API response structure: ${JSON.stringify(Object.keys(result || {}))}`);
+      
+      if (!evaluatorCriteria || !Array.isArray(evaluatorCriteria) || evaluatorCriteria.length === 0) {
+        console.log('[Patronus] No evaluators found in API response, using default ones');
+        return [];
       }
 
-      // Removed console.log('[Patronus] Received evaluators:', result.length);
-      return result;
+      console.log(`[Patronus] Received ${evaluatorCriteria.length} evaluators from API`);
+      
+      // Map the API response to the format expected by our application
+      return evaluatorCriteria.map(evaluator => ({
+        name: evaluator.name,
+        description: evaluator.description || '',
+        evaluator_family: evaluator.evaluator_family,
+        config: { 
+          pass_criteria: evaluator.config?.pass_criteria || '' 
+        },
+        is_patronus_managed: evaluator.is_patronus_managed,
+        public_id: evaluator.public_id,
+        metadata: null // Add this to satisfy TypeScript
+      }));
     } catch (error) {
       console.error('[Patronus] Error fetching evaluators:', error);
       return [];
@@ -87,29 +80,13 @@ export class PatronusClient {
       // Get evaluators from Patronus API
       const evaluatorsFromPatronus = await this.getAvailableEvaluators();
       if (!evaluatorsFromPatronus?.length) {
-        console.warn('No evaluators returned from Patronus API');
+        console.warn('[Patronus] No evaluators returned from Patronus API');
         return [];
       }
 
       // Get all existing evaluators from the database
       const existingEvaluators = await storage.getAllEvaluators();
-      // Removed console.log(`[Patronus] Found ${existingEvaluators.length} existing evaluators in database`);
-
-      // Add a manual judge/Repetition-Checker evaluator if it doesn't exist
-      const judgeRepetitionChecker = evaluatorsFromPatronus.find(
-        e => e.name === "judge" && e.evaluator_family === "Repetition-Checker"
-      );
-
-      if (!judgeRepetitionChecker) {
-        evaluatorsFromPatronus.push({
-          name: "judge",
-          description: "Checks for repetition in responses",
-          evaluator_family: "Repetition-Checker",
-          config: { pass_criteria: 'score > 0.5' },
-          is_patronus_managed: false,
-          public_id: "judge-repetition-1"
-        });
-      }
+      console.log(`[Patronus] Found ${existingEvaluators.length} existing evaluators in database`);
 
       // Filter out evaluators that already exist in the database (by public_id)
       const newEvaluators = evaluatorsFromPatronus.filter(
@@ -118,17 +95,20 @@ export class PatronusClient {
         )
       );
 
-      // Removed console.log(`[Patronus] Found ${newEvaluators.length} new evaluators to add to database`);
+      console.log(`[Patronus] Found ${newEvaluators.length} new evaluators to add to database`);
 
       if (newEvaluators.length === 0) {
-        // Removed console.log('[Patronus] No new evaluators to sync');
+        console.log('[Patronus] No new evaluators to sync');
         return [];
       }
 
       const results = await Promise.all(
         newEvaluators.map(async (evaluator) => {
           try {
+            console.log(`[Patronus] Adding evaluator: ${evaluator.name} (${evaluator.public_id})`);
             // Map fields according to the schema mapping
+            // Cast evaluator to any to handle the metadata property
+            const evaluatorAny = evaluator as any;
             const result = await storage.createEvaluator({
               name: evaluator.name,
               family: evaluator.evaluator_family,
@@ -136,12 +116,12 @@ export class PatronusClient {
               description: evaluator.description,
               is_patronus_managed: evaluator.is_patronus_managed,
               public_id: evaluator.public_id,
-              metadata: evaluator.metadata ? JSON.stringify(evaluator.metadata) : null
+              metadata: evaluatorAny.metadata ? JSON.stringify(evaluatorAny.metadata) : null
             });
-            // Removed console.log(`[Patronus] Created new evaluator: ${evaluator.name}`);
+            console.log(`[Patronus] Created new evaluator: ${evaluator.name}`);
             return result;
           } catch (err) {
-            console.error(`Failed to create evaluator ${evaluator.name}:`, err);
+            console.error(`[Patronus] Failed to create evaluator ${evaluator.name}:`, err);
             return null;
           }
         })
@@ -149,7 +129,7 @@ export class PatronusClient {
 
       return results.filter(Boolean);
     } catch (error) {
-      console.error('Error syncing evaluators:', error);
+      console.error('[Patronus] Error syncing evaluators:', error);
       throw error;
     }
   }
