@@ -112,14 +112,11 @@ export default function Chat() {
 
       setIsProcessing(true);
 
-      const response = await apiRequest(
+      return await apiRequest(
         "POST",
         `/api/conversation/${conversationId}/message`,
         { message }
       );
-
-      const data = await response.json();
-      return data;
     },
     onMutate: async (newMessage) => {
       await queryClient.cancelQueries({ queryKey: ["/api/conversation", conversationId] });
@@ -133,6 +130,7 @@ export default function Chat() {
           role: "user" as MessageRole,
           content: newMessage,
           createdAt: new Date().toISOString(),
+          metadata: null, // Add this to match the required type
         };
 
         queryClient.setQueryData<ConversationResponse>(
@@ -256,14 +254,25 @@ export default function Chat() {
 
     // Error handling
     eventSource.addEventListener('error', (event: any) => {
-      const data = JSON.parse(event.data);
-      console.error('SSE error:', data);
+      console.error('SSE error:', event);
       setTypingIndicator(false);
       setIsProcessing(false);
 
+      let errorMessage = "An error occurred during message processing";
+      
+      // Only try to parse data if it exists
+      if (event.data) {
+        try {
+          const data = JSON.parse(event.data);
+          errorMessage = data.error || errorMessage;
+        } catch (e) {
+          console.error('Error parsing SSE error data:', e);
+        }
+      }
+
       toast({
         title: "Error",
-        description: data.error || "An error occurred during message processing",
+        description: errorMessage,
         variant: "destructive"
       });
     });
