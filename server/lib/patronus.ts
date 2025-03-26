@@ -39,11 +39,24 @@ export class PatronusClient {
 
   async getAvailableEvaluators() {
     try {
+      console.log('[Patronus] Fetching evaluators from API...');
       const result = await this.sendRequest('GET', '/v1/evaluators', null);
-      // Ensure we return an array
-      return Array.isArray(result) ? result : [];
+      
+      // If the API returns no evaluators, return default ones
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        console.log('[Patronus] Using default evaluators');
+        return [
+          { id: 1, name: 'glider', criteria: 'language-compliance', metadata: {} },
+          { id: 2, name: 'pronunciation', criteria: 'Evaluates pronunciation accuracy and fluency', metadata: {} },
+          { id: 3, name: 'grammar', criteria: 'Checks grammatical correctness and structure', metadata: {} },
+          { id: 4, name: 'vocabulary', criteria: 'Assesses vocabulary usage and appropriateness', metadata: {} }
+        ];
+      }
+
+      console.log('[Patronus] Received evaluators:', result.length);
+      return result;
     } catch (error) {
-      console.error('Error fetching Patronus evaluators:', error);
+      console.error('[Patronus] Error fetching evaluators:', error);
       return [];
     }
   }
