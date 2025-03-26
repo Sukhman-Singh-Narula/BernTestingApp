@@ -103,13 +103,13 @@ export default function Welcome() {
                   <SelectItem 
                     key={prompt.id} 
                     value={prompt.id.toString()}
-                    className="flex flex-col space-y-1 py-2"
+                    className="relative flex-col py-2 px-2"
                   >
-                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <div className="flex justify-between items-center w-full text-xs text-muted-foreground mb-1">
                       <span>By {prompt.createdBy}</span>
                       <span>{new Date(prompt.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <div className="line-clamp-2 text-sm">
+                    <div className="text-sm text-left break-words">
                       {prompt.systemPrompt.substring(0, 100)}
                       {prompt.systemPrompt.length > 100 ? '...' : ''}
                     </div>
