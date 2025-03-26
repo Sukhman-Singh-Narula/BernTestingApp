@@ -71,6 +71,11 @@ export const evaluators = pgTable("evaluators", {
   name: text("name").notNull(),
   criteria: text("criteria").notNull(),
   pass_criteria: text("pass_criteria"),
+  family: text("family"),
+  description: text("description"),
+  is_patronus_managed: boolean("is_patronus_managed").notNull().default(false),
+  public_id: text("public_id"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
   metadata: text("metadata")
 });
 
