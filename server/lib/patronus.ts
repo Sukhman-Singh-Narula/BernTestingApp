@@ -149,12 +149,51 @@ export class PatronusClient {
       // Removed console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
       // Removed console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
 
-
-      // Use the specific evaluator format for repetition-checker as requested
-      const evaluatorsConfig = [{
-        evaluator: "judge",
-        criteria: "Repetition-Checker"
-      }];
+      // Get conversation evaluators if a conversationId is provided
+      let evaluatorsConfig = [];
+      if (stepData?.conversationId) {
+        try {
+          const conversationEvaluators = await storage.getConversationEvaluators(stepData.conversationId);
+          
+          if (conversationEvaluators && conversationEvaluators.length > 0) {
+            // Only use active evaluators
+            const activeEvaluatorIds = conversationEvaluators
+              .filter(ce => ce.isActive)
+              .map(ce => ce.evaluatorId);
+            
+            // Get the actual evaluator details for these IDs
+            if (activeEvaluatorIds.length > 0) {
+              const evaluators = await Promise.all(
+                activeEvaluatorIds.map(async id => {
+                  const evaluator = await storage.getEvaluator(id);
+                  return evaluator;
+                })
+              );
+              
+              // Filter out any undefined evaluators and map to Patronus format
+              evaluatorsConfig = evaluators
+                .filter(Boolean)
+                .map(evaluator => ({
+                  evaluator: "judge",
+                  criteria: evaluator.name
+                }));
+              
+              console.log(`[Patronus #${evaluationId}] Using ${evaluatorsConfig.length} evaluators for conversation ${stepData.conversationId}`);
+            }
+          }
+        } catch (error) {
+          console.error(`[Patronus #${evaluationId}] Error getting conversation evaluators:`, error);
+        }
+      }
+      
+      // If no evaluators were configured (or there was an error), use default
+      if (evaluatorsConfig.length === 0) {
+        evaluatorsConfig = [{
+          evaluator: "judge",
+          criteria: "Repetition-Checker"
+        }];
+        console.log(`[Patronus #${evaluationId}] Using default evaluator for conversation ${stepData?.conversationId || 'unknown'}`);
+      }
 
       // Format context pairs if provided
       let contextText = '';
