@@ -28,14 +28,13 @@ export default function Welcome() {
   const createSystemPrompt = useMutation({
     mutationFn: (prompt: string) => 
       apiRequest("POST", "/api/activities/1/system-prompts", { systemPrompt: prompt }),
-    onSuccess: () => {
-      setIsEditing(false);
+    onSuccess: (data) => {
+      setSelectedPromptId(data.id.toString());
     }
   });
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
-    const storedPromptId = localStorage.getItem("lastSystemPromptId");
     if (storedName) setUserName(storedName);
     if (systemPrompts?.length > 0) {
       const mostRecent = systemPrompts[0];
@@ -45,17 +44,18 @@ export default function Welcome() {
   }, [systemPrompts]);
 
   useEffect(() => {
-    if (!isEditing && selectedPromptId && systemPrompts) {
+    if (selectedPromptId && systemPrompts) {
       const selectedPrompt = systemPrompts.find(p => p.id.toString() === selectedPromptId);
       if (selectedPrompt) {
         setSystemPrompt(selectedPrompt.systemPrompt);
       }
     }
-  }, [selectedPromptId, systemPrompts, isEditing]);
+  }, [selectedPromptId, systemPrompts]);
 
-  const handleSavePrompt = () => {
-    if (isEditing && systemPrompt.trim()) {
-      createSystemPrompt.mutate(systemPrompt);
+  const handlePromptChange = (value: string) => {
+    setSystemPrompt(value);
+    if (value.trim()) {
+      createSystemPrompt.mutate(value);
     }
   };
 
@@ -88,20 +88,12 @@ export default function Welcome() {
             />
           </div>
           <div>
-            <div className="flex justify-between items-center mb-2">
+            <div className="mb-2">
               <label htmlFor="prompt-select" className="text-sm font-medium">Select System Prompt</label>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                {isEditing ? "Cancel" : "Edit"}
-              </Button>
             </div>
             <Select 
               value={selectedPromptId} 
               onValueChange={(value) => setSelectedPromptId(value)}
-              disabled={isEditing}
             >
               <SelectTrigger className="mb-4">
                 <SelectValue placeholder="Choose a system prompt" />
@@ -129,21 +121,10 @@ export default function Welcome() {
               <Textarea
                 id="prompt"
                 value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="Current system prompt"
-                className="mt-4 mb-4"
-                disabled={!isEditing}
+                onChange={(e) => handlePromptChange(e.target.value)}
+                placeholder="Edit or create a new system prompt"
+                className="mt-4 mb-4 min-h-[300px] text-sm"
               />
-              {isEditing && (
-                <Button 
-                  className="absolute bottom-6 right-2" 
-                  size="sm"
-                  onClick={handleSavePrompt}
-                  disabled={!systemPrompt.trim()}
-                >
-                  Save New Prompt
-                </Button>
-              )}
             </div>
           </div>
           <div className="flex gap-4">
