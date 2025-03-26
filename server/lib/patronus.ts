@@ -157,11 +157,23 @@ export class PatronusClient {
         });
         
         // Map the evaluators from the conversation to the format expected by Patronus API
-        // Use "Repetition-Checker" as the criteria regardless of name since it's supported by Patronus API
-        evaluatorsConfig = conversationEvaluators.map(evaluator => ({
-          evaluator: "judge",
-          criteria: "Repetition-Checker" // Using a known working criteria instead of evaluator.name
-        }));
+        // Map evaluators to working criteria names based on their family
+        evaluatorsConfig = conversationEvaluators.map(evaluator => {
+          console.log(`[Patronus #${evaluationId}] Mapping evaluator ${evaluator.id}:${evaluator.name} with family ${evaluator.family}`);
+          
+          // Look at the evaluator family to determine which criteria to use
+          if (evaluator.family?.toLowerCase() === 'glider') {
+            return {
+              evaluator: "glider",
+              criteria: "language-compliance" // Known working criteria for glider evaluators
+            };
+          } else {
+            return {
+              evaluator: "judge",
+              criteria: "Repetition-Checker" // Known working criteria for judge evaluators
+            };
+          }
+        });
       } else {
         // Fallback to repetition-checker if no evaluators are selected
         console.log(`[Patronus #${evaluationId}] No evaluators selected for conversation ${stepData?.conversationId}, using default repetition-checker`);
@@ -477,12 +489,22 @@ export async function evaluateResponse(
           if (assignment.isActive) {
             const evaluator = await storage.getEvaluator(assignment.evaluatorId);
             if (evaluator) {
-              // Use a copy of the evaluator but change the name to "Repetition-Checker"
-              // to ensure it's compatible with the Patronus API
-              conversationEvaluators.push({
-                ...evaluator,
-                name: "Repetition-Checker" // Override name with supported criteria
-              });
+              // Use a appropriate criteria based on evaluator family
+              if (evaluator.family?.toLowerCase() === 'glider') {
+                // For glider type evaluators, use language-compliance
+                conversationEvaluators.push({
+                  ...evaluator,
+                  name: "language-compliance", // Override with compatible glider criteria
+                  family: "glider" // Ensure correct family is set
+                });
+              } else {
+                // For judge type evaluators, use Repetition-Checker
+                conversationEvaluators.push({
+                  ...evaluator,
+                  name: "Repetition-Checker", // Override with compatible judge criteria
+                  family: "judge" // Ensure correct family is set
+                });
+              }
             }
           }
         }
