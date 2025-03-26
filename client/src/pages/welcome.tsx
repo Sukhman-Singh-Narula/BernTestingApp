@@ -25,14 +25,16 @@ export default function Welcome() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const { data: systemPrompts } = useQuery({
+  interface SystemPrompt {
+    id: number; 
+    systemPrompt: string; 
+    createdBy: string;
+    createdAt: string;
+  }
+
+  const { data: systemPrompts } = useQuery<SystemPrompt[]>({
     queryKey: ["/api/activities/1/system-prompts"],
-    queryFn: () => apiRequest<Array<{ 
-      id: number; 
-      systemPrompt: string; 
-      createdBy: string;
-      createdAt: string;
-    }>>("GET", "/api/activities/1/system-prompts")
+    queryFn: () => apiRequest<SystemPrompt[]>("GET", "/api/activities/1/system-prompts")
   });
 
   const { data: evaluators, refetch: refetchEvaluators } = useQuery({
@@ -40,16 +42,18 @@ export default function Welcome() {
     queryFn: () => apiRequest<Evaluator[]>("GET", "/api/evaluators")
   });
 
-  // Sync evaluators on page load
-  useQuery({
-    queryKey: ["/api/evaluators/sync"],
-    queryFn: () => apiRequest("POST", "/api/evaluators/sync"),
-    onSuccess: () => refetchEvaluators(),
-    // Only run once on page load
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false
-  });
+  // Sync evaluators on page load and update list after
+  useEffect(() => {
+    const syncEvaluators = async () => {
+      try {
+        await apiRequest<{ message: string }>("POST", "/api/evaluators/sync");
+        refetchEvaluators();
+      } catch (error) {
+        console.error("Failed to sync evaluators:", error);
+      }
+    };
+    syncEvaluators();
+  }, [refetchEvaluators]);
 
   const createSystemPrompt = useMutation({
     mutationFn: (prompt: string) => 
@@ -59,10 +63,14 @@ export default function Welcome() {
     }
   });
 
-  const createConversation = useMutation({
+  interface ConversationResponse {
+    id: number;
+  }
+
+  const createConversation = useMutation<ConversationResponse>({
     mutationFn: async () => {
       setIsLoading(true);
-      const response = await apiRequest("POST", "/api/conversation", {
+      const response = await apiRequest<ConversationResponse>("POST", "/api/conversation", {
         activityId: 1,
         shouldGenerateFirstResponse: true,
         userName,
@@ -76,7 +84,7 @@ export default function Welcome() {
 
       // Assign selected evaluators to the conversation
       if (selectedEvaluators.length > 0) {
-        await apiRequest("POST", "/api/evaluators/assign", {
+        await apiRequest<{success: boolean}>("POST", "/api/evaluators/assign", {
           conversationId: data.id,
           evaluatorIds: selectedEvaluators
         });
@@ -100,7 +108,7 @@ export default function Welcome() {
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     if (storedName) setUserName(storedName);
-    if (systemPrompts?.length > 0) {
+    if (systemPrompts && systemPrompts.length > 0) {
       const mostRecent = systemPrompts[0];
       setSelectedPromptId(mostRecent.id.toString());
       setSystemPrompt(mostRecent.systemPrompt);
