@@ -157,22 +157,29 @@ export class PatronusClient {
         });
         
         // Map the evaluators from the conversation to the format expected by Patronus API
-        // Map evaluators to working criteria names based on their family
+        // Pass the actual criteria names from the database
         evaluatorsConfig = conversationEvaluators.map(evaluator => {
           console.log(`[Patronus #${evaluationId}] Mapping evaluator ${evaluator.id}:${evaluator.name} with family ${evaluator.family}`);
           
-          // Look at the evaluator family to determine which criteria to use
-          if (evaluator.family?.toLowerCase() === 'glider') {
-            return {
-              evaluator: "glider",
-              criteria: "language-compliance" // Known working criteria for glider evaluators
-            };
-          } else {
-            return {
-              evaluator: "judge",
-              criteria: "Repetition-Checker" // Known working criteria for judge evaluators
-            };
+          let criteria = evaluator.name;
+          
+          // If the evaluator name includes a language indicator like "-spanish", 
+          // extract the base criteria name to match what Patronus expects
+          if (evaluator.name.includes('-')) {
+            const baseCriteria = evaluator.name.split('-')[0];
+            console.log(`[Patronus #${evaluationId}] Extracted base criteria '${baseCriteria}' from '${evaluator.name}'`);
+            criteria = baseCriteria;
           }
+          
+          // Use family as the evaluator type - default to "judge" if missing
+          const evaluatorType = evaluator.family?.toLowerCase() || "judge";
+          
+          console.log(`[Patronus #${evaluationId}] Using evaluator type '${evaluatorType}' with criteria '${criteria}'`);
+          
+          return {
+            evaluator: evaluatorType,
+            criteria: criteria
+          };
         });
       } else {
         // Fallback to repetition-checker if no evaluators are selected
@@ -489,22 +496,27 @@ export async function evaluateResponse(
           if (assignment.isActive) {
             const evaluator = await storage.getEvaluator(assignment.evaluatorId);
             if (evaluator) {
-              // Use a appropriate criteria based on evaluator family
-              if (evaluator.family?.toLowerCase() === 'glider') {
-                // For glider type evaluators, use language-compliance
-                conversationEvaluators.push({
-                  ...evaluator,
-                  name: "language-compliance", // Override with compatible glider criteria
-                  family: "glider" // Ensure correct family is set
-                });
-              } else {
-                // For judge type evaluators, use Repetition-Checker
-                conversationEvaluators.push({
-                  ...evaluator,
-                  name: "Repetition-Checker", // Override with compatible judge criteria
-                  family: "judge" // Ensure correct family is set
-                });
+              // Pass the actual criteria name from the database
+              let criteria = evaluator.name;
+              
+              // If the evaluator name includes a language indicator like "-spanish", 
+              // extract the base criteria name to match what Patronus expects
+              if (evaluator.name.includes('-')) {
+                const baseCriteria = evaluator.name.split('-')[0];
+                console.log(`[Patronus] Extracted base criteria '${baseCriteria}' from '${evaluator.name}'`);
+                criteria = baseCriteria;
               }
+              
+              // Use family as the evaluator type - default to "judge" if missing
+              const evaluatorType = evaluator.family?.toLowerCase() || "judge";
+              
+              console.log(`[Patronus] Using evaluator type '${evaluatorType}' with criteria '${criteria}'`);
+              
+              conversationEvaluators.push({
+                ...evaluator,
+                name: criteria, // Use the actual criteria name (or base name if extracted)
+                family: evaluatorType // Use the actual family name
+              });
             }
           }
         }
