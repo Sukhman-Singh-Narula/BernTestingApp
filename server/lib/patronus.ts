@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { db } from '../db';
-import { activities, conversations, messages, steps, systemPrompts, type Message } from '@shared/schema';
+import { activities, conversations, messages, steps, systemPrompts, type Message, type Evaluator } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import https from 'https';
 import { URL } from 'url';
@@ -407,7 +407,7 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
       const conversationEvaluators = await storage.getConversationEvaluators(conversationId);
       
       // Get full evaluator details for each evaluator in this conversation
-      const activeEvaluators: typeof evaluators.$inferSelect[] = [];
+      const activeEvaluators: Evaluator[] = [];
       if (conversationEvaluators && conversationEvaluators.length > 0) {
         for (const convEval of conversationEvaluators) {
           if (convEval.isActive) {
