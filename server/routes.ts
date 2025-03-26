@@ -221,14 +221,10 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     }
   });
 
-  // Temporarily disable evaluator sync until we implement it properly
   app.post("/api/evaluators/sync", async (req, res) => {
     try {
-      // Just return a success message for now
-      res.json({ 
-        message: "Evaluators synced successfully",
-        results: [{ id: 1, name: "judge", criteria: "Repetition-Checker" }]
-      });
+      const results = await patronus.syncEvaluators();
+      res.json({ message: "Evaluators synced successfully", results });
     } catch (error) {
       console.error("Error syncing evaluators:", error);
       res.status(500).json({ message: "Failed to sync evaluators" });

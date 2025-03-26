@@ -48,9 +48,36 @@ export class PatronusClient {
     }
   }
   
-  // This is just a stub - the actual implementation is mocked in routes.ts
   async syncEvaluators() {
-    return [{ id: 1, name: "judge", criteria: "Repetition-Checker" }];
+    try {
+      const evaluatorsFromPatronus = await this.getAvailableEvaluators();
+      if (!evaluatorsFromPatronus?.length) {
+        console.warn('No evaluators returned from Patronus API');
+        return [];
+      }
+
+      const results = await Promise.all(
+        evaluatorsFromPatronus.map(async (evaluator) => {
+          try {
+            const result = await storage.upsertEvaluator({
+              id: evaluator.id,
+              name: evaluator.name,
+              criteria: evaluator.criteria,
+              metadata: evaluator.metadata || {}
+            });
+            return result;
+          } catch (err) {
+            console.error(`Failed to upsert evaluator ${evaluator.id}:`, err);
+            return null;
+          }
+        })
+      );
+
+      return results.filter(Boolean);
+    } catch (error) {
+      console.error('Error syncing evaluators:', error);
+      throw error;
+    }
   }
 
 
