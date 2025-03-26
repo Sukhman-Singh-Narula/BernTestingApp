@@ -157,7 +157,7 @@ export default function Welcome() {
           {/* Evaluator Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Select Evaluators</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto p-2 border rounded">
               {evaluators?.map((evaluator) => (
                 <div 
                   key={evaluator.id}
