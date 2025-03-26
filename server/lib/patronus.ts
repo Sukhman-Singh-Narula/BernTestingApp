@@ -330,7 +330,10 @@ export async function evaluateResponse(
       userInput,
       aiResponse,
       '', // No previous AI message available in this context
-      stepData
+      {
+        ...stepData,
+        activityName: stepData?.activityName || 'Language Activity'
+      }
     );
 
     const step = await storage.getStepByActivityAndNumber(stepData.activityId, stepData.stepNumber);
@@ -338,9 +341,6 @@ export async function evaluateResponse(
     const enrichedMetadata = {
       objective: step?.objective,
       expectedResponses: step?.expectedResponses,
-      activityName: step?.activity?.name,
-      activityType: step?.activity?.contentType,
-      language: step?.activity?.language,
       evaluation,
       ...metadata
     };
