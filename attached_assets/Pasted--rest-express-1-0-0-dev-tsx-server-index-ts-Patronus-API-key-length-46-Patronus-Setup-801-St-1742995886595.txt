@@ -1,0 +1,297 @@
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Patronus API key length: 46
+[Patronus Setup #801] Starting middleware setup...
+[Patronus Setup #801] API Key present: true
+[Patronus Setup #801] API Key length: 46
+[Patronus Setup #801] Middleware setup complete
+Starting server initialization...
+Found available port: 5000
+Routes registered successfully
+Vite setup complete
+1:30:56 PM [express] Server running on port 5000
+[Patronus Debug] Incoming request: GET /
+[Patronus Middleware #1] Processing GET /
+[Patronus Middleware #1] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /
+[Patronus Middleware #2] Processing GET /
+[Patronus Middleware #2] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Middleware #3] Processing GET /@vite/client
+[Patronus Middleware #3] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Middleware #4] Processing GET /src/main.tsx?v=DqZlzlPmqYcE0SMpB3rgw
+[Patronus Middleware #4] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Middleware #5] Processing GET /@vite/client
+[Patronus Middleware #5] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Middleware #6] Processing GET /@react-refresh
+[Patronus Middleware #6] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /
+[Patronus Middleware #7] Processing GET /
+[Patronus Middleware #7] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Middleware #8] Processing GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Middleware #8] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Middleware #9] Processing GET /src/main.tsx?v=D_ZIzd0PswOuSVA4OPNfp
+[Patronus Middleware #9] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Middleware #10] Processing GET /src/App.tsx?v=DqZlzlPmqYcE0SMpB3rgw
+[Patronus Middleware #10] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Middleware #11] Processing GET /@react-refresh
+[Patronus Middleware #11] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Middleware #12] Processing GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Middleware #12] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Middleware #13] Processing GET /src/index.css?v=DqZlzlPmqYcE0SMpB3rgw
+[Patronus Middleware #13] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Middleware #14] Processing GET /src/App.tsx?v=D_ZIzd0PswOuSVA4OPNfp
+[Patronus Middleware #14] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Middleware #15] Processing GET /src/lib/queryClient.ts
+[Patronus Middleware #15] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Middleware #16] Processing GET /src/index.css?v=D_ZIzd0PswOuSVA4OPNfp
+[Patronus Middleware #16] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Middleware #17] Processing GET /@vite/client
+[Patronus Middleware #17] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Middleware #18] Processing GET /src/components/ui/toaster.tsx
+[Patronus Middleware #18] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Middleware #19] Processing GET /src/pages/chat.tsx
+[Patronus Middleware #19] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Middleware #20] Processing GET /@react-refresh
+[Patronus Middleware #20] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Middleware #21] Processing GET /src/main.tsx?v=jPY2iyvTkPI5EjQ2yXQrm
+[Patronus Middleware #21] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Middleware #22] Processing GET /src/lib/queryClient.ts
+[Patronus Middleware #22] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Middleware #23] Processing GET /src/pages/welcome.tsx
+[Patronus Middleware #23] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Middleware #24] Processing GET /src/pages/not-found.tsx
+[Patronus Middleware #24] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Middleware #25] Processing GET /src/App.tsx?v=jPY2iyvTkPI5EjQ2yXQrm
+[Patronus Middleware #25] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Middleware #26] Processing GET /src/index.css?v=jPY2iyvTkPI5EjQ2yXQrm
+[Patronus Middleware #26] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Middleware #27] Processing GET /src/components/ui/toaster.tsx
+[Patronus Middleware #27] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Middleware #28] Processing GET /src/pages/chat.tsx
+[Patronus Middleware #28] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Middleware #29] Processing GET /src/components/ui/toaster.tsx
+[Patronus Middleware #29] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Middleware #30] Processing GET /src/pages/chat.tsx
+[Patronus Middleware #30] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Middleware #31] Processing GET /src/pages/activities.tsx
+[Patronus Middleware #31] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Middleware #32] Processing GET /src/lib/queryClient.ts
+[Patronus Middleware #32] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Middleware #33] Processing GET /src/pages/conversations.tsx
+[Patronus Middleware #33] Skipping: GET request
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Middleware #34] Processing GET /src/pages/not-found.tsx
+[Patronus Middleware #34] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Middleware #35] Processing GET /src/pages/welcome.tsx
+[Patronus Middleware #35] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Middleware #36] Processing GET /src/pages/not-found.tsx
+[Patronus Middleware #36] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Middleware #37] Processing GET /src/pages/welcome.tsx
+[Patronus Middleware #37] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Middleware #38] Processing GET /src/components/Navbar.tsx
+[Patronus Middleware #38] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Middleware #39] Processing GET /src/pages/conversations.tsx
+[Patronus Middleware #39] Skipping: GET request
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Middleware #40] Processing GET /src/pages/activities.tsx
+[Patronus Middleware #40] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Middleware #41] Processing GET /src/components/Navbar.tsx
+[Patronus Middleware #41] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Middleware #42] Processing GET /src/hooks/use-toast.ts
+[Patronus Middleware #42] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Middleware #43] Processing GET /src/components/ui/toast.tsx
+[Patronus Middleware #43] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Middleware #44] Processing GET /src/components/ui/button.tsx
+[Patronus Middleware #44] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Middleware #45] Processing GET /src/components/ui/toast.tsx
+[Patronus Middleware #45] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Middleware #46] Processing GET /src/hooks/use-toast.ts
+[Patronus Middleware #46] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Middleware #47] Processing GET /src/pages/conversations.tsx
+[Patronus Middleware #47] Skipping: GET request
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Middleware #48] Processing GET /src/pages/activities.tsx
+[Patronus Middleware #48] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Middleware #49] Processing GET /src/components/ui/card.tsx
+[Patronus Middleware #49] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Middleware #50] Processing GET /src/components/ui/input.tsx
+[Patronus Middleware #50] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Middleware #51] Processing GET /src/components/ui/scroll-area.tsx
+[Patronus Middleware #51] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Middleware #52] Processing GET /src/components/ui/button.tsx
+[Patronus Middleware #52] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Middleware #53] Processing GET /src/components/Navbar.tsx
+[Patronus Middleware #53] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Middleware #54] Processing GET /src/components/ui/collapsible.tsx
+[Patronus Middleware #54] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Middleware #55] Processing GET /src/components/ui/select.tsx
+[Patronus Middleware #55] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Middleware #56] Processing GET /src/hooks/use-toast.ts
+[Patronus Middleware #56] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Middleware #57] Processing GET /src/components/ui/input.tsx
+[Patronus Middleware #57] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Middleware #58] Processing GET /src/components/ui/table.tsx
+[Patronus Middleware #58] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Middleware #59] Processing GET /src/components/ui/textarea.tsx
+[Patronus Middleware #59] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Middleware #60] Processing GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Middleware #60] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Middleware #61] Processing GET /src/lib/utils.ts
+[Patronus Middleware #61] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Middleware #62] Processing GET /src/components/ui/card.tsx
+[Patronus Middleware #62] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Middleware #63] Processing GET /src/components/ui/toast.tsx
+[Patronus Middleware #63] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Middleware #64] Processing GET /src/components/ui/button.tsx
+[Patronus Middleware #64] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Middleware #65] Processing GET /src/components/ui/scroll-area.tsx
+[Patronus Middleware #65] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Middleware #66] Processing GET /src/components/ui/collapsible.tsx
+[Patronus Middleware #66] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Middleware #67] Processing GET /src/components/ui/input.tsx
+[Patronus Middleware #67] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Middleware #68] Processing GET /api/evaluators
+[Patronus Middleware #68] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: POST /api/evaluators/sync
+[Patronus Middleware #69] Processing POST /api/evaluators/sync
+[Patronus Middleware #69] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /api/activities/1/system-prompts
+[Patronus Middleware #70] Processing GET /api/activities/1/system-prompts
+[Patronus Middleware #70] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Middleware #71] Processing GET /src/components/ui/card.tsx
+[Patronus Middleware #71] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Middleware #72] Processing GET /src/components/ui/table.tsx
+[Patronus Middleware #72] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /favicon.ico
+[Patronus Middleware #73] Processing GET /favicon.ico
+[Patronus Middleware #73] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Middleware #74] Processing GET /src/components/ui/scroll-area.tsx
+[Patronus Middleware #74] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Middleware #75] Processing GET /src/components/ui/collapsible.tsx
+[Patronus Middleware #75] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Middleware #76] Processing GET /src/components/ui/textarea.tsx
+[Patronus Middleware #76] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Middleware #77] Processing GET /src/components/ui/table.tsx
+[Patronus Middleware #77] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Middleware #78] Processing GET /src/components/ui/select.tsx
+[Patronus Middleware #78] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Middleware #79] Processing GET /src/components/ui/textarea.tsx
+[Patronus Middleware #79] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Middleware #80] Processing GET /src/lib/utils.ts
+[Patronus Middleware #80] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Middleware #81] Processing GET /src/components/ui/select.tsx
+[Patronus Middleware #81] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Middleware #82] Processing GET /src/lib/utils.ts
+[Patronus Middleware #82] Skipping: Not a conversation route
+No evaluators returned from Patronus API
+1:31:00 PM [express] POST /api/evaluators/sync 200 in 300ms :: {"message":"Evaluators synced success…
+[Patronus Debug] Incoming request: GET /api/activities/1/system-prompts
+[Patronus Middleware #83] Processing GET /api/activities/1/system-prompts
+[Patronus Middleware #83] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Middleware #84] Processing GET /api/evaluators
+[Patronus Middleware #84] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: POST /api/evaluators/sync
+[Patronus Middleware #85] Processing POST /api/evaluators/sync
+[Patronus Middleware #85] Skipping: Not a conversation route
+1:31:00 PM [express] GET /api/evaluators 304 in 106ms :: [{"id":1,"name":"glider","criteria":"langua…
+[Patronus Debug] Incoming request: POST /api/evaluators/sync
+[Patronus Middleware #86] Processing POST /api/evaluators/sync
+[Patronus Middleware #86] Skipping: Not a conversation route
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Middleware #87] Processing GET /api/evaluators
+[Patronus Middleware #87] Skipping: Not a conversation route
+1:31:00 PM [express] GET /api/evaluators 304 in 29ms :: [{"id":1,"name":"glider","criteria":"languag…
+No evaluators returned from Patronus API
+1:31:00 PM [express] POST /api/evaluators/sync 200 in 190ms :: {"message":"Evaluators synced success…
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Middleware #88] Processing GET /api/evaluators
+[Patronus Middleware #88] Skipping: Not a conversation route
+1:31:00 PM [express] GET /api/evaluators 304 in 24ms :: [{"id":1,"name":"glider","criteria":"languag…
+No evaluators returned from Patronus API
+1:31:00 PM [express] POST /api/evaluators/sync 200 in 159ms :: {"message":"Evaluators synced success…
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Middleware #89] Processing GET /api/evaluators
+[Patronus Middleware #89] Skipping: Not a conversation route
+1:31:00 PM [express] GET /api/evaluators 304 in 24ms :: [{"id":1,"name":"glider","criteria":"languag…
+1:31:02 PM [express] GET /api/evaluators 304 in 2134ms :: [{"id":1,"name":"glider","criteria":"langu…
+1:31:02 PM [express] GET /api/activities/1/system-prompts 304 in 2107ms :: [{"id":5,"systemPrompt":"…
+1:31:02 PM [express] GET /api/activities/1/system-prompts 304 in 2100ms :: [{"id":5,"systemPrompt":"…
+[Patronus Debug] Incoming request: GET /api/activities/1/system-prompts
+[Patronus Middleware #90] Processing GET /api/activities/1/system-prompts
+[Patronus Middleware #90] Skipping: Not a conversation route
+1:31:02 PM [express] GET /api/activities/1/system-prompts 304 in 24ms :: [{"id":5,"systemPrompt":"Yo…
