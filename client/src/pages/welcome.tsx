@@ -53,7 +53,7 @@ export default function Welcome() {
 
   const createSystemPrompt = useMutation({
     mutationFn: (prompt: string) => 
-      apiRequest("POST", "/api/activities/1/system-prompts", { systemPrompt: prompt }),
+      apiRequest<{ id: number }>("POST", "/api/activities/1/system-prompts", { systemPrompt: prompt }),
     onSuccess: (data) => {
       setSelectedPromptId(data.id.toString());
     }

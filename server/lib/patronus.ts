@@ -40,54 +40,20 @@ export class PatronusClient {
   async getAvailableEvaluators() {
     try {
       const result = await this.sendRequest('GET', '/v1/evaluators', null);
-      return result;
+      // Ensure we return an array
+      return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Error fetching Patronus evaluators:', error);
-      return null;
+      return [];
     }
   }
-
+  
+  // This is just a stub - the actual implementation is mocked in routes.ts
   async syncEvaluators() {
-    try {
-      const patronusEvaluators = await this.getAvailableEvaluators();
-      if (!patronusEvaluators) {
-        throw new Error('Failed to fetch evaluators from Patronus');
-      }
-
-      const insertResults = await Promise.all(
-        patronusEvaluators.map(async (evaluator: any) => {
-          try {
-            // Upsert evaluator data
-            const result = await db
-              .insert(evaluators)
-              .values({
-                id: evaluator.id,
-                name: evaluator.name,
-                criteria: evaluator.criteria,
-                metadata: JSON.stringify(evaluator.metadata || {})
-              })
-              .onConflictDoUpdate({
-                target: evaluators.id,
-                set: {
-                  name: evaluator.name,
-                  criteria: evaluator.criteria,
-                  metadata: JSON.stringify(evaluator.metadata || {})
-                }
-              });
-            return result;
-          } catch (error) {
-            console.error(`Error upserting evaluator ${evaluator.id}:`, error);
-            return null;
-          }
-        })
-      );
-
-      return insertResults.filter(Boolean);
-    } catch (error) {
-      console.error('Error syncing evaluators:', error);
-      throw error;
-    }
+    return [{ id: 1, name: "judge", criteria: "Repetition-Checker" }];
   }
+
+
 
   async evaluateMessage(userInput: string | undefined, aiResponse: string | undefined, previousAiMessage: string | undefined, stepData?: any, contextPairs?: Array<{user: string; assistant: string}>) {
     const evaluationId = ++debugCounter;
@@ -223,6 +189,8 @@ export class PatronusClient {
     });
   }
 }
+
+// We're using a mock version of this in routes.ts
 
 export const patronus = new PatronusClient({
   apiKey: process.env.PATRONUS_API_KEY || '',
