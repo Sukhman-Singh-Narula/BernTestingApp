@@ -69,7 +69,6 @@ export const messageMetrics = pgTable("message_metrics", {
 export const evaluators = pgTable("evaluators", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  criteria: text("criteria").notNull(),
   pass_criteria: text("pass_criteria"),
   family: text("family"),
   description: text("description"),
