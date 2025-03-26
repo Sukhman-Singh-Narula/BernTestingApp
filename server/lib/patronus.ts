@@ -136,7 +136,7 @@ export class PatronusClient {
 
 
 
-  async evaluateMessage(userInput: string | undefined, aiResponse: string | undefined, previousAiMessage: string | undefined, stepData?: any, contextPairs?: Array<{user: string; assistant: string}>) {
+  async evaluateMessage(userInput: string | undefined, aiResponse: string | undefined, previousAiMessage: string | undefined, stepData?: any, contextPairs?: Array<{user: string; assistant: string}>, conversationEvaluators?: any[]) {
     const evaluationId = ++debugCounter;
     try {
       // Removed console.log(`[Patronus #${evaluationId}] Starting message evaluation`);
@@ -146,15 +146,24 @@ export class PatronusClient {
         return null;
       }
 
-      // Removed console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
-      // Removed console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
-
-
-      // Use the specific evaluator format for repetition-checker as requested
-      const evaluatorsConfig = [{
-        evaluator: "judge",
-        criteria: "Repetition-Checker"
-      }];
+      // Get evaluators for this specific conversation if provided
+      let evaluatorsConfig = [];
+      
+      if (conversationEvaluators && conversationEvaluators.length > 0) {
+        console.log(`[Patronus #${evaluationId}] Using ${conversationEvaluators.length} selected evaluators`);
+        // Map the evaluators from the conversation to the format expected by Patronus API
+        evaluatorsConfig = conversationEvaluators.map(evaluator => ({
+          evaluator: "judge",
+          criteria: evaluator.name || "Custom-Evaluator"
+        }));
+      } else {
+        // Fallback to repetition-checker if no evaluators are selected
+        console.log(`[Patronus #${evaluationId}] No evaluators selected, using default repetition-checker`);
+        evaluatorsConfig = [{
+          evaluator: "judge",
+          criteria: "Repetition-Checker"
+        }];
+      }
 
       // Format context pairs if provided
       let contextText = '';
@@ -389,6 +398,24 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
             : currentAiMessage.metadata)
         : {};
 
+      // Get conversation evaluators
+      const conversationEvaluators = await storage.getConversationEvaluators(conversationId);
+      
+      // Get full evaluator details for each evaluator in this conversation
+      const activeEvaluators = [];
+      if (conversationEvaluators && conversationEvaluators.length > 0) {
+        for (const convEval of conversationEvaluators) {
+          if (convEval.isActive) {
+            const evaluator = await storage.getEvaluator(convEval.evaluatorId);
+            if (evaluator) {
+              activeEvaluators.push(evaluator);
+            }
+          }
+        }
+      }
+      
+      console.log(`[Patronus Middleware] Found ${activeEvaluators.length} active evaluators for conversation ${conversationId}`);
+      
       // Fire-and-forget evaluation with context pairs
       patronus.evaluateMessage(
         userMessage?.content || '',
@@ -400,7 +427,8 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
           activityName: 'Language Activity', // Add fallback values for missing properties
           llm_advancement_decision: metadataObj?.shouldAdvance || false
         },
-        limitedContextPairs
+        limitedContextPairs,
+        activeEvaluators // Pass the active evaluators
       ).catch(error => {
         console.error('Background Patronus evaluation error:', error);
       });
@@ -419,6 +447,25 @@ export async function evaluateResponse(
 ) {
   try {
     //Removed console.log('Evaluating response with step data:', stepData);
+    
+    // If this evaluation is associated with a conversation, get the selected evaluators
+    let conversationEvaluators = [];
+    if (stepData && stepData.conversationId) {
+      const conversationId = stepData.conversationId;
+      const evaluatorAssignments = await storage.getConversationEvaluators(conversationId);
+      
+      if (evaluatorAssignments && evaluatorAssignments.length > 0) {
+        for (const assignment of evaluatorAssignments) {
+          if (assignment.isActive) {
+            const evaluator = await storage.getEvaluator(assignment.evaluatorId);
+            if (evaluator) {
+              conversationEvaluators.push(evaluator);
+            }
+          }
+        }
+      }
+    }
+    
     const evaluation = await patronus.evaluateMessage(
       userInput,
       aiResponse,
@@ -426,7 +473,9 @@ export async function evaluateResponse(
       {
         ...stepData,
         activityName: stepData?.activityName || 'Language Activity'
-      }
+      },
+      undefined, // No context pairs in this context
+      conversationEvaluators // Pass the conversation evaluators if available
     );
 
     const step = await storage.getStepByActivityAndNumber(stepData.activityId, stepData.stepNumber);
