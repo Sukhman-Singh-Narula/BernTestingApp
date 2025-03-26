@@ -5,16 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [isValid, setIsValid] = useState(false);
+
+  const { data: systemPrompts } = useQuery({
+    queryKey: ["systemPrompts"],
+    queryFn: () => apiRequest<Array<{ id: number; systemPrompt: string }>>("/api/system-prompts")
+  });
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
+    const storedPromptId = localStorage.getItem("lastSystemPromptId");
     if (storedName) setUserName(storedName);
+    if (storedPromptId) setSelectedPromptId(storedPromptId);
   }, []);
+
+  useEffect(() => {
+    if (selectedPromptId && systemPrompts) {
+      const selectedPrompt = systemPrompts.find(p => p.id.toString() === selectedPromptId);
+      if (selectedPrompt) {
+        setSystemPrompt(selectedPrompt.systemPrompt);
+      }
+    }
+  }, [selectedPromptId, systemPrompts]);
 
   useEffect(() => {
     setIsValid(userName.trim().length > 0);
@@ -44,12 +64,27 @@ export default function Welcome() {
             />
           </div>
           <div>
-            <label htmlFor="prompt" className="block text-sm font-medium mb-2">Custom System Prompt (Optional)</label>
+            <label htmlFor="prompt-select" className="block text-sm font-medium mb-2">Select System Prompt</label>
+            <Select value={selectedPromptId} onValueChange={(value) => {
+              setSelectedPromptId(value);
+              localStorage.setItem("lastSystemPromptId", value);
+            }}>
+              <SelectTrigger className="mb-4">
+                <SelectValue placeholder="Choose a system prompt" />
+              </SelectTrigger>
+              <SelectContent>
+                {systemPrompts?.map((prompt) => (
+                  <SelectItem key={prompt.id} value={prompt.id.toString()}>
+                    System Prompt {prompt.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Textarea
               id="prompt"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Enter a custom system prompt"
+              placeholder="System prompt will appear here"
               className="mb-4"
             />
           </div>
