@@ -1,19 +1,29 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+// Import types
+import type { Evaluator } from "@shared/schema";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
+  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([1]);  // Default to first evaluator
   const [isValid, setIsValid] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const [_, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const { data: systemPrompts } = useQuery({
     queryKey: ["/api/activities/1/system-prompts"],
@@ -25,11 +35,54 @@ export default function Welcome() {
     }>>("GET", "/api/activities/1/system-prompts")
   });
 
+  const { data: evaluators } = useQuery({
+    queryKey: ["/api/evaluators"],
+    queryFn: () => apiRequest<Evaluator[]>("GET", "/api/evaluators")
+  });
+
   const createSystemPrompt = useMutation({
     mutationFn: (prompt: string) => 
       apiRequest("POST", "/api/activities/1/system-prompts", { systemPrompt: prompt }),
     onSuccess: (data) => {
       setSelectedPromptId(data.id.toString());
+    }
+  });
+
+  const createConversation = useMutation({
+    mutationFn: async () => {
+      setIsLoading(true);
+      const response = await apiRequest("POST", "/api/conversation", {
+        activityId: 1,
+        shouldGenerateFirstResponse: true,
+        userName,
+        systemPrompt
+      });
+      return response;
+    },
+    onSuccess: async (data) => {
+      // Set the conversation ID in localStorage for future reference
+      localStorage.setItem("currentConversationId", data.id.toString());
+
+      // Assign selected evaluators to the conversation
+      if (selectedEvaluators.length > 0) {
+        await apiRequest("POST", "/api/evaluators/assign", {
+          conversationId: data.id,
+          evaluatorIds: selectedEvaluators
+        });
+      }
+      
+      setIsLoading(false);
+      // Navigate to the chat page with the new conversation
+      setLocation(`/chat/${data.id}`);
+    },
+    onError: (error) => {
+      setIsLoading(false);
+      toast({
+        title: "Error Creating Conversation",
+        description: "There was a problem creating your conversation. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Error creating conversation:", error);
     }
   });
 
@@ -63,10 +116,23 @@ export default function Welcome() {
     setIsValid(userName.trim().length > 0);
   }, [userName]);
 
-  const handleStartChat = () => {
+  const handleStartChat = async () => {
     localStorage.setItem("userName", userName);
-    localStorage.setItem("lastSystemPromptId", selectedPromptId); // Store selected prompt ID
-    localStorage.setItem("systemPrompt", systemPrompt); //Store system prompt
+    localStorage.setItem("lastSystemPromptId", selectedPromptId);
+    localStorage.setItem("systemPrompt", systemPrompt);
+    
+    // Create the conversation and navigate to chat page
+    await createConversation.mutateAsync();
+  };
+
+  const toggleEvaluator = (evaluatorId: number) => {
+    setSelectedEvaluators(prev => {
+      if (prev.includes(evaluatorId)) {
+        return prev.filter(id => id !== evaluatorId);
+      } else {
+        return [...prev, evaluatorId];
+      }
+    });
   };
 
   return (
@@ -87,6 +153,40 @@ export default function Welcome() {
               className="mb-4"
             />
           </div>
+          
+          {/* Evaluator Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Select Evaluators</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {evaluators?.map((evaluator) => (
+                <div 
+                  key={evaluator.id}
+                  onClick={() => toggleEvaluator(evaluator.id)}
+                  className={`cursor-pointer p-3 rounded-md border flex items-center justify-between ${
+                    selectedEvaluators.includes(evaluator.id) 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-border'
+                  }`}
+                >
+                  <div>
+                    <div className="font-medium">{evaluator.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {evaluator.criteria}
+                    </div>
+                  </div>
+                  {selectedEvaluators.includes(evaluator.id) && (
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+              ))}
+              {(!evaluators || evaluators.length === 0) && (
+                <div className="text-muted-foreground text-sm">
+                  No evaluators available. Default evaluator will be used.
+                </div>
+              )}
+            </div>
+          </div>
+          
           <div>
             <div className="mb-2">
               <label htmlFor="prompt-select" className="text-sm font-medium">Select System Prompt</label>
@@ -133,8 +233,12 @@ export default function Welcome() {
             </div>
           </div>
           <div className="flex gap-4">
-            <Button disabled={!isValid} onClick={handleStartChat} asChild>
-              <Link href="/chat">Start New Chat</Link>
+            <Button 
+              disabled={!isValid || isLoading} 
+              onClick={handleStartChat}
+              className="relative"
+            >
+              {isLoading ? 'Creating Conversation...' : 'Start New Chat'}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/activities">Browse Activities</Link>
