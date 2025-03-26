@@ -17,7 +17,7 @@ export default function Welcome() {
   const [userName, setUserName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
-  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([]);  // Start with empty array, will populate when evaluators are loaded
+  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([1]);  // Default to first evaluator
   const [isValid, setIsValid] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +43,6 @@ export default function Welcome() {
   });
 
   // Sync evaluators on page load and update list after
-  // Sync evaluators on page load
   useEffect(() => {
     const syncEvaluators = async () => {
       try {
@@ -55,20 +54,6 @@ export default function Welcome() {
     };
     syncEvaluators();
   }, [refetchEvaluators]);
-  
-  // Select default evaluators when they load
-  useEffect(() => {
-    if (evaluators && evaluators.length > 0 && selectedEvaluators.length === 0) {
-      // Default to language-compliance-spanish1.0 if available
-      const languageComplianceEvaluator = evaluators.find(e => e.name.includes('language-compliance-spanish'));
-      if (languageComplianceEvaluator) {
-        setSelectedEvaluators([languageComplianceEvaluator.id]);
-      } else {
-        // Otherwise, select the first evaluator
-        setSelectedEvaluators([evaluators[0].id]);
-      }
-    }
-  }, [evaluators, selectedEvaluators]);
 
   const createSystemPrompt = useMutation({
     mutationFn: (prompt: string) => 
