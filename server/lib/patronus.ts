@@ -40,16 +40,44 @@ export class PatronusClient {
   async getAvailableEvaluators() {
     try {
       console.log('[Patronus] Fetching evaluators from API...');
-      const result = await this.sendRequest('GET', '/v1/evaluators', null);
+      const result = await this.sendRequest('GET', '/v1/evaluator-criteria', null);
       
       // If the API returns no evaluators, return default ones
       if (!result || !Array.isArray(result) || result.length === 0) {
         console.log('[Patronus] Using default evaluators');
         return [
-          { id: 1, name: 'glider', criteria: 'language-compliance', metadata: {} },
-          { id: 2, name: 'pronunciation', criteria: 'Evaluates pronunciation accuracy and fluency', metadata: {} },
-          { id: 3, name: 'grammar', criteria: 'Checks grammatical correctness and structure', metadata: {} },
-          { id: 4, name: 'vocabulary', criteria: 'Assesses vocabulary usage and appropriateness', metadata: {} }
+          { 
+            name: 'glider', 
+            description: 'Evaluates language compliance',
+            evaluator_family: 'language',
+            config: { pass_criteria: 'score > 0.7' },
+            is_patronus_managed: true,
+            public_id: 'glider-1'
+          },
+          { 
+            name: 'pronunciation', 
+            description: 'Evaluates pronunciation accuracy and fluency',
+            evaluator_family: 'speech',
+            config: { pass_criteria: 'score > 0.6' },
+            is_patronus_managed: true,
+            public_id: 'pronunciation-1'
+          },
+          { 
+            name: 'grammar', 
+            description: 'Checks grammatical correctness and structure',
+            evaluator_family: 'language',
+            config: { pass_criteria: 'score > 0.7' },
+            is_patronus_managed: true,
+            public_id: 'grammar-1'
+          },
+          { 
+            name: 'vocabulary', 
+            description: 'Assesses vocabulary usage and appropriateness',
+            evaluator_family: 'language',
+            config: { pass_criteria: 'score > 0.65' },
+            is_patronus_managed: true,
+            public_id: 'vocabulary-1'
+          }
         ];
       }
 
@@ -71,25 +99,32 @@ export class PatronusClient {
 
       // Add a manual judge/Repetition-Checker evaluator if it doesn't exist
       const judgeRepetitionChecker = evaluatorsFromPatronus.find(
-        e => e.name === "judge" && e.criteria === "Repetition-Checker"
+        e => e.name === "judge" && e.evaluator_family === "Repetition-Checker"
       );
       
       if (!judgeRepetitionChecker) {
         evaluatorsFromPatronus.push({
-          id: evaluatorsFromPatronus.length + 1,
           name: "judge",
-          criteria: "Repetition-Checker",
+          description: "Checks for repetition in responses",
+          evaluator_family: "Repetition-Checker",
+          config: { pass_criteria: 'score > 0.5' },
+          is_patronus_managed: true,
+          public_id: "judge-repetition-1",
           metadata: { type: "default" }
         });
       }
 
       const results = await Promise.all(
-        evaluatorsFromPatronus.map(async (evaluator, index) => {
+        evaluatorsFromPatronus.map(async (evaluator) => {
           try {
-            // Use createEvaluator instead of upsertEvaluator
+            // Map fields according to the schema mapping
             const result = await storage.createEvaluator({
               name: evaluator.name,
-              criteria: evaluator.criteria,
+              family: evaluator.evaluator_family,
+              pass_criteria: evaluator.config?.pass_criteria,
+              description: evaluator.description,
+              is_patronus_managed: evaluator.is_patronus_managed,
+              public_id: evaluator.public_id,
               metadata: JSON.stringify(evaluator.metadata || {})
             });
             return result;

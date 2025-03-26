@@ -190,7 +190,7 @@ export default function Welcome() {
                   <div>
                     <div className="font-medium">{evaluator.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {evaluator.criteria}
+                      {evaluator.description || evaluator.family}
                     </div>
                   </div>
                   {selectedEvaluators.includes(evaluator.id) && (
