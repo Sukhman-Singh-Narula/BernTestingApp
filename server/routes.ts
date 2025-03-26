@@ -8,6 +8,8 @@ import multer from "multer";
 import { parse } from "csv-parse/sync";
 import { eq, desc } from 'drizzle-orm';
 import { router as apiRoutes } from './routes/index';
+import patronus from './patronus'; // Assuming patronus client is imported here
+
 
 // Configure multer for file upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -206,6 +208,26 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     } catch (error) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  app.get("/api/evaluators", async (req, res) => {
+    try {
+      const evaluators = await storage.getAllEvaluators();
+      res.json(evaluators);
+    } catch (error) {
+      console.error("Error fetching evaluators:", error);
+      res.status(500).json({ message: "Failed to fetch evaluators" });
+    }
+  });
+
+  app.post("/api/evaluators/sync", async (req, res) => {
+    try {
+      const results = await patronus.syncEvaluators();
+      res.json({ message: "Evaluators synced successfully", results });
+    } catch (error) {
+      console.error("Error syncing evaluators:", error);
+      res.status(500).json({ message: "Failed to sync evaluators" });
     }
   });
 

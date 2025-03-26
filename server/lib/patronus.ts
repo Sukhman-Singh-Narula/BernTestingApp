@@ -47,6 +47,48 @@ export class PatronusClient {
     }
   }
 
+  async syncEvaluators() {
+    try {
+      const patronusEvaluators = await this.getAvailableEvaluators();
+      if (!patronusEvaluators) {
+        throw new Error('Failed to fetch evaluators from Patronus');
+      }
+
+      const insertResults = await Promise.all(
+        patronusEvaluators.map(async (evaluator: any) => {
+          try {
+            // Upsert evaluator data
+            const result = await db
+              .insert(evaluators)
+              .values({
+                id: evaluator.id,
+                name: evaluator.name,
+                criteria: evaluator.criteria,
+                metadata: JSON.stringify(evaluator.metadata || {})
+              })
+              .onConflictDoUpdate({
+                target: evaluators.id,
+                set: {
+                  name: evaluator.name,
+                  criteria: evaluator.criteria,
+                  metadata: JSON.stringify(evaluator.metadata || {})
+                }
+              });
+            return result;
+          } catch (error) {
+            console.error(`Error upserting evaluator ${evaluator.id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      return insertResults.filter(Boolean);
+    } catch (error) {
+      console.error('Error syncing evaluators:', error);
+      throw error;
+    }
+  }
+
   async evaluateMessage(userInput: string | undefined, aiResponse: string | undefined, previousAiMessage: string | undefined, stepData?: any, contextPairs?: Array<{user: string; assistant: string}>) {
     const evaluationId = ++debugCounter;
     try {
