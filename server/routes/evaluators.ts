@@ -26,7 +26,7 @@ router.post('/assign', async (req, res) => {
     
     // Add new evaluators
     const assignments = await Promise.all(
-      evaluatorIds.map(evaluatorId => {
+      evaluatorIds.map((evaluatorId: number) => {
         console.log(`[Evaluators Route] Assigning evaluator ${evaluatorId} to conversation ${conversationId}`);
         return storage.assignEvaluatorToConversation({
           conversationId,
