@@ -18,19 +18,25 @@ router.post('/assign', async (req, res) => {
   try {
     const { conversationId, evaluatorIds } = req.body;
     
+    console.log(`[Evaluators Route] Assigning evaluators to conversation ${conversationId}:`, evaluatorIds);
+    
     // Remove existing evaluators for this conversation
     await storage.removeConversationEvaluators(conversationId);
+    console.log(`[Evaluators Route] Removed existing evaluators for conversation ${conversationId}`);
     
     // Add new evaluators
     const assignments = await Promise.all(
-      evaluatorIds.map(evaluatorId => 
-        storage.assignEvaluatorToConversation({
+      evaluatorIds.map(evaluatorId => {
+        console.log(`[Evaluators Route] Assigning evaluator ${evaluatorId} to conversation ${conversationId}`);
+        return storage.assignEvaluatorToConversation({
           conversationId,
           evaluatorId,
           isActive: true
-        })
-      )
+        });
+      })
     );
+    
+    console.log(`[Evaluators Route] Successfully assigned ${assignments.length} evaluators to conversation ${conversationId}`);
     
     res.json(assignments);
   } catch (error) {
