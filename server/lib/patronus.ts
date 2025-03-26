@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { db } from '../db';
-import { activities, conversations, messages, steps, systemPrompts } from '@shared/schema';
+import { activities, conversations, messages, steps, systemPrompts, type Message } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import https from 'https';
 import { URL } from 'url';
@@ -26,7 +26,8 @@ export class PatronusClient {
   private sanitizeText(text: string | number | null | undefined): string {
     if (text === null || text === undefined) return '';
     const stringValue = String(text);
-    return stringValue.replace(/[^\p{L}\p{Z}\p{N}_.:/=+\-@]/gu, '_');
+    // Use a simpler regex pattern that's compatible with ES5
+    return stringValue.replace(/[^a-zA-Z0-9\s_.:/=+\-@]/g, '_');
   }
 
   private sanitizeTags(tags: Record<string, any>): Record<string, string> {
@@ -46,7 +47,7 @@ export class PatronusClient {
     }
   }
 
-  async evaluateMessage(userInput: string, aiResponse: string, previousAiMessage: string, stepData?: any) {
+  async evaluateMessage(userInput: string | undefined, aiResponse: string | undefined, previousAiMessage: string | undefined, stepData?: any, contextPairs?: Array<{user: string; assistant: string}>) {
     const evaluationId = ++debugCounter;
     try {
       console.log(`[Patronus #${evaluationId}] Starting message evaluation`);
@@ -58,23 +59,24 @@ export class PatronusClient {
 
       console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
       console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
+      
+      // Always use the specific evaluator configuration as requested
+      const evaluatorsConfig = [{
+        evaluator: "judge",
+        criteria: "Repetition-Checker"
+      }];
 
-      // Get conversation evaluators
-      const conversationEvaluators = stepData?.conversationId ?
-        await storage.getConversationEvaluators(stepData.conversationId) :
-        [];
-
-      // Use default evaluator if none are assigned
-      const evaluatorsConfig = conversationEvaluators.length > 0 ?
-        conversationEvaluators.map(ce => ({
-          evaluator: ce.evaluator.name,
-          criteria: ce.evaluator.criteria,
-          ...(ce.evaluator.metadata ? JSON.parse(ce.evaluator.metadata) : {})
-        })) :
-        [{
-          evaluator: "glider",
-          criteria: "language-compliance"
-        }];
+      // Format context pairs if provided
+      let contextText = '';
+      if (contextPairs && contextPairs.length > 0) {
+        contextText = contextPairs.map(pair => 
+          `User: ${this.sanitizeText(pair.user)}\nAssistant: ${this.sanitizeText(pair.assistant)}`
+        ).join('\n\n');
+        console.log(`[Patronus #${evaluationId}] Added ${contextPairs.length} context pairs to evaluation`);
+      } else {
+        // Fall back to just the previous message if no context pairs
+        contextText = this.sanitizeText(previousAiMessage);
+      }
 
       const taskContext = {
         objective: stepData?.objective || '',
@@ -90,7 +92,7 @@ export class PatronusClient {
         evaluators: evaluatorsConfig,
         evaluated_model_input: this.sanitizeText(userInput),
         evaluated_model_output: this.sanitizeText(aiResponse),
-        evaluated_model_retrieved_context: this.sanitizeText(previousAiMessage),
+        evaluated_model_retrieved_context: contextText,
         evaluated_model_gold_answer: stepData?.successResponse || "",
         evaluated_model_system_prompt: stepData?.systemPrompt || null,
         task_context: JSON.stringify(taskContext),
@@ -265,16 +267,47 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
       const previousAiMessage = assistantMessages.length > 1 ?
         assistantMessages[assistantMessages.length - 2] :
         { content: '' };
+      
+      // Create context pairs for the previous 4 conversation exchanges
+      const contextPairs: Array<{user: string; assistant: string}> = [];
+      
+      // Get all user messages
+      const userMessages = messages.filter(msg => msg.role === 'user');
+      // Get all assistant messages
+      const allAssistantMessages = messages.filter(msg => msg.role === 'assistant');
+      
+      // Create pairs by matching indexes
+      for (let i = 0; i < Math.min(userMessages.length, allAssistantMessages.length) - 1; i++) {
+        contextPairs.push({
+          user: userMessages[i].content,
+          assistant: allAssistantMessages[i].content
+        });
+      }
+      
+      // Limit to the last 4 pairs
+      const limitedContextPairs = contextPairs.slice(-4);
+      
+      console.log(`[Patronus Middleware #${debugId}] Including ${limitedContextPairs.length} previous conversation pairs for context`);
 
-      // Fire-and-forget evaluation
+      // Get metadata from current message (if exists)
+      const metadataObj = currentAiMessage?.metadata 
+        ? (typeof currentAiMessage.metadata === 'string' 
+            ? JSON.parse(currentAiMessage.metadata) 
+            : currentAiMessage.metadata)
+        : {};
+        
+      // Fire-and-forget evaluation with context pairs
       patronus.evaluateMessage(
-        userMessage?.content,
-        currentAiMessage?.content,
-        previousAiMessage?.content,
+        userMessage?.content || '',
+        currentAiMessage?.content || '',
+        previousAiMessage?.content || '',
         {
           ...stepData,
-          llm_advancement_decision: currentAiMessage?.metadata?.shouldAdvance
-        }
+          conversationId,
+          activityName: 'Language Activity', // Add fallback values for missing properties
+          llm_advancement_decision: metadataObj?.shouldAdvance || false
+        },
+        limitedContextPairs
       ).catch(error => {
         console.error('Background Patronus evaluation error:', error);
       });
