@@ -150,7 +150,13 @@ export class PatronusClient {
       // Removed console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
 
       // Get conversation evaluators if a conversationId is provided
-      let evaluatorsConfig = [];
+      interface EvaluatorConfig {
+        evaluator: string;
+        criteria: string;
+      }
+      
+      const evaluatorsConfig: EvaluatorConfig[] = [];
+      
       if (stepData?.conversationId) {
         try {
           const conversationEvaluators = await storage.getConversationEvaluators(stepData.conversationId);
@@ -171,12 +177,15 @@ export class PatronusClient {
               );
               
               // Filter out any undefined evaluators and map to Patronus format
-              evaluatorsConfig = evaluators
-                .filter(Boolean)
-                .map(evaluator => ({
+              const validEvaluators = evaluators.filter((e): e is NonNullable<typeof e> => e !== undefined);
+              
+              // Push each evaluator to the config array
+              for (const evaluator of validEvaluators) {
+                evaluatorsConfig.push({
                   evaluator: "judge",
                   criteria: evaluator.name
-                }));
+                });
+              }
               
               console.log(`[Patronus #${evaluationId}] Using ${evaluatorsConfig.length} evaluators for conversation ${stepData.conversationId}`);
             }
@@ -188,10 +197,10 @@ export class PatronusClient {
       
       // If no evaluators were configured (or there was an error), use default
       if (evaluatorsConfig.length === 0) {
-        evaluatorsConfig = [{
+        evaluatorsConfig.push({
           evaluator: "judge",
           criteria: "Repetition-Checker"
-        }];
+        });
         console.log(`[Patronus #${evaluationId}] Using default evaluator for conversation ${stepData?.conversationId || 'unknown'}`);
       }
 
