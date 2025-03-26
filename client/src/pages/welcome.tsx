@@ -123,7 +123,9 @@ export default function Welcome() {
                 value={systemPrompt}
                 onChange={(e) => handlePromptChange(e.target.value)}
                 placeholder="Edit or create a new system prompt"
-                className="mt-4 mb-4 min-h-[300px] text-sm"
+                className={`mt-4 mb-4 min-h-[300px] text-sm ${!isEditing ? 'bg-muted text-muted-foreground cursor-pointer' : ''}`}
+                onClick={() => !isEditing && setIsEditing(true)}
+                readOnly={!isEditing}
               />
             </div>
           </div>
