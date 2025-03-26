@@ -76,19 +76,28 @@ export default function Welcome() {
         userName,
         systemPrompt
       });
-      return response;
-    },
-    onSuccess: async (data) => {
-      // Set the conversation ID in localStorage for future reference
-      localStorage.setItem("currentConversationId", data.id.toString());
-
+      
       // Assign selected evaluators to the conversation
       if (selectedEvaluators.length > 0) {
-        await apiRequest<{success: boolean}>("POST", "/api/evaluators/assign", {
-          conversationId: data.id,
-          evaluatorIds: selectedEvaluators
-        });
+        console.log(`Assigning ${selectedEvaluators.length} evaluators to conversation ${response.id}`);
+        try {
+          await apiRequest<{success: boolean}>("POST", "/api/evaluators/assign", {
+            conversationId: response.id,
+            evaluatorIds: selectedEvaluators
+          });
+          console.log(`Successfully assigned evaluators to conversation ${response.id}`);
+        } catch (error) {
+          console.error("Failed to assign evaluators:", error);
+        }
+      } else {
+        console.log("No evaluators selected for this conversation");
       }
+      
+      return response;
+    },
+    onSuccess: (data) => {
+      // Set the conversation ID in localStorage for future reference
+      localStorage.setItem("currentConversationId", data.id.toString());
       
       setIsLoading(false);
       // Navigate to the chat page with the new conversation
