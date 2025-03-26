@@ -1,0 +1,8 @@
+field in evaluators,field from API
+name,name
+criteria,
+family,evaluator_family
+pass_criteria,config: pass_criteria
+description,description
+is_patronus_managed,is_patronus_managed
+public_id,public_id
