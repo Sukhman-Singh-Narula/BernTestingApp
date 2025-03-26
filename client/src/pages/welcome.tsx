@@ -118,6 +118,9 @@ export default function Welcome() {
               </SelectContent>
             </Select>
             <div className="relative">
+              <p className="text-sm text-muted-foreground mb-2">
+                {!isEditing ? 'Edit this prompt to create a new system prompt' : 'A new system prompt will be saved'}
+              </p>
               <Textarea
                 id="prompt"
                 value={systemPrompt}
