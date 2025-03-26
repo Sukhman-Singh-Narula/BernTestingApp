@@ -35,9 +35,20 @@ export default function Welcome() {
     }>>("GET", "/api/activities/1/system-prompts")
   });
 
-  const { data: evaluators } = useQuery({
+  const { data: evaluators, refetch: refetchEvaluators } = useQuery({
     queryKey: ["/api/evaluators"],
     queryFn: () => apiRequest<Evaluator[]>("GET", "/api/evaluators")
+  });
+
+  // Sync evaluators on page load
+  useQuery({
+    queryKey: ["/api/evaluators/sync"],
+    queryFn: () => apiRequest("POST", "/api/evaluators/sync"),
+    onSuccess: () => refetchEvaluators(),
+    // Only run once on page load
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: false
   });
 
   const createSystemPrompt = useMutation({
