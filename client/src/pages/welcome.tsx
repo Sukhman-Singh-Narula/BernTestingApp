@@ -13,6 +13,7 @@ export default function Welcome() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [isValid, setIsValid] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const { data: systemPrompts } = useQuery({
     queryKey: ["/api/activities/1/system-prompts"],
@@ -24,21 +25,39 @@ export default function Welcome() {
     }>>("GET", "/api/activities/1/system-prompts")
   });
 
+  const createSystemPrompt = useMutation({
+    mutationFn: (prompt: string) => 
+      apiRequest("POST", "/api/activities/1/system-prompts", { systemPrompt: prompt }),
+    onSuccess: () => {
+      setIsEditing(false);
+    }
+  });
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedPromptId = localStorage.getItem("lastSystemPromptId");
     if (storedName) setUserName(storedName);
-    if (storedPromptId) setSelectedPromptId(storedPromptId);
-  }, []);
+    if (systemPrompts?.length > 0) {
+      const mostRecent = systemPrompts[0];
+      setSelectedPromptId(mostRecent.id.toString());
+      setSystemPrompt(mostRecent.systemPrompt);
+    }
+  }, [systemPrompts]);
 
   useEffect(() => {
-    if (selectedPromptId && systemPrompts) {
+    if (!isEditing && selectedPromptId && systemPrompts) {
       const selectedPrompt = systemPrompts.find(p => p.id.toString() === selectedPromptId);
       if (selectedPrompt) {
         setSystemPrompt(selectedPrompt.systemPrompt);
       }
     }
-  }, [selectedPromptId, systemPrompts]);
+  }, [selectedPromptId, systemPrompts, isEditing]);
+
+  const handleSavePrompt = () => {
+    if (isEditing && systemPrompt.trim()) {
+      createSystemPrompt.mutate(systemPrompt);
+    }
+  };
 
   useEffect(() => {
     setIsValid(userName.trim().length > 0);
@@ -69,8 +88,21 @@ export default function Welcome() {
             />
           </div>
           <div>
-            <label htmlFor="prompt-select" className="block text-sm font-medium mb-2">Select System Prompt</label>
-            <Select value={selectedPromptId} onValueChange={(value) => setSelectedPromptId(value)}>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="prompt-select" className="text-sm font-medium">Select System Prompt</label>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                {isEditing ? "Cancel" : "Edit"}
+              </Button>
+            </div>
+            <Select 
+              value={selectedPromptId} 
+              onValueChange={(value) => setSelectedPromptId(value)}
+              disabled={isEditing}
+            >
               <SelectTrigger className="mb-4">
                 <SelectValue placeholder="Choose a system prompt" />
               </SelectTrigger>
@@ -93,13 +125,26 @@ export default function Welcome() {
                 ))}
               </SelectContent>
             </Select>
-            <Textarea
-              id="prompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Current system prompt (editable)"
-              className="mt-4 mb-4"
-            />
+            <div className="relative">
+              <Textarea
+                id="prompt"
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                placeholder="Current system prompt"
+                className="mt-4 mb-4"
+                disabled={!isEditing}
+              />
+              {isEditing && (
+                <Button 
+                  className="absolute bottom-6 right-2" 
+                  size="sm"
+                  onClick={handleSavePrompt}
+                  disabled={!systemPrompt.trim()}
+                >
+                  Save New Prompt
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex gap-4">
             <Button disabled={!isValid} onClick={handleStartChat} asChild>
