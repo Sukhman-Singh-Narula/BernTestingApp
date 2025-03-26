@@ -69,18 +69,32 @@ export class PatronusClient {
         return [];
       }
 
+      // Add a manual judge/Repetition-Checker evaluator if it doesn't exist
+      const judgeRepetitionChecker = evaluatorsFromPatronus.find(
+        e => e.name === "judge" && e.criteria === "Repetition-Checker"
+      );
+      
+      if (!judgeRepetitionChecker) {
+        evaluatorsFromPatronus.push({
+          id: evaluatorsFromPatronus.length + 1,
+          name: "judge",
+          criteria: "Repetition-Checker",
+          metadata: { type: "default" }
+        });
+      }
+
       const results = await Promise.all(
-        evaluatorsFromPatronus.map(async (evaluator) => {
+        evaluatorsFromPatronus.map(async (evaluator, index) => {
           try {
-            const result = await storage.upsertEvaluator({
-              id: evaluator.id,
+            // Use createEvaluator instead of upsertEvaluator
+            const result = await storage.createEvaluator({
               name: evaluator.name,
               criteria: evaluator.criteria,
-              metadata: evaluator.metadata || {}
+              metadata: JSON.stringify(evaluator.metadata || {})
             });
             return result;
           } catch (err) {
-            console.error(`Failed to upsert evaluator ${evaluator.id}:`, err);
+            console.error(`Failed to create evaluator ${evaluator.name}:`, err);
             return null;
           }
         })
@@ -108,7 +122,7 @@ export class PatronusClient {
       console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
       console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
       
-      // Always use the specific evaluator configuration as requested
+      // Use the specific evaluator format for repetition-checker as requested
       const evaluatorsConfig = [{
         evaluator: "judge",
         criteria: "Repetition-Checker"
@@ -136,6 +150,7 @@ export class PatronusClient {
         systemPrompt: stepData?.systemPrompt || ''
       };
 
+      // Exactly match the format provided in the fetch example
       const payload = {
         evaluators: evaluatorsConfig,
         evaluated_model_input: this.sanitizeText(userInput),
