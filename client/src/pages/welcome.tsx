@@ -1,4 +1,3 @@
-
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ export default function Welcome() {
 
   const { data: systemPrompts } = useQuery({
     queryKey: ["systemPrompts"],
-    queryFn: () => apiRequest<Array<{ id: number; systemPrompt: string }>>("/api/system-prompts")
+    queryFn: () => apiRequest<Array<{ id: number; systemPrompt: string; name?: string }>>("/api/activities/1/system-prompts") //Corrected API endpoint and added optional name field
   });
 
   useEffect(() => {
@@ -42,7 +41,8 @@ export default function Welcome() {
 
   const handleStartChat = () => {
     localStorage.setItem("userName", userName);
-    localStorage.setItem("systemPrompt", systemPrompt);
+    localStorage.setItem("lastSystemPromptId", selectedPromptId); // Store selected prompt ID
+    localStorage.setItem("systemPrompt", systemPrompt); //Store system prompt
   };
 
   return (
@@ -65,17 +65,14 @@ export default function Welcome() {
           </div>
           <div>
             <label htmlFor="prompt-select" className="block text-sm font-medium mb-2">Select System Prompt</label>
-            <Select value={selectedPromptId} onValueChange={(value) => {
-              setSelectedPromptId(value);
-              localStorage.setItem("lastSystemPromptId", value);
-            }}>
+            <Select value={selectedPromptId} onValueChange={(value) => setSelectedPromptId(value)}>
               <SelectTrigger className="mb-4">
                 <SelectValue placeholder="Choose a system prompt" />
               </SelectTrigger>
               <SelectContent>
                 {systemPrompts?.map((prompt) => (
                   <SelectItem key={prompt.id} value={prompt.id.toString()}>
-                    System Prompt {prompt.id}
+                    {prompt.name || `Prompt ${prompt.id}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -84,8 +81,8 @@ export default function Welcome() {
               id="prompt"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="System prompt will appear here"
-              className="mb-4"
+              placeholder="Current system prompt (editable)"
+              className="mt-4 mb-4"
             />
           </div>
           <div className="flex gap-4">
