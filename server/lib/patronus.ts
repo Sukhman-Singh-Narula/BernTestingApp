@@ -39,13 +39,13 @@ export class PatronusClient {
 
   async getAvailableEvaluators() {
     try {
-      console.log('[Patronus] Fetching evaluators from API...');
+      // Removed console.log('[Patronus] Fetching evaluators from API...');
       // Using query parameter to only fetch non-Patronus managed evaluators
       const result = await this.sendRequest('GET', '/v1/evaluator-criteria?is_patronus_managed=false', null);
-      
+
       // If the API returns no evaluators, return default ones
       if (!result || !Array.isArray(result) || result.length === 0) {
-        console.log('[Patronus] Using default evaluators');
+        // Removed console.log('[Patronus] Using default evaluators');
         return [
           { 
             name: 'pronunciation', 
@@ -74,14 +74,14 @@ export class PatronusClient {
         ];
       }
 
-      console.log('[Patronus] Received evaluators:', result.length);
+      // Removed console.log('[Patronus] Received evaluators:', result.length);
       return result;
     } catch (error) {
       console.error('[Patronus] Error fetching evaluators:', error);
       return [];
     }
   }
-  
+
   async syncEvaluators() {
     try {
       // Get evaluators from Patronus API
@@ -93,13 +93,13 @@ export class PatronusClient {
 
       // Get all existing evaluators from the database
       const existingEvaluators = await storage.getAllEvaluators();
-      console.log(`[Patronus] Found ${existingEvaluators.length} existing evaluators in database`);
+      // Removed console.log(`[Patronus] Found ${existingEvaluators.length} existing evaluators in database`);
 
       // Add a manual judge/Repetition-Checker evaluator if it doesn't exist
       const judgeRepetitionChecker = evaluatorsFromPatronus.find(
         e => e.name === "judge" && e.evaluator_family === "Repetition-Checker"
       );
-      
+
       if (!judgeRepetitionChecker) {
         evaluatorsFromPatronus.push({
           name: "judge",
@@ -118,10 +118,10 @@ export class PatronusClient {
         )
       );
 
-      console.log(`[Patronus] Found ${newEvaluators.length} new evaluators to add to database`);
+      // Removed console.log(`[Patronus] Found ${newEvaluators.length} new evaluators to add to database`);
 
       if (newEvaluators.length === 0) {
-        console.log('[Patronus] No new evaluators to sync');
+        // Removed console.log('[Patronus] No new evaluators to sync');
         return [];
       }
 
@@ -138,7 +138,7 @@ export class PatronusClient {
               public_id: evaluator.public_id,
               metadata: evaluator.metadata ? JSON.stringify(evaluator.metadata) : null
             });
-            console.log(`[Patronus] Created new evaluator: ${evaluator.name}`);
+            // Removed console.log(`[Patronus] Created new evaluator: ${evaluator.name}`);
             return result;
           } catch (err) {
             console.error(`Failed to create evaluator ${evaluator.name}:`, err);
@@ -159,16 +159,17 @@ export class PatronusClient {
   async evaluateMessage(userInput: string | undefined, aiResponse: string | undefined, previousAiMessage: string | undefined, stepData?: any, contextPairs?: Array<{user: string; assistant: string}>) {
     const evaluationId = ++debugCounter;
     try {
-      console.log(`[Patronus #${evaluationId}] Starting message evaluation`);
+      // Removed console.log(`[Patronus #${evaluationId}] Starting message evaluation`);
 
       if (!this.apiKey) {
         console.error(`[Patronus #${evaluationId}] API key is not set. Please set PATRONUS_API_KEY environment variable.`);
         return null;
       }
 
-      console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
-      console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
-      
+      // Removed console.log(`[Patronus #${evaluationId}] API key is set with length: ${this.apiKey.length}`);
+      // Removed console.log(`[Patronus #${evaluationId}] Input lengths - User: ${userInput?.length ?? 0}, AI: ${aiResponse?.length ?? 0}, Previous: ${previousAiMessage?.length ?? 0}`);
+
+
       // Use the specific evaluator format for repetition-checker as requested
       const evaluatorsConfig = [{
         evaluator: "judge",
@@ -181,7 +182,7 @@ export class PatronusClient {
         contextText = contextPairs.map(pair => 
           `User: ${this.sanitizeText(pair.user)}\nAssistant: ${this.sanitizeText(pair.assistant)}`
         ).join('\n\n');
-        console.log(`[Patronus #${evaluationId}] Added ${contextPairs.length} context pairs to evaluation`);
+        // Removed console.log(`[Patronus #${evaluationId}] Added ${contextPairs.length} context pairs to evaluation`);
       } else {
         // Fall back to just the previous message if no context pairs
         contextText = this.sanitizeText(previousAiMessage);
@@ -212,9 +213,9 @@ export class PatronusClient {
         })
       };
 
-      console.log(`[Patronus #${evaluationId}] Sending request to /v1/evaluate with evaluators:`, evaluatorsConfig);
+      // Removed console.log(`[Patronus #${evaluationId}] Sending request to /v1/evaluate with evaluators:`, evaluatorsConfig);
       const result = await this.sendRequest('POST', '/v1/evaluate', payload);
-      console.log(`[Patronus #${evaluationId}] Evaluation completed successfully`, result ? 'with response' : 'with null response');
+      // Removed console.log(`[Patronus #${evaluationId}] Evaluation completed successfully`, result ? 'with response' : 'with null response');
       return result;
     } catch (error) {
       console.error(`[Patronus #${evaluationId}] Evaluation error:`, error);
@@ -312,34 +313,34 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
     try {
       const debugId = ++debugCounter;
       const fullPath = req.originalUrl || req.path;
-      console.log(`[Patronus Middleware #${debugId}] Processing ${req.method} ${fullPath}`);
+      //Removed console.log(`[Patronus Middleware #${debugId}] Processing ${req.method} ${fullPath}`);
 
       // Skip evaluation for non-conversation routes
       if (!fullPath.includes('/conversation')) {
-        console.log(`[Patronus Middleware #${debugId}] Skipping: Not a conversation route`);
+        //Removed console.log(`[Patronus Middleware #${debugId}] Skipping: Not a conversation route`);
         return;
       }
 
       // Skip evaluation for conversation creation
       if (req.method === 'POST' && fullPath === '/api/conversation') {
-        console.log(`[Patronus Middleware #${debugId}] Skipping: Conversation creation`);
+        //Removed console.log(`[Patronus Middleware #${debugId}] Skipping: Conversation creation`);
         return;
       }
 
       // Skip for GET requests
       if (req.method === 'GET') {
-        console.log(`[Patronus Middleware #${debugId}] Skipping: GET request`);
+        //Removed console.log(`[Patronus Middleware #${debugId}] Skipping: GET request`);
         return;
       }
 
       // Extract conversation ID from URL path for POST message requests
       const pathMatch = fullPath.match(/\/api\/conversation\/(\d+)\/message/);
       if (!pathMatch || !pathMatch[1]) {
-        console.log(`[Patronus Middleware #${debugId}] Skipping: Invalid path pattern`, fullPath);
+        //Removed console.log(`[Patronus Middleware #${debugId}] Skipping: Invalid path pattern`, fullPath);
         return;
       }
 
-      console.log(`[Patronus Middleware #${debugId}] Processing message for conversation ${pathMatch[1]}`);
+      //Removed console.log(`[Patronus Middleware #${debugId}] Processing message for conversation ${pathMatch[1]}`);
 
       const conversationId = parseInt(pathMatch[1]);
       if (isNaN(conversationId) || conversationId <= 0) {
@@ -379,15 +380,15 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
       const previousAiMessage = assistantMessages.length > 1 ?
         assistantMessages[assistantMessages.length - 2] :
         { content: '' };
-      
+
       // Create context pairs for the previous 4 conversation exchanges
       const contextPairs: Array<{user: string; assistant: string}> = [];
-      
+
       // Get all user messages
       const userMessages = messages.filter(msg => msg.role === 'user');
       // Get all assistant messages
       const allAssistantMessages = messages.filter(msg => msg.role === 'assistant');
-      
+
       // Create pairs by matching indexes
       for (let i = 0; i < Math.min(userMessages.length, allAssistantMessages.length) - 1; i++) {
         contextPairs.push({
@@ -395,11 +396,11 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
           assistant: allAssistantMessages[i].content
         });
       }
-      
+
       // Limit to the last 4 pairs
       const limitedContextPairs = contextPairs.slice(-4);
-      
-      console.log(`[Patronus Middleware #${debugId}] Including ${limitedContextPairs.length} previous conversation pairs for context`);
+
+      //Removed console.log(`[Patronus Middleware #${debugId}] Including ${limitedContextPairs.length} previous conversation pairs for context`);
 
       // Get metadata from current message (if exists)
       const metadataObj = currentAiMessage?.metadata 
@@ -407,7 +408,7 @@ export const patronusEvaluationMiddleware = (req: Request, res: Response, next: 
             ? JSON.parse(currentAiMessage.metadata) 
             : currentAiMessage.metadata)
         : {};
-        
+
       // Fire-and-forget evaluation with context pairs
       patronus.evaluateMessage(
         userMessage?.content || '',
@@ -437,7 +438,7 @@ export async function evaluateResponse(
   metadata: Record<string, any> = {}
 ) {
   try {
-    console.log('Evaluating response with step data:', stepData);
+    //Removed console.log('Evaluating response with step data:', stepData);
     const evaluation = await patronus.evaluateMessage(
       userInput,
       aiResponse,
