@@ -17,7 +17,7 @@ export default function Welcome() {
   const [userName, setUserName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
-  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([1]);  // Default to first evaluator
+  const [selectedEvaluators, setSelectedEvaluators] = useState<number[]>([]);  // Initialize with empty array
   const [isValid, setIsValid] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -200,7 +200,7 @@ export default function Welcome() {
               ))}
               {(!evaluators || evaluators.length === 0) && (
                 <div className="text-muted-foreground text-sm">
-                  No evaluators available. Default evaluator will be used.
+                  No evaluators available. Please try again later or proceed without evaluation.
                 </div>
               )}
             </div>
