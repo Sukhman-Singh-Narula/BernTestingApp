@@ -1,0 +1,306 @@
+6:15:05 PM [express] POST /api/conversation/167/message 200 in 72ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 167: {
+  type: 'thinking',
+  conversationId: 167,
+  message: 'The assistant is thinking...'
+}
+LLM evaluation: shouldAdvance=true
+LLM decision for step advancement: true
+Advanced conversation 167 to step 1
+SSE: Sending ai-response event for conversation 167: {
+  type: 'ai-response',
+  conversationId: 167,
+  message: {
+    id: 899,
+    conversationId: 167,
+    stepId: 1,
+    role: 'assistant',
+    content: "Ok, get your seatbelt on, let's race! Vamos!",
+    metadata: '{"shouldAdvance":true}',
+    createdAt: 2025-03-27T18:15:06.831Z
+  },
+  conversation: {
+    id: 167,
+    activityId: 1,
+    currentStep: 1,
+    userName: 'ed',
+    systemPromptId: 28
+  },
+  stepAdvanced: true
+}
+[Patronus Debug] Incoming request: POST /api/conversation/167/message
+SSE: Sending user-message event for conversation 167: {
+  type: 'user-message',
+  conversationId: 167,
+  message: {
+    id: 900,
+    conversationId: 167,
+    stepId: 2,
+    role: 'user',
+    content: 'vamos',
+    metadata: null,
+    createdAt: 2025-03-27T18:15:08.551Z
+  }
+}
+6:15:08 PM [express] POST /api/conversation/167/message 200 in 71ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 167: {
+  type: 'thinking',
+  conversationId: 167,
+  message: 'The assistant is thinking...'
+}
+[Patronus Middleware] Found 3 active evaluators for conversation 167
+[Patronus Middleware] Using these evaluators for conversation 167: 294:language-compliance-spanish1.0, 296:Is_Spanish, 295:language-compliance
+[Patronus #102] Starting message evaluation for 167 conversation
+[Patronus #102] Evaluators: [
+  {
+    id: 294,
+    name: 'language-compliance-spanish1.0',
+    pass_criteria: 'The MODEL OUTPUT fails this evaluation, if it proceeds in the conversation without recognising when the language of the USER INPUT was different from what was asked by the model in the RETRIEVED CONTEXT.\n' +
+      '\n' +
+      "In the RETRIEVED CONTEXT, a child will be asked for some response in English or Spanish. If the child's response in the USER INPUT is in the wrong language based on the RETRIEVED CONTEXT, this evaluation should fail. ",
+    family: 'judge',
+    description: "Check to see if the model's output registers the language of the child's response as an input. E.g. if the model asks a question in Spanish, but the child responds in English, the model should not proceed without asking the child to try again. ",
+    is_patronus_managed: false,
+    public_id: '05194408-082c-4b55-83a4-af051b8bcdcc',
+    created_at: 2025-03-26T16:20:58.985Z,
+    metadata: null
+  },
+  {
+    id: 296,
+    name: 'Is_Spanish',
+    pass_criteria: 'The USER INPUT must be in Spanish. ',
+    family: 'glider',
+    description: "Checks to see if the child's response was in Spanish. ",
+    is_patronus_managed: false,
+    public_id: '377477f3-6d8a-4975-900f-7900519cf2b9',
+    created_at: 2025-03-26T16:20:58.985Z,
+    metadata: null
+  },
+  {
+    id: 295,
+    name: 'language-compliance',
+    pass_criteria: 'The MODEL OUTPUT will only affirmatively acknowledge the USER INPUT if the USER INPUT is in the language that is expected within the expected responses data arrary that will be sent within the RETRIEVED CONTEXT. ',
+    family: 'glider',
+    description: 'This checks that the child is responding in the correct language.',
+    is_patronus_managed: false,
+    public_id: '0b5622be-6f1d-4707-b249-3aca93fad1da',
+    created_at: 2025-03-26T16:20:58.986Z,
+    metadata: null
+  }
+]
+[Patronus #102] Input length: 5, Response length: 44
+[Patronus #102] Using 3 selected evaluators for conversation 167
+[Patronus #102] Evaluator 294: language-compliance-spanish1.0 (judge)
+[Patronus #102] Evaluator 296: Is_Spanish (glider)
+[Patronus #102] Evaluator 295: language-compliance (glider)
+[Patronus #102] Mapping evaluator 294:language-compliance-spanish1.0 with family judge
+[Patronus #102] Using criteria 'language-compliance' for 'language-compliance-spanish1.0'
+[Patronus #102] Using evaluator type 'judge' with criteria 'language-compliance'
+[Patronus #102] Mapping evaluator 296:Is_Spanish with family glider
+[Patronus #102] Using criteria 'Is_Spanish' for 'Is_Spanish'
+[Patronus #102] Using evaluator type 'glider' with criteria 'Is_Spanish'
+[Patronus #102] Mapping evaluator 295:language-compliance with family glider
+[Patronus #102] Using criteria 'language-compliance' for 'language-compliance'
+[Patronus #102] Using evaluator type 'glider' with criteria 'language-compliance'
+[Patronus API] Sending POST to /v1/evaluate
+[Patronus API] Request data: {
+  evaluators: [
+    { evaluator: 'judge', criteria: 'language-compliance' },
+    { evaluator: 'glider', criteria: 'Is_Spanish' },
+    { evaluator: 'glider', criteria: 'language-compliance' }
+  ],
+  evaluated_model_input: 'vamos',
+  evaluated_model_output: 'Ok_ get your seatbelt on_ let_s race_ Vamos_',
+  evaluated_model_retrieved_context: 'User: Hi\n' +
+    'Assistant: __content_:_Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat____shouldAdvance_:false_',
+  evaluated_model_gold_answer: "Ok, get your seatbelt on, let's race! Vamos!",
+  evaluated_model_system_prompt: null,
+  task_context: `{"objective":"Commence the race","expectedResponses":"Something affirmative, such as 'Yes', or 'Let's go!', or 'I'm ready","description":"Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.","spanishWords":"None","currentStep":0,"activityName":"Language Activity","systemPrompt":""}`,
+  tags: {
+    environment: 'development',
+    application: 'language-learning-ai',
+    version: '1.0.0',
+    id: '1',
+    activityId: '1',
+    stepNumber: '0',
+    description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist_ and has to overcome some challenges during an imaginary race_ to win.',
+    objective: 'Commence the race',
+    suggestedScript: 'Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat_',
+    spanishWords: 'None',
+    expectedResponses: 'Something affirmative_ such as _Yes__ or _Let_s go___ or _I_m ready',
+    successResponse: 'Ok_ get your seatbelt on_ let_s race_ Vamos_',
+    conversationId: '167',
+    activityName: 'Language Activity',
+    llm_advancement_decision: 'false'
+  }
+}
+Patronus API error: 400 - {"detail":["Criteria does not exist: language-compliance"]}
+[Patronus #102] Evaluation error: Error: Request failed with status 400: {"detail":["Criteria does not exist: language-compliance"]}
+    at IncomingMessage.<anonymous> (/home/runner/workspace/server/lib/patronus.ts:299:20)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+[Patronus Middleware] Evaluation completed for conversation 167 with evaluators: language-compliance-spanish1.0, Is_Spanish, language-compliance
+LLM evaluation: shouldAdvance=false
+LLM decision for step advancement: false
+SSE: Sending ai-response event for conversation 167: {
+  type: 'ai-response',
+  conversationId: 167,
+  message: {
+    id: 901,
+    conversationId: 167,
+    stepId: 2,
+    role: 'assistant',
+    content: "Let's meet your car, Speedy! Speedy is one of the fastest cars around, and he is ready to drive with you! It's time to choose the colour of Speedy for the race! What colour would you like to choose? You can choose rojo (red), azul (blue) or amarillo (yellow)!",
+    metadata: '{"shouldAdvance":false}',
+    createdAt: 2025-03-27T18:15:09.949Z
+  },
+  conversation: {
+    id: 167,
+    activityId: 1,
+    currentStep: 1,
+    userName: 'ed',
+    systemPromptId: 28
+  },
+  stepAdvanced: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/167/message
+SSE: Sending user-message event for conversation 167: {
+  type: 'user-message',
+  conversationId: 167,
+  message: {
+    id: 902,
+    conversationId: 167,
+    stepId: 2,
+    role: 'user',
+    content: 'azul',
+    metadata: null,
+    createdAt: 2025-03-27T18:15:13.522Z
+  }
+}
+6:15:13 PM [express] POST /api/conversation/167/message 200 in 69ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 167: {
+  type: 'thinking',
+  conversationId: 167,
+  message: 'The assistant is thinking...'
+}
+[Patronus Middleware] Found 3 active evaluators for conversation 167
+[Patronus Middleware] Using these evaluators for conversation 167: 294:language-compliance-spanish1.0, 296:Is_Spanish, 295:language-compliance
+[Patronus #104] Starting message evaluation for 167 conversation
+[Patronus #104] Evaluators: [
+  {
+    id: 294,
+    name: 'language-compliance-spanish1.0',
+    pass_criteria: 'The MODEL OUTPUT fails this evaluation, if it proceeds in the conversation without recognising when the language of the USER INPUT was different from what was asked by the model in the RETRIEVED CONTEXT.\n' +
+      '\n' +
+      "In the RETRIEVED CONTEXT, a child will be asked for some response in English or Spanish. If the child's response in the USER INPUT is in the wrong language based on the RETRIEVED CONTEXT, this evaluation should fail. ",
+    family: 'judge',
+    description: "Check to see if the model's output registers the language of the child's response as an input. E.g. if the model asks a question in Spanish, but the child responds in English, the model should not proceed without asking the child to try again. ",
+    is_patronus_managed: false,
+    public_id: '05194408-082c-4b55-83a4-af051b8bcdcc',
+    created_at: 2025-03-26T16:20:58.985Z,
+    metadata: null
+  },
+  {
+    id: 296,
+    name: 'Is_Spanish',
+    pass_criteria: 'The USER INPUT must be in Spanish. ',
+    family: 'glider',
+    description: "Checks to see if the child's response was in Spanish. ",
+    is_patronus_managed: false,
+    public_id: '377477f3-6d8a-4975-900f-7900519cf2b9',
+    created_at: 2025-03-26T16:20:58.985Z,
+    metadata: null
+  },
+  {
+    id: 295,
+    name: 'language-compliance',
+    pass_criteria: 'The MODEL OUTPUT will only affirmatively acknowledge the USER INPUT if the USER INPUT is in the language that is expected within the expected responses data arrary that will be sent within the RETRIEVED CONTEXT. ',
+    family: 'glider',
+    description: 'This checks that the child is responding in the correct language.',
+    is_patronus_managed: false,
+    public_id: '0b5622be-6f1d-4707-b249-3aca93fad1da',
+    created_at: 2025-03-26T16:20:58.986Z,
+    metadata: null
+  }
+]
+[Patronus #104] Input length: 5, Response length: 259
+[Patronus #104] Using 3 selected evaluators for conversation 167
+[Patronus #104] Evaluator 294: language-compliance-spanish1.0 (judge)
+[Patronus #104] Evaluator 296: Is_Spanish (glider)
+[Patronus #104] Evaluator 295: language-compliance (glider)
+[Patronus #104] Mapping evaluator 294:language-compliance-spanish1.0 with family judge
+[Patronus #104] Using criteria 'language-compliance' for 'language-compliance-spanish1.0'
+[Patronus #104] Using evaluator type 'judge' with criteria 'language-compliance'
+[Patronus #104] Mapping evaluator 296:Is_Spanish with family glider
+[Patronus #104] Using criteria 'Is_Spanish' for 'Is_Spanish'
+[Patronus #104] Using evaluator type 'glider' with criteria 'Is_Spanish'
+[Patronus #104] Mapping evaluator 295:language-compliance with family glider
+[Patronus #104] Using criteria 'language-compliance' for 'language-compliance'
+[Patronus #104] Using evaluator type 'glider' with criteria 'language-compliance'
+[Patronus API] Sending POST to /v1/evaluate
+[Patronus API] Request data: {
+  evaluators: [
+    { evaluator: 'judge', criteria: 'language-compliance' },
+    { evaluator: 'glider', criteria: 'Is_Spanish' },
+    { evaluator: 'glider', criteria: 'language-compliance' }
+  ],
+  evaluated_model_input: 'vamos',
+  evaluated_model_output: 'Let_s meet your car_ Speedy_ Speedy is one of the fastest cars around_ and he is ready to drive with you_ It_s time to choose the colour of Speedy for the race_ What colour would you like to choose_ You can choose rojo _red__ azul _blue_ or amarillo _yellow__',
+  evaluated_model_retrieved_context: 'User: Hi\n' +
+    'Assistant: __content_:_Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat____shouldAdvance_:false_\n' +
+    '\n' +
+    'User: vamos\n' +
+    'Assistant: Hi_ Are you ready to win the race_ You can say __S___ _Yes_ or __Vamos__ _Let_s go__. Give it a try_',
+  evaluated_model_gold_answer: "Ok, get your seatbelt on, let's race! Vamos!",
+  evaluated_model_system_prompt: null,
+  task_context: `{"objective":"Commence the race","expectedResponses":"Something affirmative, such as 'Yes', or 'Let's go!', or 'I'm ready","description":"Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.","spanishWords":"None","currentStep":0,"activityName":"Language Activity","systemPrompt":""}`,
+  tags: {
+    environment: 'development',
+    application: 'language-learning-ai',
+    version: '1.0.0',
+    id: '1',
+    activityId: '1',
+    stepNumber: '0',
+    description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist_ and has to overcome some challenges during an imaginary race_ to win.',
+    objective: 'Commence the race',
+    suggestedScript: 'Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat_',
+    spanishWords: 'None',
+    expectedResponses: 'Something affirmative_ such as _Yes__ or _Let_s go___ or _I_m ready',
+    successResponse: 'Ok_ get your seatbelt on_ let_s race_ Vamos_',
+    conversationId: '167',
+    activityName: 'Language Activity',
+    llm_advancement_decision: 'false'
+  }
+}
+Patronus API error: 400 - {"detail":["Criteria does not exist: language-compliance"]}
+[Patronus #104] Evaluation error: Error: Request failed with status 400: {"detail":["Criteria does not exist: language-compliance"]}
+    at IncomingMessage.<anonymous> (/home/runner/workspace/server/lib/patronus.ts:299:20)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+[Patronus Middleware] Evaluation completed for conversation 167 with evaluators: language-compliance-spanish1.0, Is_Spanish, language-compliance
+LLM evaluation: shouldAdvance=true
+LLM decision for step advancement: true
+Advanced conversation 167 to step 2
+SSE: Sending ai-response event for conversation 167: {
+  type: 'ai-response',
+  conversationId: 167,
+  message: {
+    id: 903,
+    conversationId: 167,
+    stepId: 2,
+    role: 'assistant',
+    content: "That's a great colour! Speedy will go really fast!",
+    metadata: '{"shouldAdvance":true}',
+    createdAt: 2025-03-27T18:15:14.204Z
+  },
+  conversation: {
+    id: 167,
+    activityId: 1,
+    currentStep: 2,
+    userName: 'ed',
+    systemPromptId: 28
+  },
+  stepAdvanced: true
+}
