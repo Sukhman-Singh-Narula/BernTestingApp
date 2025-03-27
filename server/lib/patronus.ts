@@ -163,12 +163,19 @@ export class PatronusClient {
           
           let criteria = evaluator.name;
           
-          // If the evaluator name includes a language indicator like "-spanish", 
-          // extract the base criteria name to match what Patronus expects
-          if (evaluator.name.includes('-')) {
-            const baseCriteria = evaluator.name.split('-')[0];
-            console.log(`[Patronus #${evaluationId}] Extracted base criteria '${baseCriteria}' from '${evaluator.name}'`);
-            criteria = baseCriteria;
+          // Handle specific evaluator name patterns to match Patronus API expectations
+          if (evaluator.name.includes('Repetition')) {
+            // For Repetition-Checker, keep the full name as is
+            criteria = 'Repetition-Checker';
+            console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
+          } else if (evaluator.name.includes('language-compliance')) {
+            // For language-compliance-spanish1.0, just use "language-compliance"
+            criteria = 'language-compliance';
+            console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
+          } else if (evaluator.name === 'Is_Spanish') {
+            // For Is_Spanish, use as is
+            criteria = 'Is_Spanish';
+            console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
           }
           
           // Use family as the evaluator type - default to "judge" if missing
@@ -499,12 +506,19 @@ export async function evaluateResponse(
               // Pass the actual criteria name from the database
               let criteria = evaluator.name;
               
-              // If the evaluator name includes a language indicator like "-spanish", 
-              // extract the base criteria name to match what Patronus expects
-              if (evaluator.name.includes('-')) {
-                const baseCriteria = evaluator.name.split('-')[0];
-                console.log(`[Patronus] Extracted base criteria '${baseCriteria}' from '${evaluator.name}'`);
-                criteria = baseCriteria;
+              // Handle specific evaluator name patterns to match Patronus API expectations
+              if (evaluator.name.includes('Repetition')) {
+                // For Repetition-Checker, keep the full name as is
+                criteria = 'Repetition-Checker';
+                console.log(`[Patronus] Using criteria '${criteria}' for '${evaluator.name}'`);
+              } else if (evaluator.name.includes('language-compliance')) {
+                // For language-compliance-spanish1.0, just use "language-compliance"
+                criteria = 'language-compliance';
+                console.log(`[Patronus] Using criteria '${criteria}' for '${evaluator.name}'`);
+              } else if (evaluator.name === 'Is_Spanish') {
+                // For Is_Spanish, use as is
+                criteria = 'Is_Spanish';
+                console.log(`[Patronus] Using criteria '${criteria}' for '${evaluator.name}'`);
               }
               
               // Use family as the evaluator type - default to "judge" if missing

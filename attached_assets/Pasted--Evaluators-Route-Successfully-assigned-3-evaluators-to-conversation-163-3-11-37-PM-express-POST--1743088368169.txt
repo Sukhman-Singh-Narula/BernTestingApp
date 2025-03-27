@@ -1,0 +1,272 @@
+[Evaluators Route] Successfully assigned 3 evaluators to conversation 163
+3:11:37 PM [express] POST /api/evaluators/assign 200 in 145ms :: [{"id":39,"conversationId":163,"eva…
+[Patronus Debug] Incoming request: GET /api/conversation/163/stream
+SSE: New connection established for conversation 163
+[Patronus Debug] Incoming request: GET /api/conversation/163
+Retrieving conversation 163
+[Patronus Debug] Incoming request: GET /favicon.ico
+Found 1 messages for conversation 163
+3:11:37 PM [express] GET /api/conversation/163 200 in 46ms :: {"id":163,"activityId":1,"currentStep"…
+[Patronus Debug] Incoming request: GET /api/activity/1/steps
+3:11:37 PM [express] GET /api/activity/1/steps 304 in 22ms :: [{"id":1,"activityId":1,"stepNumber":0…
+[Patronus Debug] Incoming request: POST /api/conversation/163/message
+SSE: Sending user-message event for conversation 163: {
+  type: 'user-message',
+  conversationId: 163,
+  message: {
+    id: 856,
+    conversationId: 163,
+    stepId: 1,
+    role: 'user',
+    content: 'hi there',
+    metadata: null,
+    createdAt: 2025-03-27T15:11:41.619Z
+  }
+}
+3:11:41 PM [express] POST /api/conversation/163/message 200 in 67ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 163: {
+  type: 'thinking',
+  conversationId: 163,
+  message: 'The assistant is thinking...'
+}
+LLM evaluation: shouldAdvance=false
+LLM decision for step advancement: false
+SSE: Sending ai-response event for conversation 163: {
+  type: 'ai-response',
+  conversationId: 163,
+  message: {
+    id: 857,
+    conversationId: 163,
+    stepId: 1,
+    role: 'assistant',
+    content: "Hi! Are you excited for the race? Remember, it's going to be fun! Are you ready? You can say '¡Sí!' (Yes) or '¡Vamos!' (Let's go!) to start. Give it a try!",
+    metadata: '{"shouldAdvance":false}',
+    createdAt: 2025-03-27T15:11:43.080Z
+  },
+  conversation: {
+    id: 163,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 24
+  },
+  stepAdvanced: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/163/message
+SSE: Sending user-message event for conversation 163: {
+  type: 'user-message',
+  conversationId: 163,
+  message: {
+    id: 858,
+    conversationId: 163,
+    stepId: 1,
+    role: 'user',
+    content: 'test',
+    metadata: null,
+    createdAt: 2025-03-27T15:11:44.702Z
+  }
+}
+3:11:44 PM [express] POST /api/conversation/163/message 200 in 66ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 163: {
+  type: 'thinking',
+  conversationId: 163,
+  message: 'The assistant is thinking...'
+}
+LLM evaluation: shouldAdvance=false
+LLM decision for step advancement: false
+SSE: Sending ai-response event for conversation 163: {
+  type: 'ai-response',
+  conversationId: 163,
+  message: {
+    id: 859,
+    conversationId: 163,
+    stepId: 1,
+    role: 'assistant',
+    content: "That's okay! Let's try again. Can you say '¡Sí!' (Yes) or '¡Vamos!' (Let's go!) to start the race? Give it a try!",
+    metadata: '{"shouldAdvance":false}',
+    createdAt: 2025-03-27T15:11:45.788Z
+  },
+  conversation: {
+    id: 163,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 24
+  },
+  stepAdvanced: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/163/message
+SSE: Sending user-message event for conversation 163: {
+  type: 'user-message',
+  conversationId: 163,
+  message: {
+    id: 860,
+    conversationId: 163,
+    stepId: 1,
+    role: 'user',
+    content: 'vamos',
+    metadata: null,
+    createdAt: 2025-03-27T15:11:47.864Z
+  }
+}
+3:11:47 PM [express] POST /api/conversation/163/message 200 in 66ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 163: {
+  type: 'thinking',
+  conversationId: 163,
+  message: 'The assistant is thinking...'
+}
+LLM evaluation: shouldAdvance=true
+LLM decision for step advancement: true
+Advanced conversation 163 to step 1
+SSE: Sending ai-response event for conversation 163: {
+  type: 'ai-response',
+  conversationId: 163,
+  message: {
+    id: 861,
+    conversationId: 163,
+    stepId: 1,
+    role: 'assistant',
+    content: "Ok, get your seatbelt on, let's race! Vamos!",
+    metadata: '{"shouldAdvance":true}',
+    createdAt: 2025-03-27T15:11:48.675Z
+  },
+  conversation: {
+    id: 163,
+    activityId: 1,
+    currentStep: 1,
+    userName: 'ed',
+    systemPromptId: 24
+  },
+  stepAdvanced: true
+}
+[Patronus Debug] Incoming request: POST /api/conversation/163/message
+SSE: Sending user-message event for conversation 163: {
+  type: 'user-message',
+  conversationId: 163,
+  message: {
+    id: 862,
+    conversationId: 163,
+    stepId: 2,
+    role: 'user',
+    content: 'vamos',
+    metadata: null,
+    createdAt: 2025-03-27T15:11:50.927Z
+  }
+}
+3:11:50 PM [express] POST /api/conversation/163/message 200 in 67ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 163: {
+  type: 'thinking',
+  conversationId: 163,
+  message: 'The assistant is thinking...'
+}
+[Patronus Middleware] Found 3 active evaluators for conversation 163
+[Patronus Middleware] Using these evaluators for conversation 163: 296:Is_Spanish, 297:Repetition-Checker, 294:language-compliance-spanish1.0
+[Patronus #75] Starting message evaluation for 163 conversation
+[Patronus #75] Using 3 selected evaluators for conversation 163
+[Patronus #75] Evaluator 296: Is_Spanish (Glider)
+[Patronus #75] Evaluator 297: Repetition-Checker (Judge)
+[Patronus #75] Evaluator 294: language-compliance-spanish1.0 (Judge)
+[Patronus #75] Mapping evaluator 296:Is_Spanish with family Glider
+[Patronus #75] Using evaluator type 'glider' with criteria 'Is_Spanish'
+[Patronus #75] Mapping evaluator 297:Repetition-Checker with family Judge
+[Patronus #75] Extracted base criteria 'Repetition' from 'Repetition-Checker'
+[Patronus #75] Using evaluator type 'judge' with criteria 'Repetition'
+[Patronus #75] Mapping evaluator 294:language-compliance-spanish1.0 with family Judge
+[Patronus #75] Extracted base criteria 'language' from 'language-compliance-spanish1.0'
+[Patronus #75] Using evaluator type 'judge' with criteria 'language'
+Patronus API error: 400 - {"detail":["Criteria does not exist: Repetition","Criteria does not exist: language"]}
+[Patronus #75] Evaluation error: Error: Request failed with status 400: {"detail":["Criteria does not exist: Repetition","Criteria does not exist: language"]}
+    at IncomingMessage.<anonymous> (/home/runner/workspace/server/lib/patronus.ts:288:20)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+[Patronus Middleware] Evaluation completed for conversation 163 with evaluators: Is_Spanish, Repetition-Checker, language-compliance-spanish1.0
+LLM evaluation: shouldAdvance=false
+LLM decision for step advancement: false
+SSE: Sending ai-response event for conversation 163: {
+  type: 'ai-response',
+  conversationId: 163,
+  message: {
+    id: 863,
+    conversationId: 163,
+    stepId: 2,
+    role: 'assistant',
+    content: "Let's meet your car, Speedy! Speedy is one of the fastest cars around, and he is ready to drive with you! It's time to choose the colour of Speedy for the race! What colour would you like to choose? You can choose rojo (red), azul (blue) or amarillo (yellow)!",
+    metadata: '{"shouldAdvance":false}',
+    createdAt: 2025-03-27T15:11:56.286Z
+  },
+  conversation: {
+    id: 163,
+    activityId: 1,
+    currentStep: 1,
+    userName: 'ed',
+    systemPromptId: 24
+  },
+  stepAdvanced: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/163/message
+SSE: Sending user-message event for conversation 163: {
+  type: 'user-message',
+  conversationId: 163,
+  message: {
+    id: 864,
+    conversationId: 163,
+    stepId: 2,
+    role: 'user',
+    content: 'rojo',
+    metadata: null,
+    createdAt: 2025-03-27T15:11:58.858Z
+  }
+}
+3:11:58 PM [express] POST /api/conversation/163/message 200 in 70ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 163: {
+  type: 'thinking',
+  conversationId: 163,
+  message: 'The assistant is thinking...'
+}
+[Patronus Middleware] Found 3 active evaluators for conversation 163
+[Patronus Middleware] Using these evaluators for conversation 163: 296:Is_Spanish, 297:Repetition-Checker, 294:language-compliance-spanish1.0
+[Patronus #77] Starting message evaluation for 163 conversation
+[Patronus #77] Using 3 selected evaluators for conversation 163
+[Patronus #77] Evaluator 296: Is_Spanish (Glider)
+[Patronus #77] Evaluator 297: Repetition-Checker (Judge)
+[Patronus #77] Evaluator 294: language-compliance-spanish1.0 (Judge)
+[Patronus #77] Mapping evaluator 296:Is_Spanish with family Glider
+[Patronus #77] Using evaluator type 'glider' with criteria 'Is_Spanish'
+[Patronus #77] Mapping evaluator 297:Repetition-Checker with family Judge
+[Patronus #77] Extracted base criteria 'Repetition' from 'Repetition-Checker'
+[Patronus #77] Using evaluator type 'judge' with criteria 'Repetition'
+[Patronus #77] Mapping evaluator 294:language-compliance-spanish1.0 with family Judge
+[Patronus #77] Extracted base criteria 'language' from 'language-compliance-spanish1.0'
+[Patronus #77] Using evaluator type 'judge' with criteria 'language'
+Patronus API error: 400 - {"detail":["Criteria does not exist: Repetition","Criteria does not exist: language"]}
+[Patronus #77] Evaluation error: Error: Request failed with status 400: {"detail":["Criteria does not exist: Repetition","Criteria does not exist: language"]}
+    at IncomingMessage.<anonymous> (/home/runner/workspace/server/lib/patronus.ts:288:20)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+[Patronus Middleware] Evaluation completed for conversation 163 with evaluators: Is_Spanish, Repetition-Checker, language-compliance-spanish1.0
+LLM evaluation: shouldAdvance=true
+LLM decision for step advancement: true
+Advanced conversation 163 to step 2
+SSE: Sending ai-response event for conversation 163: {
+  type: 'ai-response',
+  conversationId: 163,
+  message: {
+    id: 865,
+    conversationId: 163,
+    stepId: 2,
+    role: 'assistant',
+    content: "That's a great colour! Speedy will go really fast!",
+    metadata: '{"shouldAdvance":true}',
+    createdAt: 2025-03-27T15:11:59.642Z
+  },
+  conversation: {
+    id: 163,
+    activityId: 1,
+    currentStep: 2,
+    userName: 'ed',
+    systemPromptId: 24
+  },
+  stepAdvanced: true
+}
