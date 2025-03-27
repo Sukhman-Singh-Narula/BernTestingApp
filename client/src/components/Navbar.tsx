@@ -8,29 +8,23 @@ export default function Navbar() {
     <nav className="bg-background border-b">
       <div className="container mx-auto px-4">
         <div className="flex h-14 items-center space-x-4">
-          <Link href="/">
-            <a className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
-              location === "/" ? "text-primary" : "text-muted-foreground"
-            )}>
-              New Chat
-            </a>
+          <Link href="/" className={cn(
+            "text-sm font-medium transition-colors hover:text-primary",
+            location === "/" ? "text-primary" : "text-muted-foreground"
+          )}>
+            New Chat
           </Link>
-          <Link href="/conversations">
-            <a className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
-              location === "/conversations" ? "text-primary" : "text-muted-foreground"
-            )}>
-              Conversations
-            </a>
+          <Link href="/conversations" className={cn(
+            "text-sm font-medium transition-colors hover:text-primary",
+            location === "/conversations" ? "text-primary" : "text-muted-foreground"
+          )}>
+            Conversations
           </Link>
-          <Link href="/activities">
-            <a className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
-              location === "/activities" ? "text-primary" : "text-muted-foreground"
-            )}>
-              Activities
-            </a>
+          <Link href="/activities" className={cn(
+            "text-sm font-medium transition-colors hover:text-primary",
+            location === "/activities" ? "text-primary" : "text-muted-foreground"
+          )}>
+            Activities
           </Link>
         </div>
       </div>
