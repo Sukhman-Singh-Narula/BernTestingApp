@@ -140,6 +140,8 @@ export class PatronusClient {
     const evaluationId = ++debugCounter;
     try {
       console.log(`[Patronus #${evaluationId}] Starting message evaluation for ${stepData?.conversationId || 'unknown'} conversation`);
+      console.log(`[Patronus #${evaluationId}] Evaluators:`, conversationEvaluators);
+      console.log(`[Patronus #${evaluationId}] Input length: ${userInput?.length || 0}, Response length: ${aiResponse?.length || 0}`);
 
       if (!this.apiKey) {
         console.error(`[Patronus #${evaluationId}] API key is not set. Please set PATRONUS_API_KEY environment variable.`);
@@ -245,6 +247,8 @@ export class PatronusClient {
   }
 
   private sendRequest(method: string, path: string, data: any) {
+    console.log(`[Patronus API] Sending ${method} to ${path}`);
+    console.log(`[Patronus API] Request data:`, data);
     return new Promise((resolve, reject) => {
       const url = new URL(path, this.BASE_URL);
       const options = {
