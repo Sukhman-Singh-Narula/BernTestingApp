@@ -165,20 +165,18 @@ export class PatronusClient {
           
           let criteria = evaluator.name;
           
-          // Handle specific evaluator name patterns to match Patronus API expectations
+          // Map evaluator names to their correct criteria names
           if (evaluator.name.includes('Repetition')) {
-            // For Repetition-Checker, keep the full name as is
             criteria = 'Repetition-Checker';
-            console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
-          } else if (evaluator.name.includes('language-compliance')) {
-            // For language-compliance-spanish1.0, just use "language-compliance"
-            criteria = 'language-compliance';
-            console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
+          } else if (evaluator.name.includes('language-compliance-spanish')) {
+            criteria = 'language-compliance-spanish1.0';
           } else if (evaluator.name === 'Is_Spanish') {
-            // For Is_Spanish, use as is
             criteria = 'Is_Spanish';
-            console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
+          } else {
+            // Use the evaluator name as criteria if no special mapping exists
+            criteria = evaluator.name;
           }
+          console.log(`[Patronus #${evaluationId}] Using criteria '${criteria}' for '${evaluator.name}'`);
           
           // Use family as the evaluator type - default to "judge" if missing
           const evaluatorType = evaluator.family?.toLowerCase() || "judge";
