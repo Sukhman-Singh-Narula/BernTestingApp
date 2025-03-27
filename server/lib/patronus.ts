@@ -111,7 +111,7 @@ export class PatronusClient {
             const evaluatorAny = evaluator as any;
             const result = await storage.createEvaluator({
               name: evaluator.name,
-              family: evaluator.evaluator_family,
+              family: evaluator.evaluator_family?.toLowerCase() || '',
               pass_criteria: evaluator.config?.pass_criteria,
               description: evaluator.description,
               is_patronus_managed: evaluator.is_patronus_managed,
