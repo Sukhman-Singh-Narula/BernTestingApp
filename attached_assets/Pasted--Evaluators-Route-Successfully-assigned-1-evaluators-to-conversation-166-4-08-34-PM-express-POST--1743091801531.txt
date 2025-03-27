@@ -1,0 +1,288 @@
+[Evaluators Route] Successfully assigned 1 evaluators to conversation 166
+4:08:34 PM [express] POST /api/evaluators/assign 200 in 51ms :: [{"id":44,"conversationId":166,"eval…
+[Patronus Debug] Incoming request: GET /api/conversation/166
+Retrieving conversation 166
+[Patronus Debug] Incoming request: GET /api/conversation/166/stream
+SSE: New connection established for conversation 166
+[Patronus Debug] Incoming request: GET /favicon.ico
+Found 1 messages for conversation 166
+4:08:34 PM [express] GET /api/conversation/166 200 in 45ms :: {"id":166,"activityId":1,"currentStep"…
+[Patronus Debug] Incoming request: POST /api/conversation/166/message
+SSE: Sending user-message event for conversation 166: {
+  type: 'user-message',
+  conversationId: 166,
+  message: {
+    id: 887,
+    conversationId: 166,
+    stepId: 1,
+    role: 'user',
+    content: "let's go",
+    metadata: null,
+    createdAt: 2025-03-27T16:08:39.241Z
+  }
+}
+4:08:39 PM [express] POST /api/conversation/166/message 200 in 67ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 166: {
+  type: 'thinking',
+  conversationId: 166,
+  message: 'The assistant is thinking...'
+}
+LLM evaluation: shouldAdvance=false
+LLM decision for step advancement: false
+SSE: Sending ai-response event for conversation 166: {
+  type: 'ai-response',
+  conversationId: 166,
+  message: {
+    id: 888,
+    conversationId: 166,
+    stepId: 1,
+    role: 'assistant',
+    content: "Great enthusiasm! In Spanish, you can say '¡Vamos!' (Let's go!). Can you try saying it?",
+    metadata: '{"shouldAdvance":false}',
+    createdAt: 2025-03-27T16:08:40.358Z
+  },
+  conversation: {
+    id: 166,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 27
+  },
+  stepAdvanced: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/166/message
+SSE: Sending user-message event for conversation 166: {
+  type: 'user-message',
+  conversationId: 166,
+  message: {
+    id: 889,
+    conversationId: 166,
+    stepId: 1,
+    role: 'user',
+    content: 'vamos',
+    metadata: null,
+    createdAt: 2025-03-27T16:08:57.445Z
+  }
+}
+4:08:57 PM [express] POST /api/conversation/166/message 200 in 156ms :: {"message":"Processing respo…
+SSE: Sending thinking event for conversation 166: {
+  type: 'thinking',
+  conversationId: 166,
+  message: 'The assistant is thinking...'
+}
+LLM evaluation: shouldAdvance=true
+LLM decision for step advancement: true
+Advanced conversation 166 to step 1
+SSE: Sending ai-response event for conversation 166: {
+  type: 'ai-response',
+  conversationId: 166,
+  message: {
+    id: 890,
+    conversationId: 166,
+    stepId: 1,
+    role: 'assistant',
+    content: "Ok, get your seatbelt on, let's race! Vamos!",
+    metadata: '{"shouldAdvance":true}',
+    createdAt: 2025-03-27T16:08:58.355Z
+  },
+  conversation: {
+    id: 166,
+    activityId: 1,
+    currentStep: 1,
+    userName: 'ed',
+    systemPromptId: 27
+  },
+  stepAdvanced: true
+}
+[Patronus Debug] Incoming request: POST /api/conversation/166/message
+SSE: Sending user-message event for conversation 166: {
+  type: 'user-message',
+  conversationId: 166,
+  message: {
+    id: 891,
+    conversationId: 166,
+    stepId: 2,
+    role: 'user',
+    content: 'vamos',
+    metadata: null,
+    createdAt: 2025-03-27T16:09:15.560Z
+  }
+}
+4:09:15 PM [express] POST /api/conversation/166/message 200 in 144ms :: {"message":"Processing respo…
+SSE: Sending thinking event for conversation 166: {
+  type: 'thinking',
+  conversationId: 166,
+  message: 'The assistant is thinking...'
+}
+[Patronus Middleware] Found 1 active evaluators for conversation 166
+[Patronus Middleware] Using these evaluators for conversation 166: 296:Is_Spanish
+[Patronus #133] Starting message evaluation for 166 conversation
+[Patronus #133] Evaluators: [
+  {
+    id: 296,
+    name: 'Is_Spanish',
+    pass_criteria: 'The USER INPUT must be in Spanish. ',
+    family: 'Glider',
+    description: "Checks to see if the child's response was in Spanish. ",
+    is_patronus_managed: false,
+    public_id: '377477f3-6d8a-4975-900f-7900519cf2b9',
+    created_at: 2025-03-26T16:20:58.985Z,
+    metadata: null
+  }
+]
+[Patronus #133] Input length: 5, Response length: 44
+[Patronus #133] Using 1 selected evaluators for conversation 166
+[Patronus #133] Evaluator 296: Is_Spanish (Glider)
+[Patronus #133] Mapping evaluator 296:Is_Spanish with family Glider
+[Patronus #133] Using criteria 'Is_Spanish' for 'Is_Spanish'
+[Patronus #133] Using evaluator type 'glider' with criteria 'Is_Spanish'
+[Patronus API] Sending POST to /v1/evaluate
+[Patronus API] Request data: {
+  evaluators: [ { evaluator: 'glider', criteria: 'Is_Spanish' } ],
+  evaluated_model_input: 'vamos',
+  evaluated_model_output: 'Ok_ get your seatbelt on_ let_s race_ Vamos_',
+  evaluated_model_retrieved_context: 'User: let_s go\n' +
+    'Assistant: __content_:_Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat____shouldAdvance_:false_',
+  evaluated_model_gold_answer: "Ok, get your seatbelt on, let's race! Vamos!",
+  evaluated_model_system_prompt: null,
+  task_context: `{"objective":"Commence the race","expectedResponses":"Something affirmative, such as 'Yes', or 'Let's go!', or 'I'm ready","description":"Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.","spanishWords":"None","currentStep":0,"activityName":"Language Activity","systemPrompt":""}`,
+  tags: {
+    environment: 'development',
+    application: 'language-learning-ai',
+    version: '1.0.0',
+    id: '1',
+    activityId: '1',
+    stepNumber: '0',
+    description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist_ and has to overcome some challenges during an imaginary race_ to win.',
+    objective: 'Commence the race',
+    suggestedScript: 'Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat_',
+    spanishWords: 'None',
+    expectedResponses: 'Something affirmative_ such as _Yes__ or _Let_s go___ or _I_m ready',
+    successResponse: 'Ok_ get your seatbelt on_ let_s race_ Vamos_',
+    conversationId: '166',
+    activityName: 'Language Activity',
+    llm_advancement_decision: 'false'
+  }
+}
+[Patronus Middleware] Evaluation completed for conversation 166 with evaluators: Is_Spanish
+LLM evaluation: shouldAdvance=false
+LLM decision for step advancement: false
+SSE: Sending ai-response event for conversation 166: {
+  type: 'ai-response',
+  conversationId: 166,
+  message: {
+    id: 892,
+    conversationId: 166,
+    stepId: 2,
+    role: 'assistant',
+    content: "Awesome! Vamos means 'Let's go!' in Spanish. Now, let's meet your car, Speedy! Speedy is one of the fastest cars around, and he is ready to drive with you! It's time to choose the colour of Speedy for the race! What colour would you like to choose? You can choose rojo (red), azul (blue), or amarillo (yellow)!",
+    metadata: '{"shouldAdvance":false}',
+    createdAt: 2025-03-27T16:09:17.135Z
+  },
+  conversation: {
+    id: 166,
+    activityId: 1,
+    currentStep: 1,
+    userName: 'ed',
+    systemPromptId: 27
+  },
+  stepAdvanced: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/166/message
+SSE: Sending user-message event for conversation 166: {
+  type: 'user-message',
+  conversationId: 166,
+  message: {
+    id: 893,
+    conversationId: 166,
+    stepId: 2,
+    role: 'user',
+    content: 'azul',
+    metadata: null,
+    createdAt: 2025-03-27T16:09:21.187Z
+  }
+}
+4:09:21 PM [express] POST /api/conversation/166/message 200 in 68ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 166: {
+  type: 'thinking',
+  conversationId: 166,
+  message: 'The assistant is thinking...'
+}
+[Patronus Middleware] Found 1 active evaluators for conversation 166
+[Patronus Middleware] Using these evaluators for conversation 166: 296:Is_Spanish
+[Patronus #135] Starting message evaluation for 166 conversation
+[Patronus #135] Evaluators: [
+  {
+    id: 296,
+    name: 'Is_Spanish',
+    pass_criteria: 'The USER INPUT must be in Spanish. ',
+    family: 'Glider',
+    description: "Checks to see if the child's response was in Spanish. ",
+    is_patronus_managed: false,
+    public_id: '377477f3-6d8a-4975-900f-7900519cf2b9',
+    created_at: 2025-03-26T16:20:58.985Z,
+    metadata: null
+  }
+]
+[Patronus #135] Input length: 5, Response length: 310
+[Patronus #135] Using 1 selected evaluators for conversation 166
+[Patronus #135] Evaluator 296: Is_Spanish (Glider)
+[Patronus #135] Mapping evaluator 296:Is_Spanish with family Glider
+[Patronus #135] Using criteria 'Is_Spanish' for 'Is_Spanish'
+[Patronus #135] Using evaluator type 'glider' with criteria 'Is_Spanish'
+[Patronus API] Sending POST to /v1/evaluate
+[Patronus API] Request data: {
+  evaluators: [ { evaluator: 'glider', criteria: 'Is_Spanish' } ],
+  evaluated_model_input: 'vamos',
+  evaluated_model_output: 'Awesome_ Vamos means _Let_s go__ in Spanish. Now_ let_s meet your car_ Speedy_ Speedy is one of the fastest cars around_ and he is ready to drive with you_ It_s time to choose the colour of Speedy for the race_ What colour would you like to choose_ You can choose rojo _red__ azul _blue__ or amarillo _yellow__',
+  evaluated_model_retrieved_context: 'User: let_s go\n' +
+    'Assistant: __content_:_Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat____shouldAdvance_:false_\n' +
+    '\n' +
+    'User: vamos\n' +
+    'Assistant: Great enthusiasm_ In Spanish_ you can say __Vamos__ _Let_s go__. Can you try saying it_',
+  evaluated_model_gold_answer: "Ok, get your seatbelt on, let's race! Vamos!",
+  evaluated_model_system_prompt: null,
+  task_context: `{"objective":"Commence the race","expectedResponses":"Something affirmative, such as 'Yes', or 'Let's go!', or 'I'm ready","description":"Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.","spanishWords":"None","currentStep":0,"activityName":"Language Activity","systemPrompt":""}`,
+  tags: {
+    environment: 'development',
+    application: 'language-learning-ai',
+    version: '1.0.0',
+    id: '1',
+    activityId: '1',
+    stepNumber: '0',
+    description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist_ and has to overcome some challenges during an imaginary race_ to win.',
+    objective: 'Commence the race',
+    suggestedScript: 'Welcome to the Grand Prix academy_ Today is a very big race_ and there will be some challenges ahead_ But if you play well and drive carefully_ you can win the race and take home the prize_ Are you ready to win the race_ Let_s get in the driver_s seat_',
+    spanishWords: 'None',
+    expectedResponses: 'Something affirmative_ such as _Yes__ or _Let_s go___ or _I_m ready',
+    successResponse: 'Ok_ get your seatbelt on_ let_s race_ Vamos_',
+    conversationId: '166',
+    activityName: 'Language Activity',
+    llm_advancement_decision: 'false'
+  }
+}
+[Patronus Middleware] Evaluation completed for conversation 166 with evaluators: Is_Spanish
+LLM evaluation: shouldAdvance=true
+LLM decision for step advancement: true
+Advanced conversation 166 to step 2
+SSE: Sending ai-response event for conversation 166: {
+  type: 'ai-response',
+  conversationId: 166,
+  message: {
+    id: 894,
+    conversationId: 166,
+    stepId: 2,
+    role: 'assistant',
+    content: "That's a great colour! Speedy will go really fast!",
+    metadata: '{"shouldAdvance":true}',
+    createdAt: 2025-03-27T16:09:22.214Z
+  },
+  conversation: {
+    id: 166,
+    activityId: 1,
+    currentStep: 2,
+    userName: 'ed',
+    systemPromptId: 27
+  },
+  stepAdvanced: true
+}
