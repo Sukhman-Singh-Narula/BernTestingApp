@@ -14,34 +14,42 @@ export async function generateResponse(
   step: Step,
   previousMessages: string
 ): Promise<{ content: string; shouldAdvance: boolean }> {
-  // Fetch the system prompt from database
   const systemPrompt = await storage.getSystemPromptByActivity(step.activityId);
 
   if (!systemPrompt) {
     throw new Error(`No system prompt found for activity ${step.activityId}`);
   }
 
-  // Replace the hardcoded system prompt with the one from database
-  let prompt = systemPrompt.systemPrompt
-    .replace("${step.objective}", step.objective)
-    .replace("${step.spanishWords}", step.spanishWords)
-    .replace("${step.expectedResponses}", step.expectedResponses)
-    .replace("${step.suggestedScript}", step.suggestedScript)
-    .replace("${step.successResponse}", step.successResponse)
-    .replace("${previousMessages}", previousMessages);
+  // Base teaching approach that remains constant
+  const basePrompt = `You are an English-speaking AI language tutor designed to help users learn Spanish through conversation.
 
-  // Add JSON output instructions to the prompt
-  prompt += "\n\nIMPORTANT: You must respond with a JSON object using the following format:\n" +
-    '{"response": "Your message to the child", "shouldAdvance": true/false}\n\n' +
-    'Set "shouldAdvance" to true if the child\'s response matches the expected responses for this step. ' +
-    'Otherwise, set it to false. Evaluate based on meaning, not exact wording. ' +
-    'Consider contextual and approximate matches as valid.';
+Teaching Approach:
+1. You are teaching children that speak English primarily. The lesson is conducted in English with Spanish vocabulary introduced gently.
+2. Be encouraging and patient:
+   - Praise correct Spanish usage enthusiastically
+   - Keep pronunciation simple and fun
+3. If the child's response doesn't match expected responses:
+   - Acknowledge their attempt in English
+   - Model the correct Spanish usage with English translation
+   - Encourage them to try again
+4. When they succeed, respond with affirmation.
+5. Keep responses concise and child-friendly`;
+
+  // Activity-specific context
+  const activityContext = `\nThis is a racing game activity where the user is a driver in a Grand Prix race.
+Current objective: ${step.objective}
+Spanish words to practice: ${step.spanishWords || 'None for this step'}
+Expected responses: ${step.expectedResponses}
+Previous conversation: ${previousMessages}`;
+
+  // Combine prompts with error checking
+  const finalPrompt = `${basePrompt}\n${activityContext}\n${systemPrompt.systemPrompt}`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
-        { role: "system", content: prompt },
+        { role: "system", content: finalPrompt },
         { role: "user", content: userInput }
       ],
       temperature: 0.7,
@@ -53,8 +61,6 @@ export async function generateResponse(
     
     try {
       const parsedResponse = JSON.parse(responseContent);
-      
-      // Ensure we have the expected fields
       const content = parsedResponse.response || "I'm not sure how to respond to that.";
       const shouldAdvance = !!parsedResponse.shouldAdvance;
       
@@ -63,7 +69,6 @@ export async function generateResponse(
       return { content, shouldAdvance };
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
-      console.error("Raw response:", responseContent);
       return { 
         content: "I'm having trouble understanding. Can you try again?", 
         shouldAdvance: false 
