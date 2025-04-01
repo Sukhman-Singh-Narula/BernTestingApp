@@ -82,6 +82,14 @@ Success Response: ${step.successResponse}
             }
           }
         }
+      },
+      {
+        name: "advance_step",
+        description: "Call this function when the user has completed the current step's objective satisfactorily. Expected responses are: " + step.expectedResponses,
+        parameters: {
+          type: "object",
+          properties: {}
+        }
       }]
     });
 
@@ -106,17 +114,14 @@ Success Response: ${step.successResponse}
       }
     }
 
-    // Check for step advancement when not changing activities
+    // Handle step advancement through function call
     let shouldAdvance = false;
-    if (step.expectedResponses) {
-      const expectedResponses = step.expectedResponses.split('|').map(r => r.trim().toLowerCase());
-      shouldAdvance = expectedResponses.some(response => 
-        userInput.toString().toLowerCase().includes(response)
-      );
+    if (message.function_call?.name === 'advance_step') {
+      shouldAdvance = true;
+      console.log('LLM requested step advancement');
     }
 
-    // If the LLM didn't trigger a function call for activity change, handle regular response
-    const activities = await storage?.getAllVisibleActivities() || [];
+    // If the LLM didn't trigger a function call, handle regular response
     let responseContent = message.content;
     
     // Only use fallbacks if no content provided
