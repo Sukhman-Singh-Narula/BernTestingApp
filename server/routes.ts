@@ -99,6 +99,22 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     }
   });
 
+  app.get("/api/activities/:id", async (req, res) => {
+    try {
+      const activityId = Number(req.params.id);
+      const activity = await storage.getActivity(activityId);
+      
+      if (!activity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+      
+      res.json(activity);
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
   app.get("/api/activity/:id/steps", async (req, res) => {
     try {
       const activityId = Number(req.params.id);
