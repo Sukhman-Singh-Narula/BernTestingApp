@@ -85,6 +85,25 @@ Success Response: ${step.successResponse}
     });
 
     const message = response.choices[0].message;
+    
+    // Handle function call if present
+    if (message.function_call) {
+      if (message.function_call.name === 'change_activity') {
+        try {
+          const args = JSON.parse(message.function_call.arguments);
+          if (args.activityId) {
+            // Activity ID found, trigger activity change
+            return {
+              content: message.content || `Great choice! Let's switch to a new activity.`,
+              shouldAdvance: false,
+              activityChange: args.activityId
+            };
+          }
+        } catch (error) {
+          console.error('Error parsing function call arguments:', error);
+        }
+      }
+    }
 
     // Always check for activity switch requests regardless of current activity
     const activities = await storage?.getAllVisibleActivities() || [];
