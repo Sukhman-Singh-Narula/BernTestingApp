@@ -1,0 +1,115 @@
+Great point about looking at the existing activity change mechanism as a model! Let's analyze how activity changes work currently and then we can apply similar principles to step advancement.
+
+## How Activity Changes Work Currently
+
+1. **Function Definition in OpenAI**: 
+```javascript
+functions: [{
+  name: "change_activity",
+  description: "Detect when users express interest in starting or switching to a specific activity, either by direct mention or implied intent. Use activity IDs from the AVAILABLE_ACTIVITIES list provided in the system prompt.",
+  parameters: {
+    type: "object",
+    required: ["activityId"],
+    properties: {
+      activityId: {
+        type: "integer",
+        description: "The ID of the activity to switch to, based on the AVAILABLE_ACTIVITIES list. Ensure the ID exists in the available activities."
+      }
+    }
+  }
+}]
+```
+
+2. **Function Call Detection**:
+```javascript
+if (message.function_call) {
+  if (message.function_call.name === 'change_activity') {
+    try {
+      const args = JSON.parse(message.function_call.arguments);
+      if (args.activityId) {
+        return {
+          content: message.content || `Great choice! Let's switch to a new activity.`,
+          shouldAdvance: false,
+          activityChange: args.activityId
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing function call arguments:', error);
+    }
+  }
+}
+```
+
+3. **In MessageService**:
+```javascript
+if (activityChange && activityChange !== currentConversation.activityId) {
+  try {
+    // Verify that the activity exists
+    const newActivity = await storage.getActivity(activityChange);
+    if (!newActivity) {
+      console.error(`Cannot change to non-existent activity ID: ${activityChange}`);
+    } else {
+      // Update the conversation with the new activity
+      updatedConv = await storage.updateConversationActivity(
+        conversationId,
+        activityChange,
+        currentConversation.activityId // Store current activity as previous
+      );
+      console.log(`Switched conversation ${conversationId} from activity ${currentConversation.activityId} to ${activityChange}`);
+      // ... additional code ...
+    }
+  } catch (error) {
+    console.error('Error changing activity:', error);
+  }
+}
+```
+
+## Similar Approach for Step Advancement
+
+We can implement a nearly identical pattern for step advancement:
+
+1. **Add a Step Advancement Function**:
+```javascript
+{
+  name: "advance_step",
+  description: "Call this function when the user has successfully completed the current step's objective. This will advance to the next step in the current activity.",
+  parameters: { 
+    type: "object",
+    properties: {} // No parameters needed - just advancing to the next step
+  }
+}
+```
+
+2. **Handle Function Call**:
+```javascript
+else if (message.function_call.name === 'advance_step') {
+  console.log('LLM requested step advancement');
+  return {
+    content: message.content || step.successResponse || "Great job! Let's continue.",
+    shouldAdvance: true, // This is the key signal
+    activityChange: undefined
+  };
+}
+```
+
+3. **MessageService Already Handles Step Advancement**:
+```javascript
+// If no activity change but should advance step
+else if (finalShouldAdvance) {
+  const nextStep = currentConversation.currentStep + 1;
+  try {
+    updatedConv = await storage.updateConversationStep(
+      conversationId,
+      nextStep
+    );
+    console.log(`Advanced conversation ${conversationId} to step ${nextStep}`);
+  } catch (error) {
+    console.error('Error updating conversation step:', error);
+    throw error;
+  }
+}
+```
+
+The existing infrastructure for step advancement is already in place! The only missing piece is giving the LLM the explicit ability to trigger it through a function call and removing the string matching logic that's currently in use.
+
+This mirrors exactly how activity changes work currently, making implementation straightforward and consistent with the existing codebase. The LLM can be empowered to make both activity selection and step advancement decisions through the same function calling mechanism.

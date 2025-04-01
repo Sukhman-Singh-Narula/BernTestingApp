@@ -1,0 +1,317 @@
+7:52:23 PM [express] GET /api/activity/3/steps 304 in 22ms :: [{"id":8,"activityId":3,"stepNumber":0…
+[Patronus Debug] Incoming request: POST /api/conversation/279/message
+SSE: Sending user-message event for conversation 279: {
+  type: 'user-message',
+  conversationId: 279,
+  message: {
+    id: 1617,
+    conversationId: 279,
+    stepId: 8,
+    role: 'user',
+    content: 'race',
+    metadata: null,
+    createdAt: 2025-04-01T19:52:25.144Z
+  }
+}
+7:52:25 PM [express] POST /api/conversation/279/message 200 in 65ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 279: {
+  type: 'thinking',
+  conversationId: 279,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 279 { userInput: 'race', messagesCount: 4 }
+LLM decision - shouldAdvance: false, activityChange: 1
+Updated conversation 279 with new activity 1, system prompt ID 97, and step 0
+Switched conversation 279 from activity 3 to 1
+SSE: Sending ai-response event for conversation 279: {
+  type: 'ai-response',
+  conversationId: 279,
+  message: {
+    id: 1618,
+    conversationId: 279,
+    stepId: 1,
+    role: 'assistant',
+    content: "Great choice! Let's switch to a new activity.",
+    metadata: '{"shouldAdvance":false,"activityChange":1}',
+    createdAt: 2025-04-01T19:52:26.594Z
+  },
+  conversation: {
+    id: 279,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: true
+}
+[Patronus Debug] Incoming request: GET /api/activity/1/steps
+7:52:26 PM [express] GET /api/activity/1/steps 304 in 21ms :: [{"id":1,"activityId":1,"stepNumber":0…
+[Patronus Debug] Incoming request: POST /api/conversation/279/message
+SSE: Sending user-message event for conversation 279: {
+  type: 'user-message',
+  conversationId: 279,
+  message: {
+    id: 1620,
+    conversationId: 279,
+    stepId: 1,
+    role: 'user',
+    content: 'ok',
+    metadata: null,
+    createdAt: 2025-04-01T19:52:29.018Z
+  }
+}
+7:52:29 PM [express] POST /api/conversation/279/message 200 in 69ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 279: {
+  type: 'thinking',
+  conversationId: 279,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 279 { userInput: 'ok', messagesCount: 7 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 279: {
+  type: 'ai-response',
+  conversationId: 279,
+  message: {
+    id: 1621,
+    conversationId: 279,
+    stepId: 1,
+    role: 'assistant',
+    content: "Awesome! Welcome to the Grand Prix academy! Today is a very big race, and there will be some challenges ahead! But if you play well and drive carefully, you can win the race and take home the prize! Are you ready to win the race? Let's get in the driver's seat!",
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T19:52:31.839Z
+  },
+  conversation: {
+    id: 279,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/279/message
+SSE: Sending user-message event for conversation 279: {
+  type: 'user-message',
+  conversationId: 279,
+  message: {
+    id: 1622,
+    conversationId: 279,
+    stepId: 1,
+    role: 'user',
+    content: 'yes',
+    metadata: null,
+    createdAt: 2025-04-01T19:52:33.929Z
+  }
+}
+7:52:33 PM [express] POST /api/conversation/279/message 200 in 65ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 279: {
+  type: 'thinking',
+  conversationId: 279,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 279 { userInput: 'yes', messagesCount: 9 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 279: {
+  type: 'ai-response',
+  conversationId: 279,
+  message: {
+    id: 1623,
+    conversationId: 279,
+    stepId: 1,
+    role: 'assistant',
+    content: "Ok, get your seatbelt on, let's race! Vamos!",
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T19:52:35.634Z
+  },
+  conversation: {
+    id: 279,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/279/message
+SSE: Sending user-message event for conversation 279: {
+  type: 'user-message',
+  conversationId: 279,
+  message: {
+    id: 1624,
+    conversationId: 279,
+    stepId: 1,
+    role: 'user',
+    content: 'vamos',
+    metadata: null,
+    createdAt: 2025-04-01T19:52:37.078Z
+  }
+}
+7:52:37 PM [express] POST /api/conversation/279/message 200 in 67ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 279: {
+  type: 'thinking',
+  conversationId: 279,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 279 { userInput: 'vamos', messagesCount: 11 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 279: {
+  type: 'ai-response',
+  conversationId: 279,
+  message: {
+    id: 1625,
+    conversationId: 279,
+    stepId: 1,
+    role: 'assistant',
+    content: "That's the spirit! Well done on your Spanish! Let's go, let's race!",
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T19:52:38.744Z
+  },
+  conversation: {
+    id: 279,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/279/message
+SSE: Sending user-message event for conversation 279: {
+  type: 'user-message',
+  conversationId: 279,
+  message: {
+    id: 1626,
+    conversationId: 279,
+    stepId: 1,
+    role: 'user',
+    content: 'ok',
+    metadata: null,
+    createdAt: 2025-04-01T19:52:40.173Z
+  }
+}
+7:52:40 PM [express] POST /api/conversation/279/message 200 in 63ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 279: {
+  type: 'thinking',
+  conversationId: 279,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 279 { userInput: 'ok', messagesCount: 13 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 279: {
+  type: 'ai-response',
+  conversationId: 279,
+  message: {
+    id: 1627,
+    conversationId: 279,
+    stepId: 1,
+    role: 'assistant',
+    content: 'Great! Hold on tight, here we go! Enjoy the race!',
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T19:52:41.632Z
+  },
+  conversation: {
+    id: 279,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/279/message
+SSE: Sending user-message event for conversation 279: {
+  type: 'user-message',
+  conversationId: 279,
+  message: {
+    id: 1628,
+    conversationId: 279,
+    stepId: 1,
+    role: 'user',
+    content: 'ok',
+    metadata: null,
+    createdAt: 2025-04-01T19:52:43.668Z
+  }
+}
+7:52:43 PM [express] POST /api/conversation/279/message 200 in 66ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 279: {
+  type: 'thinking',
+  conversationId: 279,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 279 { userInput: 'ok', messagesCount: 15 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 279: {
+  type: 'ai-response',
+  conversationId: 279,
+  message: {
+    id: 1629,
+    conversationId: 279,
+    stepId: 1,
+    role: 'assistant',
+    content: "Alright! Keep your eyes on the road! Let's zoom through this race!",
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T19:52:45.368Z
+  },
+  conversation: {
+    id: 279,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
