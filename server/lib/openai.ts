@@ -105,32 +105,28 @@ Success Response: ${step.successResponse}
       }
     }
 
-    // Always check for activity switch requests regardless of current activity
-    const activities = await storage?.getAllVisibleActivities() || [];
-    const normalizedInput = userInput.toString().toLowerCase();
-
-    // Check user input against each activity first
-    for (const activity of activities) {
-      if (normalizedInput.includes(activity.name.toLowerCase())) {
-        return {
-          content: `Great choice! Let's get started with ${activity.name}. We'll help you learn Spanish through ${activity.contentType}!`,
-          shouldAdvance: false,
-          activityChange: activity.id
-        };
-      }
-    }
-
-    // If not switching activities, check for step advancement
+    // Check for step advancement when not changing activities
     let shouldAdvance = false;
     if (step.expectedResponses) {
       const expectedResponses = step.expectedResponses.split('|').map(r => r.trim().toLowerCase());
-      shouldAdvance = expectedResponses.some(response => normalizedInput.includes(response));
+      shouldAdvance = expectedResponses.some(response => 
+        userInput.toString().toLowerCase().includes(response)
+      );
     }
 
-    // Generate the response content
-    const responseContent = shouldAdvance 
-      ? (step.successResponse || message.content)
-      : (message.content || `Welcome! ${step.objective}`);
+    // If the LLM didn't trigger a function call for activity change, handle regular response
+    const activities = await storage?.getAllVisibleActivities() || [];
+    let responseContent = message.content;
+    
+    // Only use fallbacks if no content provided
+    if (!responseContent) {
+      if (shouldAdvance) {
+        responseContent = step.successResponse;
+      }
+      if (!responseContent) {
+        responseContent = `Welcome! ${step.objective}`;
+      }
+    }
 
     // Return final response with advancement decision
     return {
