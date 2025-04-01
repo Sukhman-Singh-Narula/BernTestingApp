@@ -1,0 +1,104 @@
+[Patronus Debug] Incoming request: POST /api/conversation/275/message
+SSE: Sending user-message event for conversation 275: {
+  type: 'user-message',
+  conversationId: 275,
+  message: {
+    id: 1574,
+    conversationId: 275,
+    stepId: 8,
+    role: 'user',
+    content: 'race',
+    metadata: null,
+    createdAt: 2025-04-01T18:13:32.467Z
+  }
+}
+6:13:32 PM [express] POST /api/conversation/275/message 200 in 74ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 275: {
+  type: 'thinking',
+  conversationId: 275,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 275 { userInput: 'race', messagesCount: 4 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 275: {
+  type: 'ai-response',
+  conversationId: 275,
+  message: {
+    id: 1575,
+    conversationId: 275,
+    stepId: 8,
+    role: 'assistant',
+    content: 'Welcome! Help the user choose an activity',
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T18:13:34.876Z
+  },
+  conversation: {
+    id: 275,
+    activityId: 3,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 115,
+    choiceLayerPromptId: 65,
+    previousActivityId: null
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/275/message
+SSE: Sending user-message event for conversation 275: {
+  type: 'user-message',
+  conversationId: 275,
+  message: {
+    id: 1576,
+    conversationId: 275,
+    stepId: 8,
+    role: 'user',
+    content: 'race',
+    metadata: null,
+    createdAt: 2025-04-01T18:13:37.835Z
+  }
+}
+6:13:37 PM [express] POST /api/conversation/275/message 200 in 78ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 275: {
+  type: 'thinking',
+  conversationId: 275,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 275 { userInput: 'race', messagesCount: 6 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 275: {
+  type: 'ai-response',
+  conversationId: 275,
+  message: {
+    id: 1577,
+    conversationId: 275,
+    stepId: 8,
+    role: 'assistant',
+    content: 'Welcome! Help the user choose an activity',
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T18:13:39.415Z
+  },
+  conversation: {
+    id: 275,
+    activityId: 3,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 115,
+    choiceLayerPromptId: 65,
+    previousActivityId: null
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
