@@ -1,0 +1,130 @@
+Generating response for conversation 255 { userInput: 'ok', messagesCount: 6 }
+LLM decision - shouldAdvance: undefined, activityChange: undefined
+SSE: Sending ai-response event for conversation 255: {
+  type: 'ai-response',
+  conversationId: 255,
+  message: {
+    id: 1440,
+    conversationId: 255,
+    stepId: 1,
+    role: 'assistant',
+    content: "Awesome! Let's begin the race. Remember, the goal is to learn new Spanish words. Ready, set, go!",
+    metadata: '{"activityChange":null}',
+    createdAt: 2025-03-29T13:41:37.794Z
+  },
+  conversation: {
+    id: 255,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 94,
+    choiceLayerPromptId: 65,
+    previousActivityId: null
+  },
+  stepAdvanced: undefined,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/255/message
+SSE: Sending user-message event for conversation 255: {
+  type: 'user-message',
+  conversationId: 255,
+  message: {
+    id: 1441,
+    conversationId: 255,
+    stepId: 1,
+    role: 'user',
+    content: 'ok',
+    metadata: null,
+    createdAt: 2025-03-29T13:41:40.305Z
+  }
+}
+1:41:40 PM [express] POST /api/conversation/255/message 200 in 70ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 255: {
+  type: 'thinking',
+  conversationId: 255,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 255 { userInput: 'ok', messagesCount: 8 }
+LLM decision - shouldAdvance: undefined, activityChange: undefined
+SSE: Sending ai-response event for conversation 255: {
+  type: 'ai-response',
+  conversationId: 255,
+  message: {
+    id: 1442,
+    conversationId: 255,
+    stepId: 1,
+    role: 'assistant',
+    content: "Fantastic! Let's continue with the race. Remember, don't worry if it's hard at first. Keep trying and you'll get it. Here we go!",
+    metadata: '{"activityChange":null}',
+    createdAt: 2025-03-29T13:41:44.371Z
+  },
+  conversation: {
+    id: 255,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 94,
+    choiceLayerPromptId: 65,
+    previousActivityId: null
+  },
+  stepAdvanced: undefined,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/255/message
+SSE: Sending user-message event for conversation 255: {
+  type: 'user-message',
+  conversationId: 255,
+  message: {
+    id: 1443,
+    conversationId: 255,
+    stepId: 1,
+    role: 'user',
+    content: 'ok',
+    metadata: null,
+    createdAt: 2025-03-29T13:41:47.198Z
+  }
+}
+1:41:47 PM [express] POST /api/conversation/255/message 200 in 72ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 255: {
+  type: 'thinking',
+  conversationId: 255,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 255 { userInput: 'ok', messagesCount: 10 }
+LLM decision - shouldAdvance: undefined, activityChange: undefined
+SSE: Sending ai-response event for conversation 255: {
+  type: 'ai-response',
+  conversationId: 255,
+  message: {
+    id: 1444,
+    conversationId: 255,
+    stepId: 1,
+    role: 'assistant',
+    content: "That's the spirit! Let's keep going. Remember, the more you practice, the better you'll get. On your mark, get set, go!",
+    metadata: '{"activityChange":null}',
+    createdAt: 2025-03-29T13:41:49.149Z
+  },
+  conversation: {
+    id: 255,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 94,
+    choiceLayerPromptId: 65,
+    previousActivityId: null
+  },
+  stepAdvanced: undefined,
+  activityChanged: false
+}

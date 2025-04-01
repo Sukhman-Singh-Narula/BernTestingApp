@@ -1,0 +1,123 @@
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Patronus API key length: 46
+[Patronus Setup #196] Starting middleware setup...
+[Patronus Setup #196] API Key present: true
+[Patronus Setup #196] API Key length: 46
+[Patronus Setup #196] Middleware setup complete
+Starting server initialization...
+Found available port: 5000
+Routes registered successfully
+Re-optimizing dependencies because lockfile has changed
+Vite setup complete
+6:39:29 PM [express] Server running on port 5000
+[Patronus Debug] Incoming request: GET /
+[Patronus Debug] Incoming request: GET /
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/react-dom_client.js
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/react_jsx-dev-runtime.js
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/react.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/lucide-react.js
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/date-fns.js
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/class-variance-authority.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QCHXOAYK.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-WOOG5QLI.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-slot.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-KBTYAULA.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-scroll-area.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-collapsible.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/clsx.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/tailwind-merge.js
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DWNR7JQL.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4LR63B2F.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BSBRWO5G.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXI2CWM2.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GNLR4A7I.js
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/.vite/deps/chunk-L5MQZD6K.js
+[Patronus Debug] Incoming request: GET /api/choice-layer-prompts
+[Patronus Debug] Incoming request: POST /api/evaluators/sync
+[Patronus] Fetching evaluators from API...
+[Patronus API] Sending GET to /v1/evaluator-criteria?is_patronus_managed=false
+[Patronus API] Request data: null
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Debug] Incoming request: POST /api/evaluators/sync
+[Patronus] Fetching evaluators from API...
+[Patronus API] Sending GET to /v1/evaluator-criteria?is_patronus_managed=false
+[Patronus API] Request data: null
+[Patronus] Raw API response structure: ["evaluator_criteria"]
+[Patronus] Received 4 evaluators from API
+[Patronus] Raw API response structure: ["evaluator_criteria"]
+[Patronus] Received 4 evaluators from API
+6:39:38 PM [express] GET /api/choice-layer-prompts 200 in 2637ms :: [{"id":65,"systemPrompt":"You ar…
+[Patronus Debug] Incoming request: GET /api/choice-layer-prompts
+6:39:38 PM [express] GET /api/choice-layer-prompts 304 in 25ms :: [{"id":65,"systemPrompt":"You are …
+[Patronus] Found 4 existing evaluators in database
+[Patronus] Found 0 new evaluators to add to database
+[Patronus] No new evaluators to sync
+6:39:38 PM [express] POST /api/evaluators/sync 200 in 2772ms :: {"message":"Evaluators synced succes…
+6:39:39 PM [express] GET /api/evaluators 304 in 3221ms :: [{"id":294,"name":"language-compliance-spa…
+[Patronus] Found 4 existing evaluators in database
+[Patronus] Found 0 new evaluators to add to database
+[Patronus] No new evaluators to sync
+6:39:39 PM [express] POST /api/evaluators/sync 200 in 3233ms :: {"message":"Evaluators synced succes…
+[Patronus Debug] Incoming request: GET /api/evaluators
+6:39:39 PM [express] GET /api/evaluators 304 in 25ms :: [{"id":294,"name":"language-compliance-spani…
+[Patronus Debug] Incoming request: GET /api/evaluators
+6:39:39 PM [express] GET /api/evaluators 304 in 24ms :: [{"id":294,"name":"language-compliance-spani…
+[Patronus Debug] Incoming request: GET /

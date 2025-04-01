@@ -114,7 +114,7 @@ export default function Chat() {
 
       return await apiRequest(
         "POST",
-        `/api/conversation/${conversationId}/message`,
+        `/conversation/${conversationId}/message`,
         { message }
       );
     },
@@ -219,6 +219,7 @@ export default function Chat() {
       const data = JSON.parse(event.data);
       console.log('AI response event:', data);
       console.log('Step advanced:', data.stepAdvanced);
+      console.log('Activity changed:', data.activityChanged);
       console.log('Updated conversation:', data.conversation);
 
       // Update the conversation with the new message
@@ -239,15 +240,40 @@ export default function Chat() {
             updatedMessages.push(data.message);
           }
 
-          // Update conversation object if step was advanced
-          const updatedConversation = data.stepAdvanced 
-            ? { ...old, currentStep: data.conversation.currentStep }
-            : old;
+          // If activity was changed, we need to update both activity ID and current step
+          if (data.activityChanged) {
+            // If the activity changed, refetch the steps for the new activity
+            queryClient.invalidateQueries({ queryKey: ["/api/steps", data.conversation.activityId] });
 
-          return {
-            ...updatedConversation,
-            messages: updatedMessages
-          };
+            toast({
+              title: "Activity Changed",
+              description: `You've switched to a new activity: ${data.activityChanged}`,
+              variant: "default"
+            });
+
+            return {
+              ...old,
+              activityId: data.conversation.activityId,
+              currentStep: data.conversation.currentStep,
+              previousActivityId: data.conversation.previousActivityId,
+              messages: updatedMessages
+            };
+          } 
+          // Otherwise if just the step was advanced, update only the current step
+          else if (data.stepAdvanced) {
+            return {
+              ...old,
+              currentStep: data.conversation.currentStep,
+              messages: updatedMessages
+            };
+          }
+          // Otherwise just update the messages
+          else {
+            return {
+              ...old,
+              messages: updatedMessages
+            };
+          }
         }
       );
     });
@@ -259,7 +285,7 @@ export default function Chat() {
       setIsProcessing(false);
 
       let errorMessage = "An error occurred during message processing";
-      
+
       // Only try to parse data if it exists
       if (event.data) {
         try {
@@ -475,12 +501,12 @@ export default function Chat() {
           {isSystemPromptOpen && (
             <Card className="flex-1 p-4 overflow-hidden flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold">System Prompt</h3>
+                <h3 className="text-sm font-semibold">Activity System Prompt</h3>
               </div>
               <ScrollArea className="flex-1">
                 <div className="prose prose-sm max-w-none">
                   <pre className="whitespace-pre-wrap font-mono text-xs">
-                    {conversation.systemPrompt?.systemPrompt || 'No system prompt available'}
+                    {conversation.systemPrompt?.systemPrompt || 'No activity system prompt available'}
                   </pre>
                 </div>
               </ScrollArea>

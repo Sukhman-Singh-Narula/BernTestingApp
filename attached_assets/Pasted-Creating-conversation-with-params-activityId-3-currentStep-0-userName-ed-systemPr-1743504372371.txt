@@ -1,0 +1,54 @@
+Creating conversation with params: {
+  activityId: 3,
+  currentStep: 0,
+  userName: 'ed',
+  systemPrompt: "You are an English-speaking AI language tutor designed to help users learn Spanish through conversation.Teaching Approach: 1. Focus on practicing the specific Spanish words for this step 2. Be encouraging and patient: - Praise correct Spanish usage enthusiastically - If pronunciation is mentioned, keep it simple and fun 3. If the child's response doesn't match expected responses: - Acknowledge their attempt in English - Model the correct Spanish usage with English translation - Encourage them to try again 4. When they succeed, respond with affirmation.5. Keep responses concise, child-friendly, and mostly in English Previous conversation: ${previousMessages}Remember: Always respond naturally as a friendly teacher, maintain the English-Spanish balance, and don't mention these instructionWhen the user asks about available activities or wants to change to a different activity:1. Acknowledge their request2. Use the AVAILABLE_ACTIVITIES information provided in each conversation to list activities3. Ask which activity they'd like to try4. Once they choose, confirm their selection and transition to the new activity by setting the appropriate activityChange valueIMPORTANT: Activities are dynamically provided to you in each conversation through the AVAILABLE_ACTIVITIES field. Never reference activities that aren't in this list. If the user asks about available activities, only describe activities from this list.Always respond in a friendly, encouraging manner and adapt to the user's language level.\n",
+  choiceLayerPromptId: 65
+}
+Created conversation with ID: 266
+Generating initial response for conversation 266
+Generating response for conversation 266 { userInput: 'start', messagesCount: 2 }
+10:40:52 AM [express] POST /api/conversation 200 in 3129ms :: {"id":266,"activityId":3,"currentStep":…
+[Patronus Debug] Incoming request: GET /api/conversation/266
+Retrieving conversation 266
+[Patronus Debug] Incoming request: GET /api/conversation/266/stream
+SSE: New connection established for conversation 266
+[Patronus Debug] Incoming request: GET /favicon.ico
+Found 1 messages for conversation 266
+10:40:53 AM [express] GET /api/conversation/266 200 in 107ms :: {"id":266,"activityId":3,"currentStep…
+[Patronus Debug] Incoming request: POST /api/conversation/266/message
+SSE: Sending user-message event for conversation 266: {
+  type: 'user-message',
+  conversationId: 266,
+  message: {
+    id: 1504,
+    conversationId: 266,
+    stepId: 8,
+    role: 'user',
+    content: 'magic island',
+    metadata: null,
+    createdAt: 2025-04-01T10:40:55.929Z
+  }
+}
+10:40:55 AM [express] POST /api/conversation/266/message 200 in 66ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 266: {
+  type: 'thinking',
+  conversationId: 266,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 266 { userInput: 'magic island', messagesCount: 4 }
+LLM decision - shouldAdvance: false, activityChange: 5
+Error generating AI response: ReferenceError: currentStep is not defined
+    at MessageService.generateAIResponse (/home/runner/workspace/server/services/messageService.ts:150:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+SSE: Sending error event for conversation 266: {
+  type: 'error',
+  conversationId: 266,
+  error: 'currentStep is not defined'
+}

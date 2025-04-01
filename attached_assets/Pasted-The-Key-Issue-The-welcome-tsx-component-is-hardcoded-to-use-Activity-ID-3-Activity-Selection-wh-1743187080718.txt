@@ -1,0 +1,160 @@
+The Key Issue
+The welcome.tsx component is hardcoded to use Activity ID 3 ("Activity Selection"), which does exist in your database, but there's a mismatch in your steps data. When the conversation creation process tries to generate the first response, it's failing because it can't find a valid system prompt for activity 3.
+The problem occurs specifically in openai.ts when this line runs:
+javascriptCopyconst systemPrompt = await storage.getSystemPromptByActivity(step.activityId);
+if (!systemPrompt) {
+  throw new Error(`No system prompt found for activity ${step.activityId}`);
+}
+Solution
+Here's a targeted fix for your conversationRoutes.ts file that will solve the issue:
+javascriptCopy// POST /api/conversation
+router.post("/conversation", async (req, res) => {
+  try {
+    console.log("Creating conversation with request body:", req.body);
+    
+    // Provide sensible defaults and validate
+    const { 
+      activityId = 1, 
+      shouldGenerateFirstResponse = true, 
+      userName, 
+      systemPrompt,
+      choiceLayerPromptId
+    } = req.body;
+    
+    // Validate activityId
+    const parsedActivityId = Number(activityId);
+    if (isNaN(parsedActivityId) || parsedActivityId <= 0) {
+      console.error(`Invalid activity ID: ${activityId}`);
+      return res.status(400).json({ message: "Invalid activity ID" });
+    }
+
+    if (!userName) {
+      console.error("Missing required userName");
+      return res.status(400).json({ message: "userName is required" });
+    }
+
+    // Verify the activity exists
+    const activity = await storage.getActivity(parsedActivityId);
+    if (!activity) {
+      console.error(`Activity ${parsedActivityId} not found`);
+      return res.status(404).json({ message: `Activity ${parsedActivityId} not found` });
+    }
+
+    // Try to use step 0 first, fallback to 1 if step 0 does not exist
+    let startingStep = 0;
+    const step0 = await storage.getStepByActivityAndNumber(parsedActivityId, 0);
+    if (!step0) {
+      console.log(`No step 0 found for activity ${parsedActivityId}, using step 1 instead`);
+      startingStep = 1;
+    }
+
+    // Get the selected step to verify it exists
+    const initialStep = await storage.getStepByActivityAndNumber(parsedActivityId, startingStep);
+    if (!initialStep) {
+      console.error(`No step ${startingStep} found for activity ${parsedActivityId}`);
+      return res.status(404).json({ message: `Required step ${startingStep} for activity ${parsedActivityId} not found` });
+    }
+
+    // Check if there's a system prompt for this activity
+    const existingSystemPrompt = await storage.getSystemPromptByActivity(parsedActivityId);
+    
+    // Create a default system prompt if none exists and none provided
+    if (!existingSystemPrompt && !systemPrompt) {
+      console.log(`No system prompt for activity ${parsedActivityId}. Creating default.`);
+      const defaultPrompt = `You are an AI language tutor teaching ${activity.language || "Spanish"} to children. 
+The current activity is ${activity.name}. 
+Be engaging, friendly, and encouraging.
+Give simple, clear instructions and provide positive feedback.
+
+Current step objective: ${initialStep.objective}
+Expected responses: ${initialStep.expectedResponses}
+Spanish words to practice: ${initialStep.spanishWords}`;
+
+      await storage.createSystemPrompt({
+        systemPrompt: defaultPrompt,
+        activityId: parsedActivityId,
+        createdBy: userName || "system"
+      });
+      
+      console.log(`Created default system prompt for activity ${parsedActivityId}`);
+    }
+
+    // Determine how to handle the prompts
+    let conversationParams = {
+      activityId: parsedActivityId,
+      currentStep: startingStep,
+      userName
+    };
+
+    // If systemPrompt is provided, use it
+    if (systemPrompt) {
+      console.log("Using provided systemPrompt");
+      conversationParams.systemPrompt = systemPrompt;
+    }
+
+    // Handle choice layer prompt
+    if (choiceLayerPromptId) {
+      console.log(`Using existing choiceLayerPromptId: ${choiceLayerPromptId}`);
+      conversationParams.choiceLayerPromptId = choiceLayerPromptId;
+    } else if (systemPrompt && parsedActivityId === 3) { // Activity Selection uses the input as choice layer
+      console.log("Using systemPrompt as choiceLayerPrompt for Activity Selection");
+      conversationParams.choiceLayerPrompt = systemPrompt;
+    } else {
+      // Check if there's at least one choice layer prompt
+      const latestChoicePrompt = await storage.getLatestChoiceLayerPrompt();
+      if (!latestChoicePrompt) {
+        // Create a default choice layer prompt
+        console.log("No choice layer prompt found, creating default");
+        const defaultChoicePrompt = await storage.createChoiceLayerPrompt({
+          systemPrompt: "You are an AI language tutor helping children learn languages. You can switch between different activities based on the user's needs and requests.",
+          createdBy: userName || "system"
+        });
+        console.log(`Created default choice layer prompt with ID: ${defaultChoicePrompt.id}`);
+      }
+    }
+
+    console.log("Creating conversation with params:", conversationParams);
+    const conversation = await storage.createConversation(conversationParams);
+    console.log(`Created conversation with ID: ${conversation.id}`);
+
+    // Generate first response if requested
+    if (shouldGenerateFirstResponse && initialStep) {
+      try {
+        console.log(`Generating initial response for conversation ${conversation.id}`);
+        const aiResponse = await generateResponse(
+          "start",
+          initialStep,
+          "",
+          conversation.id
+        );
+
+        // Create initial assistant message
+        await storage.createMessage({
+          conversationId: conversation.id,
+          stepId: initialStep.id,
+          role: "assistant" as MessageRole,
+          content: aiResponse.content
+        });
+
+        const messages = await storage.getMessagesByConversation(conversation.id);
+        return res.json({ ...conversation, messages });
+      } catch (error) {
+        console.error("Error generating initial response:", error);
+        // Still return the conversation even if we couldn't generate an initial response
+        return res.json({ 
+          ...conversation, 
+          warning: "Created conversation but failed to generate initial response"
+        });
+      }
+    }
+
+    res.json(conversation);
+  } catch (error) {
+    console.error("Error creating conversation:", error);
+    // Return more detailed error message for debugging
+    res.status(500).json({ 
+      message: "Failed to create conversation", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});

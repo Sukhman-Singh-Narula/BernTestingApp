@@ -1,0 +1,59 @@
+I can see from the new logs that while our options object approach was implemented in `openai.ts`, we're still seeing issues with how the function is being called. Looking at the logs, I can identify the exact problem:
+
+# Problem Analysis
+
+In `conversationRoutes.ts`, the `generateResponse` function is still being called with positional parameters instead of the new options object:
+
+```javascript
+const aiResponse = await generateResponse(
+  "start",
+  initialStep,
+  "",
+  conversationId
+);
+```
+
+But the function now expects an options object:
+
+```javascript
+// From the logs
+Generating response for conversation undefined {
+  systemPrompt: 'You are a helpful assistant',
+  userInput: undefined,
+  messagesCount: 2
+}
+```
+
+Notice that `userInput` is undefined because the wrong parameter style is being used. The OpenAI logs show that the system prompt defaults to "You are a helpful assistant" instead of using the activity-specific system prompt.
+
+# Solution
+
+We need to update the function calls in `conversationRoutes.ts` to use the new options object pattern:
+
+```javascript
+// In conversationRoutes.ts - where initial response is generated
+const conversationWithPrompt = await storage.getConversationWithSystemPrompt(conversation.id);
+const systemPromptText = conversationWithPrompt?.systemPrompt?.systemPrompt || "";
+const choiceLayerPromptText = conversationWithPrompt?.choiceLayerPrompt?.systemPrompt || "";
+
+const aiResponse = await generateResponse({
+  userInput: "start",
+  step: initialStep,
+  previousMessages: [],
+  choiceLayerPrompt: choiceLayerPromptText,
+  activitySystemPrompt: systemPromptText,
+  conversationId: conversation.id
+});
+```
+
+# Implementation Steps
+
+1. Find all locations in the codebase where `generateResponse` is called (there should be at least two in `conversationRoutes.ts`):
+   - When creating a new conversation
+   - When retrieving a conversation that has no messages
+
+2. Update each call to use the options object pattern
+
+3. Ensure we're properly retrieving both the system prompt and choice layer prompt before calling the function
+
+This approach will ensure that the proper prompts are passed to the OpenAI API, fixing the problem where the system prompt wasn't being used.

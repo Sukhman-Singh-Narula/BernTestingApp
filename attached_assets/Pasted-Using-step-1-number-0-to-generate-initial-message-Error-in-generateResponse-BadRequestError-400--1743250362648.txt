@@ -1,0 +1,88 @@
+Using step 1 (number 0) to generate initial message
+Error in generateResponse: BadRequestError: 400 Invalid type for 'messages[0].content': expected one of a string or array of objects, but got an integer instead.
+    at Function.generate (/home/runner/workspace/node_modules/openai/src/error.ts:72:14)
+    at OpenAI.makeStatusError (/home/runner/workspace/node_modules/openai/src/core.ts:443:21)
+    at OpenAI.makeRequest (/home/runner/workspace/node_modules/openai/src/core.ts:507:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async generateResponse (/home/runner/workspace/server/lib/openai.ts:36:22)
+    at async <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:232:28) {
+  status: 400,
+  headers: {
+    'access-control-expose-headers': 'X-Request-ID',
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '927f4661d944b04c-ATL',
+    connection: 'keep-alive',
+    'content-length': '252',
+    'content-type': 'application/json',
+    date: 'Sat, 29 Mar 2025 12:12:20 GMT',
+    'openai-organization': 'user-f9k6d4axdgt6ydif0bhsajas',
+    'openai-processing-ms': '24',
+    'openai-version': '2020-10-01',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=BH3305oSPuUsN_LhEtfHAjLL6HzSmZax2n2layfYOlc-1743250340-1.0.1.1-uYCwbVxoIBPA0yobmCAvODTik3meQPm36_DkXQY.J4VNbx6w6u.hjJ9cQ7EecHHd_Zj0bx_5yD5pxPPucZhsn8dSlGN8cYjLg4kuHG0P3EU; path=/; expires=Sat, 29-Mar-25 12:42:20 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=V8H_oz0Us6Bdo8d5MjPincczoU63qdku5sjKkvsIhmI-1743250340257-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'x-content-type-options': 'nosniff',
+    'x-ratelimit-limit-requests': '10000',
+    'x-ratelimit-limit-tokens': '10000',
+    'x-ratelimit-remaining-requests': '9997',
+    'x-ratelimit-remaining-tokens': '9995',
+    'x-ratelimit-reset-requests': '22.244s',
+    'x-ratelimit-reset-tokens': '30ms',
+    'x-request-id': 'req_e12f7ddc7e1efb4179eede8609d41e3c'
+  },
+  request_id: 'req_e12f7ddc7e1efb4179eede8609d41e3c',
+  error: {
+    message: "Invalid type for 'messages[0].content': expected one of a string or array of objects, but got an integer instead.",
+    type: 'invalid_request_error',
+    param: 'messages[0].content',
+    code: 'invalid_type'
+  },
+  code: 'invalid_type',
+  param: 'messages[0].content',
+  type: 'invalid_request_error'
+}
+Error generating initial message for conversation 241: BadRequestError: 400 Invalid type for 'messages[0].content': expected one of a string or array of objects, but got an integer instead.
+    at Function.generate (/home/runner/workspace/node_modules/openai/src/error.ts:72:14)
+    at OpenAI.makeStatusError (/home/runner/workspace/node_modules/openai/src/core.ts:443:21)
+    at OpenAI.makeRequest (/home/runner/workspace/node_modules/openai/src/core.ts:507:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async generateResponse (/home/runner/workspace/server/lib/openai.ts:36:22)
+    at async <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:232:28) {
+  status: 400,
+  headers: {
+    'access-control-expose-headers': 'X-Request-ID',
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '927f4661d944b04c-ATL',
+    connection: 'keep-alive',
+    'content-length': '252',
+    'content-type': 'application/json',
+    date: 'Sat, 29 Mar 2025 12:12:20 GMT',
+    'openai-organization': 'user-f9k6d4axdgt6ydif0bhsajas',
+    'openai-processing-ms': '24',
+    'openai-version': '2020-10-01',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=BH3305oSPuUsN_LhEtfHAjLL6HzSmZax2n2layfYOlc-1743250340-1.0.1.1-uYCwbVxoIBPA0yobmCAvODTik3meQPm36_DkXQY.J4VNbx6w6u.hjJ9cQ7EecHHd_Zj0bx_5yD5pxPPucZhsn8dSlGN8cYjLg4kuHG0P3EU; path=/; expires=Sat, 29-Mar-25 12:42:20 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=V8H_oz0Us6Bdo8d5MjPincczoU63qdku5sjKkvsIhmI-1743250340257-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'x-content-type-options': 'nosniff',
+    'x-ratelimit-limit-requests': '10000',
+    'x-ratelimit-limit-tokens': '10000',
+    'x-ratelimit-remaining-requests': '9997',
+    'x-ratelimit-remaining-tokens': '9995',
+    'x-ratelimit-reset-requests': '22.244s',
+    'x-ratelimit-reset-tokens': '30ms',
+    'x-request-id': 'req_e12f7ddc7e1efb4179eede8609d41e3c'
+  },
+  request_id: 'req_e12f7ddc7e1efb4179eede8609d41e3c',
+  error: {
+    message: "Invalid type for 'messages[0].content': expected one of a string or array of objects, but got an integer instead.",
+    type: 'invalid_request_error',
+    param: 'messages[0].content',
+    code: 'invalid_type'
+  },
+  code: 'invalid_type',
+  param: 'messages[0].content',
+  type: 'invalid_request_error'
+}
+12:12:20 PM [express] GET /api/conversation/241 200 in 251ms :: {"id":241,"activityId":1,"currentStep…

@@ -1,0 +1,86 @@
+Creating conversation with params: {
+  activityId: 3,
+  currentStep: 0,
+  userName: 'ed',
+  systemPrompt: '4NEWTEST You are an English-speaking AI language tutor designed to help users learn Spanish through conversation.\n' +
+    '\n' +
+    'Teaching Approach: \n' +
+    '1. Focus on practicing the specific Spanish words for this step \n' +
+    '2. Be encouraging and patient: \n' +
+    '- Praise correct Spanish usage enthusiastically \n' +
+    '- If pronunciation is mentioned, keep it simple and fun \n' +
+    "3. If the child's response doesn't match expected responses: \n" +
+    '- Acknowledge their attempt in English \n' +
+    '- Model the correct Spanish usage with English translation \n' +
+    '- Encourage them to try again \n' +
+    '4. When they succeed, respond with affirmation.\n' +
+    '5. Keep responses concise, child-friendly, and mostly in English Previous conversation: ${previousMessages}\n' +
+    "Remember: Always respond naturally as a friendly teacher, maintain the English-Spanish balance, and don't mention these instruction\n" +
+    '\n' +
+    'When the user asks about available activities or wants to change to a different activity:\n' +
+    '1. Acknowledge their request\n' +
+    '2. Use the AVAILABLE_ACTIVITIES information provided in each conversation to list activities\n' +
+    "3. Ask which activity they'd like to try\n" +
+    '4. Once they choose, confirm their selection and transition to the new activity by setting the appropriate activityChange value\n' +
+    '\n' +
+    "IMPORTANT: Activities are dynamically provided to you in each conversation through the AVAILABLE_ACTIVITIES field. Never reference activities that aren't in this list. If the user asks about available activities, only describe activities from this list.\n" +
+    '\n' +
+    "Always respond in a friendly, encouraging manner and adapt to the user's language level.",
+  choiceLayerPromptId: 59
+}
+7:31:41 PM [express] GET /api/choice-layer-prompts 200 in 120ms :: [{"id":62,"systemPrompt":"4NEWTES…
+Created conversation with ID: 209
+Generating initial response for conversation 209
+7:31:43 PM [express] POST /api/conversation 200 in 1557ms :: {"id":209,"activityId":3,"currentStep":…
+[Patronus Debug] Incoming request: GET /api/conversation/209
+Retrieving conversation 209
+[Patronus Debug] Incoming request: GET /api/conversation/209/stream
+SSE: New connection established for conversation 209
+[Patronus Debug] Incoming request: GET /favicon.ico
+Found 1 messages for conversation 209
+7:31:43 PM [express] GET /api/conversation/209 200 in 114ms :: {"id":209,"activityId":3,"currentStep…
+[Patronus Debug] Incoming request: GET /
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Debug] Incoming request: GET /api/activities/visible
+[Patronus Debug] Incoming request: POST /api/evaluators/sync
+[Patronus] Fetching evaluators from API...
+[Patronus API] Sending GET to /v1/evaluator-criteria?is_patronus_managed=false
+[Patronus API] Request data: null
+7:32:10 PM [express] GET /api/activities/visible 200 in 7ms
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Debug] Incoming request: GET /api/choice-layer-prompts
+[Patronus Debug] Incoming request: GET /favicon.ico
+[Patronus] Raw API response structure: ["evaluator_criteria"]
+[Patronus] Received 4 evaluators from API
+7:32:10 PM [express] GET /api/evaluators 304 in 107ms :: [{"id":294,"name":"language-compliance-span…
+7:32:10 PM [express] GET /api/choice-layer-prompts 304 in 114ms :: [{"id":62,"systemPrompt":"4NEWTES…
+[Patronus] Found 4 existing evaluators in database
+[Patronus] Found 0 new evaluators to add to database
+[Patronus] No new evaluators to sync
+7:32:10 PM [express] POST /api/evaluators/sync 200 in 194ms :: {"message":"Evaluators synced success…
+[Patronus Debug] Incoming request: GET /api/evaluators
+7:32:10 PM [express] GET /api/evaluators 304 in 23ms :: [{"id":294,"name":"language-compliance-spani…

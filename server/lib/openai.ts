@@ -1,81 +1,113 @@
-
 import OpenAI from "openai";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { Step } from "@shared/schema";
-import { storage } from "../storage";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable is required");
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-export async function generateResponse(
-  userInput: string,
-  step: Step,
-  previousMessages: string
-): Promise<{ content: string; shouldAdvance: boolean }> {
-  const systemPrompt = await storage.getSystemPromptByActivity(step.activityId);
+interface ResponseOptions {
+  userInput: string | number;
+  step: Step;
+  previousMessages?: ChatCompletionMessageParam[];
+  choiceLayerPrompt?: string;
+  activitySystemPrompt?: string;
+  conversationId?: number;
+  storage?: IStorage;
+}
 
-  if (!systemPrompt) {
-    throw new Error(`No system prompt found for activity ${step.activityId}`);
-  }
-
-  // Base teaching approach that remains constant
-  const basePrompt = `You are an English-speaking AI language tutor designed to help users learn Spanish through conversation.
-
-Teaching Approach:
-1. You are teaching children that speak English primarily. The lesson is conducted in English with Spanish vocabulary introduced gently.
-2. Be encouraging and patient:
-   - Praise correct Spanish usage enthusiastically
-   - Keep pronunciation simple and fun
-3. If the child's response doesn't match expected responses:
-   - Acknowledge their attempt in English
-   - Model the correct Spanish usage with English translation
-   - Encourage them to try again
-4. When they succeed, respond with affirmation.
-5. Keep responses concise and child-friendly`;
-
-  // Activity-specific context
-  const activityContext = `\nThis is a racing game activity where the user is a driver in a Grand Prix race.
-Current objective: ${step.objective}
-Spanish words to practice: ${step.spanishWords || 'None for this step'}
-Expected responses: ${step.expectedResponses}
-Previous conversation: ${previousMessages}`;
-
-  // Combine prompts with error checking
-  const finalPrompt = `${basePrompt}\n${activityContext}\n${systemPrompt.systemPrompt}`;
+export async function generateResponse(options: ResponseOptions) {
+  const {
+    userInput,
+    step,
+    previousMessages = [],
+    choiceLayerPrompt = "",
+    activitySystemPrompt = "",
+    conversationId,
+    storage
+  } = options;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: finalPrompt },
-        { role: "user", content: userInput }
-      ],
-      temperature: 0.7,
-      max_tokens: 250,
-      response_format: { type: "json_object" }
+    const systemPrompt = choiceLayerPrompt && activitySystemPrompt 
+      ? `${choiceLayerPrompt}\n\n${activitySystemPrompt}`
+      : choiceLayerPrompt || activitySystemPrompt || "You are a helpful assistant";
+
+    // Fetch available activities
+    const availableActivities = storage ? await storage.getAllVisibleActivities() : [];
+    const activitiesList = availableActivities.map(a => `${a.id}. ${a.name}: ${a.contentType}`).join('\n');
+
+    const stepDetails = `
+Description: ${step.description}
+Objective: ${step.objective}
+Suggested Script: ${step.suggestedScript}
+Spanish Words: ${step.spanishWords}
+Expected Responses: ${step.expectedResponses}
+Success Response: ${step.successResponse}
+`;
+
+    const messages: ChatCompletionMessageParam[] = [
+      { 
+        role: "system", 
+        content: `${systemPrompt}\n\nCURRENT_STEP_DETAILS:\n${stepDetails}\n\nAVAILABLE_ACTIVITIES:\n${activitiesList}`
+      },
+      ...(Array.isArray(previousMessages) ? previousMessages : []),
+      { role: "user", content: String(userInput) }
+    ];
+
+    console.log(`Generating response for conversation ${conversationId}`, {
+      userInput,
+      messagesCount: messages.length
     });
 
-    const responseContent = response.choices[0].message.content || "{}";
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500,
+      function_call: "auto",
+      functions: [{
+        name: "change_activity",
+        description: "Change to a different activity when user selects one",
+        parameters: {
+          type: "object",
+          properties: {
+            activityId: {
+              type: "integer",
+              description: "ID of the activity to change to (1 for Race Game, 2 for Spanish Basics)"
+            }
+          }
+        }
+      }]
+    });
+
+    const message = response.choices[0].message;
     
-    try {
-      const parsedResponse = JSON.parse(responseContent);
-      const content = parsedResponse.response || "I'm not sure how to respond to that.";
-      const shouldAdvance = !!parsedResponse.shouldAdvance;
-      
-      console.log(`LLM evaluation: shouldAdvance=${shouldAdvance}`);
-      
-      return { content, shouldAdvance };
-    } catch (parseError) {
-      console.error("Error parsing JSON response:", parseError);
-      return { 
-        content: "I'm having trouble understanding. Can you try again?", 
-        shouldAdvance: false 
-      };
+    // Always check for activity switch requests regardless of current activity
+    const activities = await storage?.getAllVisibleActivities() || [];
+    
+    // Check user input against each activity
+    for (const activity of activities) {
+      if (userInput.toLowerCase().includes(activity.name.toLowerCase())) {
+        return {
+          content: `Great choice! Let's get started with ${activity.name}. We'll help you learn Spanish through ${activity.contentType}!`,
+          shouldAdvance: false,
+          activityChange: activity.id
+        };
+      }
     }
+
+    // If not switching activities, handle regular conversation
+    return {
+      content: message.content || `Welcome! ${step.objective}`,
+      shouldAdvance: false,
+      activityChange: undefined
+    };
   } catch (error) {
-    console.error("OpenAI API error:", error);
-    throw new Error("Failed to generate response");
+    console.error("Error in generateResponse:", error);
+    throw error;
   }
 }

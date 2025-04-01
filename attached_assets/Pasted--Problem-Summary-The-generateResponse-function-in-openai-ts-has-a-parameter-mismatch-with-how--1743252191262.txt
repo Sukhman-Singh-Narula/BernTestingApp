@@ -1,0 +1,62 @@
+# Problem Summary
+
+The `generateResponse` function in `openai.ts` has a parameter mismatch with how it's being called in `conversationRoutes.ts`. The function expects 5 parameters (userInput, step, previousMessages, choiceLayerPrompt, activitySystemPrompt) but is only receiving 4 parameters ("start", initialStep, "", conversation.id). Additionally, the function can't handle missing parameters gracefully, especially at the start of interactions when the activitySystemPrompt is empty.
+
+# Solution Reasoning
+
+Converting the function to use an options object pattern addresses multiple issues:
+
+1. **Parameter mismatch prevention**: Clearly named parameters prevent ordering mistakes
+2. **Optional parameters**: Parameters like activitySystemPrompt can be optional with defaults
+3. **Maintainability**: Easier to add new parameters in the future without breaking existing code
+4. **Self-documentation**: Function calls become more readable with named parameters
+
+# Code Snippet
+
+```typescript
+// In openai.ts
+interface ResponseOptions {
+  userInput: string | number;
+  step: Step;
+  previousMessages?: ChatCompletionMessageParam[];
+  choiceLayerPrompt?: string;
+  activitySystemPrompt?: string;
+  conversationId?: number; // For logging/tracking
+}
+
+export async function generateResponse(options: ResponseOptions) {
+  const {
+    userInput,
+    step,
+    previousMessages = [],
+    choiceLayerPrompt = "",
+    activitySystemPrompt = "",
+    conversationId
+  } = options;
+  
+  try {
+    const systemPrompt = choiceLayerPrompt && activitySystemPrompt 
+      ? `${choiceLayerPrompt}\n\n${activitySystemPrompt}`
+      : choiceLayerPrompt || activitySystemPrompt || "You are a helpful assistant";
+    
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...previousMessages,
+      { role: "user", content: String(userInput) }
+    ];
+
+    // Rest of the function remains the same
+    // ...
+  }
+}
+
+// In conversationRoutes.ts - Updated function call
+const aiResponse = await generateResponse({
+  userInput: "start",
+  step: initialStep,
+  previousMessages: [],
+  choiceLayerPrompt: choiceLayerPromptText,
+  activitySystemPrompt: systemPromptText,
+  conversationId: conversation.id
+});
+```

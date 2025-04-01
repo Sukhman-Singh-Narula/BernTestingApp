@@ -1,0 +1,16 @@
+I would like to add the functionality whereby a user is able to dynamically switch between different activities within the same chat interaction. 
+
+Currently, the user selects an activity manually in the Welcome screen, and after in the conversation, the user is interacting with the chatbot just with a single system prompt that is able to only move the user through the structured guideline of the selected activity. 
+
+However, I want the user to ask the chat bot to inform them what activities are available, and then the child can 'select' or 'play' the activity naturally just through  the conversation, and then choose a different activity if they want. In this way, the user can interact with the bot for hours by playing different activities, all in one conversation. 
+
+I want your help to implement this based on my current code. I currently have an openAI client that uses a system prompt taht is tightly coupled to the current activity. But I propose an alternative architecture, where there is an overarching system prompt called the 'choice layer'  that remains in place for the entire conversation, but contains some dynamically substitutable content pertaining to the selected activity. This substitutable content would be called the 'activity layer' and this content would be almost identical to the system prompt we are currently using that is coupled to each activity. 
+
+I think, to do this, I need to: 
+* Write a database table containing choice layer prompts
+* Update the openAI client I am using to have a choice layer prompt with some dynamically substitutable activity layer prompts (when an activity is selected)
+* Write a function that can be called by the LLM which informs the LLM what activities are available in the database, so that it can tell the user what activities are possible for it to play
+* Write a function that allows the LLM to dynamically substitute the activity layer system prompt into the choice layer prompt when the user has articulated their desired game
+* Potentitally make some tweaks to the UI/UX
+
+I want the Welcome screen to be very similar, whereby a user starts a chat by entering their name, choosing a system prompt (but this time it will be the choice layer system prompt), and selecting the evaluators to be used. 

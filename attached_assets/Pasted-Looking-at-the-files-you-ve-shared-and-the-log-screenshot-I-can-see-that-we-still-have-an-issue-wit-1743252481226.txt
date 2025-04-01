@@ -1,0 +1,51 @@
+Looking at the files you've shared and the log screenshot, I can see that we still have an issue with how the `generateResponse` function is being called. Although we've updated the `openai.ts` file to use an options object, the `conversationRoutes.ts` file is still using the old positional parameters approach.
+
+# Problem Analysis
+
+We've successfully modified the `openai.ts` file to use an options object pattern, but the `conversationRoutes.ts` file still has the old function calls:
+
+```javascript
+// In conversationRoutes.ts
+const aiResponse = await generateResponse(
+  "start",
+  initialStep,
+  "",
+  conversationId
+);
+```
+
+This is causing the function to receive inappropriate parameters for its new signature. The `messageService.ts` file correctly uses the new options object approach, but we still need to update the conversationRoutes.ts file.
+
+# Solution
+
+We need to update all calls to `generateResponse` in `conversationRoutes.ts` to use the new options object pattern:
+
+```javascript
+// In conversationRoutes.ts where initial response is generated
+const conversationWithPrompt = await storage.getConversationWithSystemPrompt(conversation.id);
+const systemPromptText = conversationWithPrompt?.systemPrompt?.systemPrompt || "";
+const choiceLayerPromptText = conversationWithPrompt?.choiceLayerPrompt?.systemPrompt || "";
+
+const aiResponse = await generateResponse({
+  userInput: "start",
+  step: initialStep,
+  previousMessages: [],
+  choiceLayerPrompt: choiceLayerPromptText,
+  activitySystemPrompt: systemPromptText,
+  conversationId: conversation.id
+});
+```
+
+This approach ensures that all necessary parameters are properly passed to the `generateResponse` function. The same change needs to be made in both locations in `conversationRoutes.ts` where `generateResponse` is called.
+
+# Implementation Steps
+
+1. Locate both calls to `generateResponse` in `conversationRoutes.ts`:
+   - One in the POST route for creating a conversation
+   - One in the GET route for retrieving a conversation with no messages
+
+2. Update both calls to use the options object pattern, retrieving the system prompt and choice layer prompt from the conversation context
+
+3. Test the application to ensure that the system prompt is now being sent properly in the OpenAI API calls
+
+This change ensures consistency throughout the codebase and fixes the issue where the system prompt wasn't being included in the API requests.

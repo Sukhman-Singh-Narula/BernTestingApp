@@ -1,0 +1,90 @@
+[Patronus Debug] Incoming request: GET /api/activity/3/steps
+10:35:25 AM [express] GET /api/activity/3/steps 304 in 21ms :: [{"id":8,"activityId":3,"stepNumber":0…
+[Patronus Debug] Incoming request: POST /api/conversation/265/message
+SSE: Sending user-message event for conversation 265: {
+  type: 'user-message',
+  conversationId: 265,
+  message: {
+    id: 1500,
+    conversationId: 265,
+    stepId: 8,
+    role: 'user',
+    content: 'race ',
+    metadata: null,
+    createdAt: 2025-04-01T10:35:27.356Z
+  }
+}
+10:35:27 AM [express] POST /api/conversation/265/message 200 in 65ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 265: {
+  type: 'thinking',
+  conversationId: 265,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 265 { userInput: 'race ', messagesCount: 4 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 265: {
+  type: 'ai-response',
+  conversationId: 265,
+  message: {
+    id: 1501,
+    conversationId: 265,
+    stepId: 8,
+    role: 'assistant',
+    content: 'Welcome! Help the user choose an activity',
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-04-01T10:35:28.442Z
+  },
+  conversation: {
+    id: 265,
+    activityId: 3,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 104,
+    choiceLayerPromptId: 65,
+    previousActivityId: null
+  },
+  stepAdvanced: false,
+  activityChanged: false
+}
+[Patronus Debug] Incoming request: POST /api/conversation/265/message
+SSE: Sending user-message event for conversation 265: {
+  type: 'user-message',
+  conversationId: 265,
+  message: {
+    id: 1502,
+    conversationId: 265,
+    stepId: 8,
+    role: 'user',
+    content: 'Magic Island',
+    metadata: null,
+    createdAt: 2025-04-01T10:35:34.299Z
+  }
+}
+10:35:34 AM [express] POST /api/conversation/265/message 200 in 63ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 265: {
+  type: 'thinking',
+  conversationId: 265,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 265 { userInput: 'Magic Island', messagesCount: 6 }
+LLM decision - shouldAdvance: false, activityChange: 5
+Error generating AI response: TypeError: Cannot read properties of undefined (reading 'id')
+    at MessageService.generateAIResponse (/home/runner/workspace/server/services/messageService.ts:141:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+SSE: Sending error event for conversation 265: {
+  type: 'error',
+  conversationId: 265,
+  error: "Cannot read properties of undefined (reading 'id')"
+}

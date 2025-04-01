@@ -1,0 +1,28 @@
+Created conversation with ID: 255
+Generating initial response for conversation 255
+Error in generateResponse: TypeError: Cannot read properties of undefined (reading 'getAllVisibleActivities')
+    at generateResponse (/home/runner/workspace/server/lib/openai.ts:40:47)
+    at <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:126:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Error generating initial response: TypeError: Cannot read properties of undefined (reading 'getAllVisibleActivities')
+    at generateResponse (/home/runner/workspace/server/lib/openai.ts:40:47)
+    at <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:126:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1:39:01 PM [express] POST /api/conversation 200 in 181ms :: {"id":255,"activityId":1,"currentStep":0…
+[Patronus Debug] Incoming request: GET /api/conversation/255
+Retrieving conversation 255
+[Patronus Debug] Incoming request: GET /api/conversation/255/stream
+SSE: New connection established for conversation 255
+[Patronus Debug] Incoming request: GET /favicon.ico
+Found 0 messages for conversation 255
+No messages found for conversation 255, generating initial message
+Using step 1 (number 0) to generate initial message
+Error in generateResponse: TypeError: Cannot read properties of undefined (reading 'getAllVisibleActivities')
+    at generateResponse (/home/runner/workspace/server/lib/openai.ts:40:47)
+    at <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:243:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Error generating initial message for conversation 255: TypeError: Cannot read properties of undefined (reading 'getAllVisibleActivities')
+    at generateResponse (/home/runner/workspace/server/lib/openai.ts:40:47)
+    at <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:243:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1:39:01 PM [express] GET /api/conversation/255 200 in 156ms :: {"id":255,"activityId":1,"currentStep…

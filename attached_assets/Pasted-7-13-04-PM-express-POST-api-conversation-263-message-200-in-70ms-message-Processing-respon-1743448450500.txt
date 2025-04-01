@@ -1,0 +1,93 @@
+7:13:04 PM [express] POST /api/conversation/263/message 200 in 70ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 263: {
+  type: 'thinking',
+  conversationId: 263,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 3,
+  stepNumber: 0,
+  description: 'Introduction to available activities',
+  objective: 'Help the user choose an activity'
+}
+Generating response for conversation 263 { userInput: 'i want to play the race game please', messagesCount: 10 }
+LLM decision - shouldAdvance: false, activityChange: 1
+Updated conversation 263 with new activity 1, system prompt ID 97, and step 0
+Switched conversation 263 from activity 3 to 1
+SSE: Sending ai-response event for conversation 263: {
+  type: 'ai-response',
+  conversationId: 263,
+  message: {
+    id: 1481,
+    conversationId: 263,
+    stepId: 8,
+    role: 'assistant',
+    content: "Let's switch to the Race Game!",
+    metadata: '{"shouldAdvance":false,"activityChange":1}',
+    createdAt: 2025-03-31T19:13:05.496Z
+  },
+  conversation: {
+    id: 263,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: true
+}
+[Patronus Debug] Incoming request: GET /api/activity/1/steps
+7:13:05 PM [express] GET /api/activity/1/steps 200 in 24ms :: [{"id":1,"activityId":1,"stepNumber":0…
+[Patronus Debug] Incoming request: POST /api/conversation/263/message
+SSE: Sending user-message event for conversation 263: {
+  type: 'user-message',
+  conversationId: 263,
+  message: {
+    id: 1483,
+    conversationId: 263,
+    stepId: 1,
+    role: 'user',
+    content: 'lets play the race game',
+    metadata: null,
+    createdAt: 2025-03-31T19:13:12.099Z
+  }
+}
+7:13:12 PM [express] POST /api/conversation/263/message 200 in 72ms :: {"message":"Processing respon…
+SSE: Sending thinking event for conversation 263: {
+  type: 'thinking',
+  conversationId: 263,
+  message: 'The assistant is thinking...'
+}
+Current step data: {
+  activityId: 1,
+  stepNumber: 0,
+  description: 'Welcome the child to the game. The game involves a story where the child is the main protagonist, and has to overcome some challenges during an imaginary race, to win.',
+  objective: 'Commence the race'
+}
+Generating response for conversation 263 { userInput: 'lets play the race game', messagesCount: 13 }
+LLM decision - shouldAdvance: false, activityChange: undefined
+SSE: Sending ai-response event for conversation 263: {
+  type: 'ai-response',
+  conversationId: 263,
+  message: {
+    id: 1484,
+    conversationId: 263,
+    stepId: 1,
+    role: 'assistant',
+    content: "I'm here to help you learn Spanish!",
+    metadata: '{"shouldAdvance":false,"activityChange":null}',
+    createdAt: 2025-03-31T19:13:13.444Z
+  },
+  conversation: {
+    id: 263,
+    activityId: 1,
+    currentStep: 0,
+    userName: 'ed',
+    systemPromptId: 97,
+    choiceLayerPromptId: 65,
+    previousActivityId: 3
+  },
+  stepAdvanced: false,
+  activityChanged: 
