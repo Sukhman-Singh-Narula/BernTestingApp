@@ -1,0 +1,66 @@
+[Patronus Debug] Incoming request: GET /favicon.ico
+Error getting conversation: error: relation "system_prompts" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getConversationWithSystemPrompt (/home/runner/workspace/server/storage.ts:198:28)
+    at async <anonymous> (/home/runner/workspace/server/routes/conversationRoutes.ts:81:36) {
+  length: 114,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '303',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+3:53:23 PM [express] GET /api/conversation/268 500 in 110ms :: {"message":"Failed to get conversatio…
+[Patronus Debug] Incoming request: GET /api/choice-layer-prompts
+[Patronus Debug] Incoming request: GET /api/evaluators
+3:53:23 PM [express] GET /api/choice-layer-prompts 200 in 5ms
+[Patronus Debug] Incoming request: GET /favicon.ico
+[Patronus Debug] Incoming request: POST /api/api/evaluators/sync
+3:53:23 PM [express] POST /api/api/evaluators/sync 200 in 3ms
+3:53:23 PM [express] GET /api/evaluators 304 in 97ms :: [{"id":294,"name":"language-compliance-spani…
+[Patronus Debug] Incoming request: GET /
+[Patronus Debug] Incoming request: GET /@vite/client
+[Patronus Debug] Incoming request: GET /@react-refresh
+[Patronus Debug] Incoming request: GET /@fs/home/runner/workspace/node_modules/vite/dist/client/env.mjs
+[Patronus Debug] Incoming request: GET /src/main.tsx
+[Patronus Debug] Incoming request: GET /src/index.css
+[Patronus Debug] Incoming request: GET /src/App.tsx
+[Patronus Debug] Incoming request: GET /src/pages/chat.tsx
+[Patronus Debug] Incoming request: GET /src/lib/queryClient.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toaster.tsx
+[Patronus Debug] Incoming request: GET /src/pages/welcome.tsx
+[Patronus Debug] Incoming request: GET /src/pages/not-found.tsx
+[Patronus Debug] Incoming request: GET /src/pages/activities.tsx
+[Patronus Debug] Incoming request: GET /src/pages/conversations.tsx
+[Patronus Debug] Incoming request: GET /src/components/Navbar.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/button.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/input.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/card.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/scroll-area.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/collapsible.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/table.tsx
+[Patronus Debug] Incoming request: GET /src/hooks/use-toast.ts
+[Patronus Debug] Incoming request: GET /src/components/ui/toast.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/textarea.tsx
+[Patronus Debug] Incoming request: GET /src/components/ui/select.tsx
+[Patronus Debug] Incoming request: GET /src/lib/utils.ts
+[Patronus Debug] Incoming request: POST /api/api/evaluators/sync
+[Patronus Debug] Incoming request: GET /api/evaluators
+[Patronus Debug] Incoming request: GET /api/choice-layer-prompts
+3:54:20 PM [express] POST /api/api/evaluators/sync 200 in 9ms
+3:54:20 PM [express] GET /api/choice-layer-prompts 200 in 7ms
+[Patronus Debug] Incoming request: GET /favicon.ico
+3:54:20 PM [express] GET /api/evaluators 304 in 109ms :: [{"id":294,"name":"language-compliance-span…
