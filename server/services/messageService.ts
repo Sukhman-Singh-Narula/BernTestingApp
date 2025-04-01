@@ -101,7 +101,6 @@ export class MessageService {
         objective: step.objective
       });
 
-      // Remove unnecessary intermediate variable
 
       // Generate AI response with evaluation
       const currentConversationWithPrompts = await storage.getConversationWithSystemPrompt(conversationId);
@@ -125,6 +124,19 @@ export class MessageService {
 
       console.log(`LLM decision - shouldAdvance: ${shouldAdvance}, activityChange: ${activityChange}`);
 
+      // Validate step advancement after AI generation
+      const validateStepAdvancement = (aiResponseData: any) => {
+        if (!step.expectedResponses) return aiResponseData.shouldAdvance;
+
+        const expectedResponses = step.expectedResponses.split('|').map(r => r.trim().toLowerCase());
+        const normalizedMessage = userMessage.trim().toLowerCase();
+        const matchesExpected = expectedResponses.some(response => normalizedMessage.includes(response));
+
+        return matchesExpected || aiResponseData.shouldAdvance;
+      };
+
+      const finalShouldAdvance = validateStepAdvancement(aiResponseData);
+
       // Store assistant message with metadata
       // Ensure we have valid content before creating the message
       if (!aiResponse) {
@@ -137,7 +149,7 @@ export class MessageService {
         // First try to get step 0, fallback to step 1 if not found
         stepForMessage = await storage.getStepByActivityAndNumber(activityChange, 0) || 
                         await storage.getStepByActivityAndNumber(activityChange, 1);
-                        
+
         if (!stepForMessage) {
           throw new Error(`No initial step found for activity ${activityChange}`);
         }
@@ -151,7 +163,7 @@ export class MessageService {
         role: "assistant" as MessageRole,
         content: aiResponse,
         metadata: {
-          shouldAdvance,
+          shouldAdvance: finalShouldAdvance,
           activityChange: activityChange || null
         }
       } as any); // Using 'any' to handle the RecordObject vs string type discrepancy
@@ -195,7 +207,7 @@ export class MessageService {
         }
       }
       // If no activity change but should advance step
-      else if (shouldAdvance) {
+      else if (finalShouldAdvance) {
         const nextStep = currentConversation.currentStep + 1;
         try {
           updatedConv = await storage.updateConversationStep(
@@ -215,7 +227,7 @@ export class MessageService {
         conversationId,
         message: assistantMessage,
         conversation: updatedConv,
-        stepAdvanced: shouldAdvance,
+        stepAdvanced: finalShouldAdvance,
         activityChanged: activityChange !== undefined && activityChange !== currentConversation.activityId
       });
 

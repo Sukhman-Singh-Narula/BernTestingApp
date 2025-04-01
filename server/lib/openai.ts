@@ -85,13 +85,14 @@ Success Response: ${step.successResponse}
     });
 
     const message = response.choices[0].message;
-    
+
     // Always check for activity switch requests regardless of current activity
     const activities = await storage?.getAllVisibleActivities() || [];
-    
-    // Check user input against each activity
+    const normalizedInput = userInput.toString().toLowerCase();
+
+    // Check user input against each activity first
     for (const activity of activities) {
-      if (userInput.toLowerCase().includes(activity.name.toLowerCase())) {
+      if (normalizedInput.includes(activity.name.toLowerCase())) {
         return {
           content: `Great choice! Let's get started with ${activity.name}. We'll help you learn Spanish through ${activity.contentType}!`,
           shouldAdvance: false,
@@ -100,10 +101,22 @@ Success Response: ${step.successResponse}
       }
     }
 
-    // If not switching activities, handle regular conversation
+    // If not switching activities, check for step advancement
+    let shouldAdvance = false;
+    if (step.expectedResponses) {
+      const expectedResponses = step.expectedResponses.split('|').map(r => r.trim().toLowerCase());
+      shouldAdvance = expectedResponses.some(response => normalizedInput.includes(response));
+    }
+
+    // Generate the response content
+    const responseContent = shouldAdvance 
+      ? (step.successResponse || message.content)
+      : (message.content || `Welcome! ${step.objective}`);
+
+    // Return final response with advancement decision
     return {
-      content: message.content || `Welcome! ${step.objective}`,
-      shouldAdvance: false,
+      content: responseContent,
+      shouldAdvance,
       activityChange: undefined
     };
   } catch (error) {
