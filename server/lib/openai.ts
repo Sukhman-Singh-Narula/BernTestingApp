@@ -71,13 +71,14 @@ Success Response: ${step.successResponse}
       function_call: "auto",
       functions: [{
         name: "change_activity",
-        description: "Change to a different activity when user selects one",
+        description: "Detect when users express interest in starting or switching to a specific activity, either by direct mention or implied intent. Use activity IDs from the AVAILABLE_ACTIVITIES list provided in the system prompt.",
         parameters: {
           type: "object",
+          required: ["activityId"],
           properties: {
             activityId: {
               type: "integer",
-              description: "ID of the activity to change to (1 for Race Game, 2 for Spanish Basics)"
+              description: "The ID of the activity to switch to, based on the AVAILABLE_ACTIVITIES list. Ensure the ID exists in the available activities."
             }
           }
         }
