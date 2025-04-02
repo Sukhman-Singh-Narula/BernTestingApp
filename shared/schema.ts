@@ -39,7 +39,9 @@ export const conversations = pgTable("conversations", {
   activityId: integer("activity_id").notNull().references(() => activities.id),
   currentStep: integer("current_step").notNull().default(1),
   userName: text("user_name").notNull(),
-  systemPromptId: integer("system_prompt_id").references(() => systemPrompts.id) // Add reference to system prompt
+  systemPromptId: integer("system_prompt_id").references(() => activitySystemPrompts.id),
+  choiceLayerPromptId: integer("choice_layer_prompt_id").references(() => choiceLayerPrompts.id),
+  previousActivityId: integer("previous_activity_id").references(() => activities.id)
 });
 
 // New messages table
@@ -49,7 +51,7 @@ export const messages = pgTable("messages", {
   stepId: integer("step_id").notNull().references(() => steps.id),
   role: text("role").notNull(),
   content: text("content").notNull(),
-  metadata: text("metadata"),
+  metadata: text("metadata"), // Stored as JSON string in the database
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
@@ -87,7 +89,14 @@ export const conversationEvaluators = pgTable("conversation_evaluators", {
 });
 
 // Add system_prompt table definition
-export const systemPrompts = pgTable("system_prompts", {
+export const choiceLayerPrompts = pgTable("choice_layer_prompts", {
+  id: serial("id").primaryKey(),
+  systemPrompt: text("system_prompt").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: text("created_by").notNull()
+});
+
+export const activitySystemPrompts = pgTable("activity_system_prompts", {
   id: serial("id").primaryKey(),
   systemPrompt: text("system_prompt").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -99,7 +108,7 @@ export const systemPrompts = pgTable("system_prompts", {
 export const activitiesRelations = relations(activities, ({ many }) => ({
   steps: many(steps),
   conversations: many(conversations),
-  systemPrompts: many(systemPrompts)
+  systemPrompts: many(activitySystemPrompts)
 }));
 
 export const stepsRelations = relations(steps, ({ one, many }) => ({
@@ -110,16 +119,24 @@ export const stepsRelations = relations(steps, ({ one, many }) => ({
   messages: many(messages)
 }));
 
-// Update conversation relations to include system prompt and evaluators
+// Update conversation relations to include system prompt, choice layer prompt, previous activity and evaluators
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
   activity: one(activities, {
     fields: [conversations.activityId],
     references: [activities.id],
   }),
+  previousActivity: one(activities, {
+    fields: [conversations.previousActivityId],
+    references: [activities.id],
+  }),
   messages: many(messages),
-  systemPrompt: one(systemPrompts, {
+  systemPrompt: one(activitySystemPrompts, {
     fields: [conversations.systemPromptId],
-    references: [systemPrompts.id],
+    references: [activitySystemPrompts.id],
+  }),
+  choiceLayerPrompt: one(choiceLayerPrompts, {
+    fields: [conversations.choiceLayerPromptId],
+    references: [choiceLayerPrompts.id],
   }),
   evaluators: many(conversationEvaluators)
 }));
@@ -149,9 +166,9 @@ export const messageMetricsRelations = relations(messageMetrics, ({ one }) => ({
 }));
 
 // Add relation to activities
-export const systemPromptsRelations = relations(systemPrompts, ({ one }) => ({
+export const activitySystemPromptsRelations = relations(activitySystemPrompts, ({ one }) => ({
   activity: one(activities, {
-    fields: [systemPrompts.activityId],
+    fields: [activitySystemPrompts.activityId],
     references: [activities.id],
   })
 }));
@@ -201,8 +218,14 @@ export const insertMessageMetricsSchema = createInsertSchema(messageMetrics).omi
   createdAt: true
 });
 
+// Add insert schema for choice layer prompts
+export const insertChoiceLayerPromptSchema = createInsertSchema(choiceLayerPrompts).omit({
+  id: true,
+  createdAt: true
+});
+
 // Add insert schema for system prompts
-export const insertSystemPromptSchema = createInsertSchema(systemPrompts).omit({
+export const insertActivitySystemPromptSchema = createInsertSchema(activitySystemPrompts).omit({
   id: true,
   createdAt: true
 });
@@ -233,9 +256,13 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type MessageMetrics = typeof messageMetrics.$inferSelect;
 export type InsertMessageMetrics = z.infer<typeof insertMessageMetricsSchema>;
 
+// Add type exports for choice layer prompts
+export type ChoiceLayerPrompt = typeof choiceLayerPrompts.$inferSelect;
+export type InsertChoiceLayerPrompt = z.infer<typeof insertChoiceLayerPromptSchema>;
+
 // Add type exports for system prompts
-export type SystemPrompt = typeof systemPrompts.$inferSelect;
-export type InsertSystemPrompt = z.infer<typeof insertSystemPromptSchema>;
+export type ActivitySystemPrompt = typeof activitySystemPrompts.$inferSelect;
+export type InsertActivitySystemPrompt = z.infer<typeof insertActivitySystemPromptSchema>;
 
 // Add type exports
 export type Evaluator = typeof evaluators.$inferSelect;

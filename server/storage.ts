@@ -1,4 +1,4 @@
-import { activities, steps, conversations, messages, systemPrompts, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics, type SystemPrompt, type InsertSystemPrompt } from "@shared/schema";
+import { activities, steps, conversations, messages, activitySystemPrompts, choiceLayerPrompts, type Activity, type Step, type InsertActivity, type InsertStep, type Conversation, type InsertConversation, type Message, type InsertMessage, messageMetrics, type ActivitySystemPrompt, type InsertActivitySystemPrompt, type ChoiceLayerPrompt, type InsertChoiceLayerPrompt } from "@shared/schema";
 import { evaluators, conversationEvaluators, type Evaluator, type InsertEvaluator, type ConversationEvaluator, type InsertConversationEvaluator } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -19,19 +19,27 @@ export interface IStorage {
   getStepByActivityAndNumber(activityId: number, stepNumber: number): Promise<Step | undefined>;
 
   // Conversation operations
-  createConversation(conversation: InsertConversation & { systemPrompt?: string }): Promise<Conversation>;
+  createConversation(conversation: InsertConversation & { systemPrompt?: string, choiceLayerPrompt?: string, choiceLayerPromptId?: number }): Promise<Conversation>;
   getConversation(id: number): Promise<Conversation | undefined>;
+  updateConversation(conversation: Partial<Conversation> & { id: number }): Promise<Conversation>;
   updateConversationStep(id: number, currentStep: number): Promise<Conversation>;
-  getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: SystemPrompt }) | undefined>;
+  updateConversationActivity(id: number, activityId: number, previousActivityId: number): Promise<Conversation>;
+  getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: ActivitySystemPrompt, choiceLayerPrompt?: ChoiceLayerPrompt }) | undefined>;
 
   // Message operations
   createMessage(message: InsertMessage & { metadata?: Record<string, any> }): Promise<Message>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
 
   // Add system prompt operations
-  createSystemPrompt(prompt: InsertSystemPrompt): Promise<SystemPrompt>;
-  getSystemPromptByActivity(activityId: number): Promise<SystemPrompt | undefined>;
-  getSystemPromptsByActivity(activityId: number): Promise<SystemPrompt[]>;
+  createActivitySystemPrompt(prompt: InsertActivitySystemPrompt): Promise<ActivitySystemPrompt>;
+  getActivitySystemPromptByActivity(activityId: number): Promise<ActivitySystemPrompt | undefined>;
+  getActivitySystemPromptsByActivity(activityId: number): Promise<ActivitySystemPrompt[]>;
+
+  // Choice layer prompt operations
+  createChoiceLayerPrompt(prompt: InsertChoiceLayerPrompt): Promise<ChoiceLayerPrompt>;
+  getChoiceLayerPrompt(id: number): Promise<ChoiceLayerPrompt | undefined>;
+  getLatestChoiceLayerPrompt(): Promise<ChoiceLayerPrompt | undefined>;
+  getAllChoiceLayerPrompts(): Promise<ChoiceLayerPrompt[]>;
 
   // Evaluator operations
   createEvaluator(evaluator: InsertEvaluator): Promise<Evaluator>;
@@ -70,6 +78,7 @@ export class DatabaseStorage implements IStorage {
         createdBy: activities.createdBy,
         createdAt: activities.createdAt,
         hidden: activities.hidden,
+        language: activities.language,
         conversationCount: count(conversations.id)
       })
       .from(activities)
@@ -106,6 +115,7 @@ export class DatabaseStorage implements IStorage {
         createdBy: activities.createdBy,
         createdAt: activities.createdAt,
         hidden: activities.hidden,
+        language: activities.language,
         conversationCount: count(conversations.id)
       })
       .from(activities)
@@ -146,12 +156,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Conversation operations
-  async createConversation(conversation: InsertConversation & { systemPrompt?: string }): Promise<Conversation> {
+  async createConversation(conversation: InsertConversation & { 
+    systemPrompt?: string, 
+    choiceLayerPrompt?: string,
+    choiceLayerPromptId?: number  
+  }): Promise<Conversation> {
     let systemPromptId: number | undefined;
+    let choiceLayerPromptId: number | undefined;
 
     // If a new system prompt is provided, create it
     if (conversation.systemPrompt) {
-      const [createdPrompt] = await db.insert(systemPrompts).values({
+      const [createdPrompt] = await db.insert(activitySystemPrompts).values({
         systemPrompt: conversation.systemPrompt,
         activityId: conversation.activityId,
         createdBy: conversation.userName
@@ -161,17 +176,39 @@ export class DatabaseStorage implements IStorage {
       // Get the most recent system prompt for this activity
       const [latestPrompt] = await db
         .select()
-        .from(systemPrompts)
-        .where(eq(systemPrompts.activityId, conversation.activityId))
-        .orderBy(desc(systemPrompts.createdAt))
+        .from(activitySystemPrompts)
+        .where(eq(activitySystemPrompts.activityId, conversation.activityId))
+        .orderBy(desc(activitySystemPrompts.createdAt))
         .limit(1);
       systemPromptId = latestPrompt?.id;
+    }
+
+    // If a choiceLayerPromptId is directly provided, use it
+    if (conversation.choiceLayerPromptId) {
+      choiceLayerPromptId = conversation.choiceLayerPromptId;
+    } 
+    // If a choice layer prompt text is provided, create it
+    else if (conversation.choiceLayerPrompt) {
+      const [createdPrompt] = await db.insert(choiceLayerPrompts).values({
+        systemPrompt: conversation.choiceLayerPrompt,
+        createdBy: conversation.userName
+      }).returning();
+      choiceLayerPromptId = createdPrompt.id;
+    } else {
+      // Get the most recent choice layer prompt
+      const [latestPrompt] = await db
+        .select()
+        .from(choiceLayerPrompts)
+        .orderBy(desc(choiceLayerPrompts.createdAt))
+        .limit(1);
+      choiceLayerPromptId = latestPrompt?.id;
     }
 
     const [created] = await db.insert(conversations)
       .values({
         ...conversation,
-        systemPromptId
+        systemPromptId,
+        choiceLayerPromptId
       })
       .returning();
     return created;
@@ -194,20 +231,80 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: SystemPrompt }) | undefined> {
-    const [conversation] = await db
+  async updateConversationActivity(id: number, activityId: number, previousActivityId: number): Promise<Conversation> {
+    // First, get the system prompt ID for the new activity
+    const systemPrompt = await this.getActivitySystemPromptByActivity(activityId);
+
+    // Get the first step of the new activity
+    const [firstStep] = await db
+      .select()
+      .from(steps)
+      .where(eq(steps.activityId, activityId))
+      .orderBy(steps.stepNumber)
+      .limit(1);
+
+    if (!firstStep) {
+      throw new Error(`No steps found for activity ${activityId}`);
+    }
+
+    // Update conversation with the new activity, system prompt, and step
+    const [updated] = await db
+      .update(conversations)
+      .set({ 
+        activityId,
+        previousActivityId,
+        currentStep: firstStep.stepNumber,
+        systemPromptId: systemPrompt?.id
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+
+    console.log(`Updated conversation ${id} with new activity ${activityId}, system prompt ID ${systemPrompt?.id || 'none'}, and step ${firstStep.stepNumber}`);
+    return updated;
+  }
+
+  async updateConversation(conversation: Partial<Conversation> & { id: number }): Promise<Conversation> {
+    const { id, ...updateData } = conversation;
+    const [updated] = await db
+      .update(conversations)
+      .set(updateData)
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getConversationWithSystemPrompt(id: number): Promise<(Conversation & { systemPrompt?: ActivitySystemPrompt, choiceLayerPrompt?: ChoiceLayerPrompt }) | undefined> {
+    const [result] = await db
       .select({
         id: conversations.id,
         activityId: conversations.activityId,
         currentStep: conversations.currentStep,
         userName: conversations.userName,
-        systemPrompt: systemPrompts
+        systemPromptId: conversations.systemPromptId,
+        choiceLayerPromptId: conversations.choiceLayerPromptId,
+        previousActivityId: conversations.previousActivityId,
+        systemPrompt: activitySystemPrompts,
+        choiceLayerPrompt: choiceLayerPrompts
       })
       .from(conversations)
-      .leftJoin(systemPrompts, eq(conversations.systemPromptId, systemPrompts.id))
+      .leftJoin(activitySystemPrompts, eq(conversations.systemPromptId, activitySystemPrompts.id))
+      .leftJoin(choiceLayerPrompts, eq(conversations.choiceLayerPromptId, choiceLayerPrompts.id))
       .where(eq(conversations.id, id));
 
-    return conversation;
+    if (!result) return undefined;
+
+    // Convert the joined query result to the expected return type
+    return {
+      id: result.id,
+      activityId: result.activityId,
+      currentStep: result.currentStep,
+      userName: result.userName,
+      systemPromptId: result.systemPromptId,
+      choiceLayerPromptId: result.choiceLayerPromptId,
+      previousActivityId: result.previousActivityId,
+      systemPrompt: result.systemPrompt || undefined,
+      choiceLayerPrompt: result.choiceLayerPrompt || undefined
+    };
   }
 
   // Message operations
@@ -226,17 +323,18 @@ export class DatabaseStorage implements IStorage {
       console.error(`Invalid conversation ID: ${conversationId}`);
       return [];
     }
-    
+
     // Convert to a number to ensure it's a valid integer
     const validConversationId = Number(conversationId);
-    
-    return await db
+
+    const messagesWithMetrics = await db
       .select({
         id: messages.id,
         conversationId: messages.conversationId,
         stepId: messages.stepId,
         role: messages.role,
         content: messages.content,
+        metadata: messages.metadata,
         createdAt: messages.createdAt,
         metrics: {
           id: messageMetrics.id,
@@ -253,30 +351,72 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(messageMetrics, eq(messages.id, messageMetrics.messageId))
       .where(eq(messages.conversationId, validConversationId))
       .orderBy(messages.createdAt);
+
+    // Convert the joined query result to the expected Message type
+    return messagesWithMetrics.map(msg => ({
+      id: msg.id,
+      conversationId: msg.conversationId,
+      stepId: msg.stepId,
+      role: msg.role,
+      content: msg.content,
+      metadata: msg.metadata,
+      createdAt: msg.createdAt
+    }));
   }
 
   // Add system prompt operations implementation
-  async createSystemPrompt(prompt: InsertSystemPrompt): Promise<SystemPrompt> {
-    const [created] = await db.insert(systemPrompts).values(prompt).returning();
+  async createActivitySystemPrompt(prompt: InsertActivitySystemPrompt): Promise<ActivitySystemPrompt> {
+    const [created] = await db.insert(activitySystemPrompts).values(prompt).returning();
     return created;
   }
 
-  async getSystemPromptByActivity(activityId: number): Promise<SystemPrompt | undefined> {
+  async getActivitySystemPromptByActivity(activityId: number): Promise<ActivitySystemPrompt | undefined> {
     const [prompt] = await db
       .select()
-      .from(systemPrompts)
-      .where(eq(systemPrompts.activityId, activityId))
-      .orderBy(desc(systemPrompts.createdAt))
+      .from(activitySystemPrompts)
+      .where(eq(activitySystemPrompts.activityId, activityId))
+      .orderBy(desc(activitySystemPrompts.createdAt))
       .limit(1);
     return prompt;
   }
 
-  async getSystemPromptsByActivity(activityId: number): Promise<SystemPrompt[]> {
+  async getActivitySystemPromptsByActivity(activityId: number): Promise<ActivitySystemPrompt[]> {
     return await db
       .select()
-      .from(systemPrompts)
-      .where(eq(systemPrompts.activityId, activityId))
-      .orderBy(desc(systemPrompts.createdAt))
+      .from(activitySystemPrompts)
+      .where(eq(activitySystemPrompts.activityId, activityId))
+      .orderBy(desc(activitySystemPrompts.createdAt))
+      .limit(10);
+  }
+
+  // Choice layer prompt operations
+  async createChoiceLayerPrompt(prompt: InsertChoiceLayerPrompt): Promise<ChoiceLayerPrompt> {
+    const [created] = await db.insert(choiceLayerPrompts).values(prompt).returning();
+    return created;
+  }
+
+  async getChoiceLayerPrompt(id: number): Promise<ChoiceLayerPrompt | undefined> {
+    const [prompt] = await db
+      .select()
+      .from(choiceLayerPrompts)
+      .where(eq(choiceLayerPrompts.id, id));
+    return prompt;
+  }
+
+  async getLatestChoiceLayerPrompt(): Promise<ChoiceLayerPrompt | undefined> {
+    const [prompt] = await db
+      .select()
+      .from(choiceLayerPrompts)
+      .orderBy(desc(choiceLayerPrompts.createdAt))
+      .limit(1);
+    return prompt;
+  }
+
+  async getAllChoiceLayerPrompts(): Promise<ChoiceLayerPrompt[]> {
+    return await db
+      .select()
+      .from(choiceLayerPrompts)
+      .orderBy(desc(choiceLayerPrompts.createdAt))
       .limit(10);
   }
 

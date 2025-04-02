@@ -1,7 +1,9 @@
+// server/index.ts
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { patronusEvaluationMiddleware } from "./lib/patronus";
+import { setupWebSocketServer } from "./websocketServer";
 
 const app = express();
 app.use(express.json());
@@ -77,6 +79,10 @@ app.use((req, res, next) => {
 
     const server = await registerRoutes(app, port);
     console.log(`Routes registered successfully`);
+
+    // Setup WebSocket server for audio streaming
+    const wss = setupWebSocketServer(server);
+    console.log(`WebSocket server initialized`);
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

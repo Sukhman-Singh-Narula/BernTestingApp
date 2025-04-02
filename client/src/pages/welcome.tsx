@@ -11,7 +11,7 @@ import { CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Import types
-import type { Evaluator } from "@shared/schema";
+import type { Evaluator, ChoiceLayerPrompt, Activity } from "@shared/schema";
 
 export default function Welcome() {
   const [userName, setUserName] = useState("");
@@ -21,25 +21,29 @@ export default function Welcome() {
   const [isValid, setIsValid] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const queryClient = useQueryClient();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
-  interface SystemPrompt {
-    id: number; 
-    systemPrompt: string; 
-    createdBy: string;
-    createdAt: string;
-  }
-
-  const { data: systemPrompts } = useQuery<SystemPrompt[]>({
-    queryKey: ["/api/activities/1/system-prompts"],
-    queryFn: () => apiRequest<SystemPrompt[]>("GET", "/api/activities/1/system-prompts")
+  // Fetch choice layer prompts instead of activity system prompts
+  const { data: choiceLayerPrompts, error: promptsError } = useQuery<ChoiceLayerPrompt[]>({
+    queryKey: ["choice-layer-prompts"],
+    queryFn: async () => {
+      try {
+        const prompts = await apiRequest<ChoiceLayerPrompt[]>("GET", "/choice-layer-prompts");
+        console.log("Fetched choice layer prompts:", prompts);
+        return prompts;
+      } catch (error) {
+        console.error("Failed to fetch choice layer prompts:", error);
+        throw error;
+      }
+    }
   });
 
   const { data: evaluators, refetch: refetchEvaluators } = useQuery({
-    queryKey: ["/api/evaluators"],
-    queryFn: () => apiRequest<Evaluator[]>("GET", "/api/evaluators")
+    queryKey: ["evaluators"],
+    queryFn: () => apiRequest<Evaluator[]>("GET", "/evaluators")
   });
 
   // Sync evaluators on page load and update list after
@@ -55,11 +59,31 @@ export default function Welcome() {
     syncEvaluators();
   }, [refetchEvaluators]);
 
-  const createSystemPrompt = useMutation({
+  // Create a new choice layer prompt
+  const createChoiceLayerPrompt = useMutation({
     mutationFn: (prompt: string) => 
-      apiRequest<{ id: number }>("POST", "/api/activities/1/system-prompts", { systemPrompt: prompt }),
+      apiRequest<{ id: number }>("POST", "/api/choice-layer-prompts", { 
+        systemPrompt: prompt,
+        createdBy: userName || 'system',
+        isChoiceLayer: true // Flag to ensure it only saves to choice layer table
+      }),
     onSuccess: (data) => {
+      console.log(`Created new choice layer prompt with ID: ${data.id}`);
       setSelectedPromptId(data.id.toString());
+      // Refresh the choice layer prompts list
+      queryClient.invalidateQueries({ queryKey: ["/api/choice-layer-prompts"] });
+      toast({
+        title: "Prompt Saved",
+        description: "Your choice layer prompt has been saved successfully."
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to create choice layer prompt:", error);
+      toast({
+        title: "Error Saving Prompt",
+        description: "There was a problem saving your choice layer prompt.",
+        variant: "destructive"
+      });
     }
   });
 
@@ -67,16 +91,44 @@ export default function Welcome() {
     id: number;
   }
 
+  // Fetch activities for selection - REMOVED
+  //const { data: activities } = useQuery<Activity[]>({
+  //  queryKey: ["/api/activities/visible"],
+  //  queryFn: () => apiRequest<Activity[]>("GET", "/api/activities/visible")
+  //});
+
+  // State for selected activity (default to Activity Selection if available) - REMOVED
+  //const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
+
+  // Set default activity on initial load - REMOVED
+  //useEffect(() => {
+  //  if (activities && activities.length > 0) {
+  //    // Look for Activity Selection (usually ID 3)
+  //    const activitySelection = activities.find((a: Activity) => a.name === "Activity Selection");
+  //    if (activitySelection) {
+  //      setSelectedActivityId(activitySelection.id);
+  //    } else {
+  //      // Otherwise use the first available activity
+  //      setSelectedActivityId(activities[0].id);
+  //    }
+  //  }
+  //}, [activities]);
+
   const createConversation = useMutation<ConversationResponse>({
     mutationFn: async () => {
       setIsLoading(true);
-      const response = await apiRequest<ConversationResponse>("POST", "/api/conversation", {
-        activityId: 1,
+      // Use the Activity Selection activity (3) if available, or fallback to the selected activity - REMOVED
+      //const startingActivityId = selectedActivityId || 3; 
+
+      // Pass the choice layer prompt ID to the conversation
+      const response = await apiRequest<ConversationResponse>("POST", "/conversation", {
+        //activityId: startingActivityId,  REMOVED
         shouldGenerateFirstResponse: true,
         userName,
-        systemPrompt
+        choiceLayerPromptId: parseInt(selectedPromptId), // Use the selected choice layer prompt
+        systemPrompt    // Keep this for backward compatibility
       });
-      
+
       // Assign selected evaluators to the conversation
       if (selectedEvaluators.length > 0) {
         console.log(`Assigning ${selectedEvaluators.length} evaluators to conversation ${response.id}`);
@@ -92,13 +144,13 @@ export default function Welcome() {
       } else {
         console.log("No evaluators selected for this conversation");
       }
-      
+
       return response;
     },
     onSuccess: (data) => {
       // Set the conversation ID in localStorage for future reference
       localStorage.setItem("currentConversationId", data.id.toString());
-      
+
       setIsLoading(false);
       // Navigate to the chat page with the new conversation
       setLocation(`/chat/${data.id}`);
@@ -117,26 +169,33 @@ export default function Welcome() {
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     if (storedName) setUserName(storedName);
-    if (systemPrompts && systemPrompts.length > 0) {
-      const mostRecent = systemPrompts[0];
+    // Select the most recent choice layer prompt when data is loaded
+    if (choiceLayerPrompts && choiceLayerPrompts.length > 0) {
+      const mostRecent = choiceLayerPrompts[0]; // Assuming they're ordered by recency
       setSelectedPromptId(mostRecent.id.toString());
       setSystemPrompt(mostRecent.systemPrompt);
     }
-  }, [systemPrompts]);
+  }, [choiceLayerPrompts]);
 
   useEffect(() => {
-    if (selectedPromptId && systemPrompts) {
-      const selectedPrompt = systemPrompts.find(p => p.id.toString() === selectedPromptId);
+    // Update the displayed prompt text when selection changes
+    if (selectedPromptId && choiceLayerPrompts) {
+      const selectedPrompt = choiceLayerPrompts.find(p => p.id.toString() === selectedPromptId);
       if (selectedPrompt) {
         setSystemPrompt(selectedPrompt.systemPrompt);
       }
     }
-  }, [selectedPromptId, systemPrompts]);
+  }, [selectedPromptId, choiceLayerPrompts]);
 
+  // Simple handler for prompt changes - just update the state without saving
   const handlePromptChange = (value: string) => {
     setSystemPrompt(value);
-    if (value.trim()) {
-      createSystemPrompt.mutate(value);
+    // Mark as editing if it's different from the selected prompt
+    if (selectedPromptId && choiceLayerPrompts) {
+      const selectedPrompt = choiceLayerPrompts.find(p => p.id.toString() === selectedPromptId);
+      if (selectedPrompt && value !== selectedPrompt.systemPrompt) {
+        setIsEditing(true);
+      }
     }
   };
 
@@ -146,9 +205,22 @@ export default function Welcome() {
 
   const handleStartChat = async () => {
     localStorage.setItem("userName", userName);
-    localStorage.setItem("lastSystemPromptId", selectedPromptId);
-    localStorage.setItem("systemPrompt", systemPrompt);
-    
+
+    // If the user edited the prompt, save it as a new choice layer prompt
+    if (isEditing && systemPrompt.trim()) {
+      try {
+        setIsSavingPrompt(true);
+        await createChoiceLayerPrompt.mutateAsync(systemPrompt);
+        setIsSavingPrompt(false);
+      } catch (error) {
+        console.error("Failed to save new choice layer prompt:", error);
+        // Continue with existing promptId if saving fails
+      }
+    }
+
+    // Store the prompt text in localStorage for reference
+    localStorage.setItem("choiceLayerPrompt", systemPrompt);
+
     // Create the conversation and navigate to chat page
     await createConversation.mutateAsync();
   };
@@ -181,7 +253,35 @@ export default function Welcome() {
               className="mb-4"
             />
           </div>
-          
+
+          {/* Activity Selection - REMOVED */}
+          {/*<div className="mb-4">
+            <label htmlFor="activity-select" className="block text-sm font-medium mb-2">
+              Starting Activity
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Choose which activity to start with. You can always switch between activities during the conversation.
+            </p>
+            <Select 
+              value={selectedActivityId?.toString() || ""} 
+              onValueChange={(value) => setSelectedActivityId(parseInt(value))}
+            >
+              <SelectTrigger className="mb-2">
+                <SelectValue placeholder="Choose a starting activity" />
+              </SelectTrigger>
+              <SelectContent>
+                {activities?.map((activity) => (
+                  <SelectItem 
+                    key={activity.id} 
+                    value={activity.id.toString()}
+                  >
+                    {activity.name} ({activity.contentType || activity.language})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>*/}
+
           {/* Evaluator Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Select Evaluators</label>
@@ -214,20 +314,23 @@ export default function Welcome() {
               )}
             </div>
           </div>
-          
+
           <div>
             <div className="mb-2">
-              <label htmlFor="prompt-select" className="text-sm font-medium">Select System Prompt</label>
+              <label htmlFor="prompt-select" className="text-sm font-medium">Select Choice Layer Prompt</label>
+              <p className="text-xs text-muted-foreground">
+                This global prompt helps the AI understand how to switch between activities
+              </p>
             </div>
             <Select 
               value={selectedPromptId} 
               onValueChange={(value) => setSelectedPromptId(value)}
             >
               <SelectTrigger className="mb-4">
-                <SelectValue placeholder="Choose a system prompt" />
+                <SelectValue placeholder="Choose a choice layer prompt" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                {systemPrompts?.map((prompt) => (
+                {choiceLayerPrompts?.map((prompt) => (
                   <SelectItem 
                     key={prompt.id} 
                     value={prompt.id.toString()}
@@ -247,13 +350,17 @@ export default function Welcome() {
             </Select>
             <div className="relative">
               <p className="text-sm text-muted-foreground mb-2">
-                {!isEditing ? 'Edit this prompt to create a new system prompt' : 'A new system prompt will be saved'}
+                {!isEditing 
+                  ? 'Edit this prompt to create a new choice layer prompt' 
+                  : isSavingPrompt 
+                    ? 'Saving new choice layer prompt...' 
+                    : 'Edited prompt will be saved when you start a new chat'}
               </p>
               <Textarea
                 id="prompt"
                 value={systemPrompt}
                 onChange={(e) => handlePromptChange(e.target.value)}
-                placeholder="Edit or create a new system prompt"
+                placeholder="Edit or create a new choice layer prompt"
                 className={`mt-4 mb-4 min-h-[300px] text-sm ${!isEditing ? 'bg-muted text-muted-foreground cursor-pointer' : ''}`}
                 onClick={() => !isEditing && setIsEditing(true)}
                 readOnly={!isEditing}
@@ -266,7 +373,11 @@ export default function Welcome() {
               onClick={handleStartChat}
               className="relative"
             >
-              {isLoading ? 'Creating Conversation...' : 'Start New Chat'}
+              {isLoading 
+                ? 'Creating Conversation...' 
+                : isEditing 
+                  ? 'Save Prompt & Start Chat' 
+                  : 'Start New Chat'}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/activities">Browse Activities</Link>
