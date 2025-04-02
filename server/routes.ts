@@ -87,30 +87,7 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     }
   });
 
-  app.get("/api/activities/:id/system-prompts", async (req, res) => {
-    try {
-      const activityId = Number(req.params.id);
-      const systemPrompts = await storage.getSystemPromptsByActivity(activityId);
-      res.json(systemPrompts);
-    } catch (error) {
-      console.error("Error fetching system prompts:", error);
-      res.status(500).json({ message: "Failed to fetch system prompts" });
-    }
-  });
 
-  app.get("/api/activity/:id/system-prompt", async (req, res) => {
-    try {
-      const activityId = Number(req.params.id);
-      const systemPrompt = await storage.getSystemPromptByActivity(activityId);
-      if (!systemPrompt) {
-        return res.status(404).json({ message: "System prompt not found" });
-      }
-      res.json(systemPrompt);
-    } catch (error) {
-      console.error("Error fetching system prompt:", error);
-      res.status(500).json({ message: "Failed to fetch system prompt" });
-    }
-  });
 
   app.get("/api/activities", async (req, res) => {
     try {
@@ -119,6 +96,22 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     } catch (error) {
       console.error("Error fetching activities:", error);
       res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  app.get("/api/activities/:id", async (req, res) => {
+    try {
+      const activityId = Number(req.params.id);
+      const activity = await storage.getActivity(activityId);
+      
+      if (!activity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+      
+      res.json(activity);
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
     }
   });
 
@@ -228,6 +221,37 @@ export async function registerRoutes(app: Express, port: number = 5000) {
     } catch (error) {
       console.error("Error syncing evaluators:", error);
       res.status(500).json({ message: "Failed to sync evaluators" });
+    }
+  });
+  
+  // Add endpoints for choice layer prompts
+  app.get("/api/choice-layer-prompts", async (req, res) => {
+    try {
+      const choiceLayerPrompts = await storage.getAllChoiceLayerPrompts();
+      res.json(choiceLayerPrompts);
+    } catch (error) {
+      console.error("Error fetching choice layer prompts:", error);
+      res.status(500).json({ message: "Failed to fetch choice layer prompts" });
+    }
+  });
+  
+  app.post("/api/choice-layer-prompts", async (req, res) => {
+    try {
+      const { systemPrompt, createdBy } = req.body;
+      
+      if (!systemPrompt || !createdBy) {
+        return res.status(400).json({ message: "System prompt and creator are required" });
+      }
+      
+      const prompt = await storage.createChoiceLayerPrompt({
+        systemPrompt,
+        createdBy
+      });
+      
+      res.json({ id: prompt.id, message: "Choice layer prompt created successfully" });
+    } catch (error) {
+      console.error("Error creating choice layer prompt:", error);
+      res.status(500).json({ message: "Failed to create choice layer prompt" });
     }
   });
 

@@ -1,7 +1,10 @@
+// server/services/messageService.ts
 import { storage } from '../storage';
 import { generateResponse } from '../lib/openai';
-import { MessageRole } from '@shared/schema';
+import { MessageRole, InsertMessage, Activity } from '@shared/schema';
 import { EventEmitter } from 'events';
+import { textToSpeech } from '../lib/speechServices';
+import { z } from 'zod';
 
 // Create a global event emitter for real-time message updates
 export const messageEvents = new EventEmitter();
@@ -9,7 +12,11 @@ export const messageEvents = new EventEmitter();
 messageEvents.setMaxListeners(100);
 
 export class MessageService {
-  async createMessage(conversationId: number, message: string) {
+  async createMessage(
+    conversationId: number, 
+    message: string, 
+    options: { requestAudio?: boolean } = {}
+  ) {
     // Validate conversation ID
     if (!conversationId || isNaN(conversationId) || conversationId <= 0) {
       throw new Error(`Invalid conversation ID: ${conversationId}`);
@@ -47,7 +54,7 @@ export class MessageService {
     });
 
     // Start AI response generation in the background
-    this.generateAIResponse(conversationId, message, step, conversation);
+    this.generateAIResponse(conversationId, message, step, conversation, options);
 
     // Return immediately with user message
     return {
@@ -61,13 +68,20 @@ export class MessageService {
     };
   }
 
-  private async generateAIResponse(conversationId: number, userMessage: string, step: any, conversation: any) {
+  private async generateAIResponse(
+    conversationId: number, 
+    userMessage: string, 
+    step: any, 
+    conversation: any,
+    options: { requestAudio?: boolean } = {}
+  ) {
     try {
-      // Get previous messages for context (limit to last 10 for performance)
+      // Get previous messages for context
       const existingMessages = await storage.getMessagesByConversation(conversationId);
-      const previousMessages = existingMessages
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join("\n");
+      const previousMessages = existingMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
 
       // Emit "thinking" status event
       messageEvents.emit('message', {
@@ -76,36 +90,139 @@ export class MessageService {
         message: "The assistant is thinking..."
       });
 
-      // Generate AI response with evaluation
-      const aiResponseData = await generateResponse(
-        userMessage,
-        step,
-        previousMessages
+      // Get the current step for the conversation
+      const currentConversation = await storage.getConversation(conversationId);
+      if (!currentConversation) {
+        throw new Error(`Conversation ${conversationId} not found`);
+      }
+
+      const step = await storage.getStepByActivityAndNumber(
+        currentConversation.activityId,
+        currentConversation.currentStep
       );
 
-      // Extract content and advancement decision
-      const aiResponse = aiResponseData.content;
-      const shouldAdvance = aiResponseData.shouldAdvance;
+      if (!step) {
+        console.error(`No step found for activity ${currentConversation.activityId} step ${currentConversation.currentStep}`);
+        throw new Error('Step not found');
+      }
 
-      console.log(`LLM decision for step advancement: ${shouldAdvance}`);
-
-      // Store assistant message
-      const assistantMessage = await storage.createMessage({
-        conversationId,
-        stepId: step.id,
-        role: "assistant" as MessageRole,
-        content: aiResponse,
-        metadata: { shouldAdvance }
+      console.log('Current step data:', {
+        activityId: step.activityId,
+        stepNumber: step.stepNumber,
+        description: step.description,
+        objective: step.objective
       });
 
-      // Update conversation based on LLM's advancement decision
-      let updatedConversation = conversation;
 
-      // Update conversation step if response matches expected
-      if (shouldAdvance) {
-        const nextStep = conversation.currentStep + 1;
+      // Generate AI response with evaluation
+      const currentConversationWithPrompts = await storage.getConversationWithSystemPrompt(conversationId);
+      const systemPromptText = currentConversationWithPrompts?.systemPrompt?.systemPrompt || "";
+      const choiceLayerPromptText = currentConversationWithPrompts?.choiceLayerPrompt?.systemPrompt || "";
+
+      const aiResponseData = await generateResponse({
+        userInput: userMessage,
+        step: step,
+        previousMessages,
+        choiceLayerPrompt: choiceLayerPromptText,
+        activitySystemPrompt: systemPromptText,
+        conversationId,
+        storage
+      });
+
+      // Extract content, advancement decision, and activity change
+      const aiResponse = aiResponseData.content;
+      const shouldAdvance = aiResponseData.shouldAdvance;
+      const activityChange = aiResponseData.activityChange;
+
+      console.log(`LLM decision - shouldAdvance: ${shouldAdvance}, activityChange: ${activityChange}`);
+
+      // Validate step advancement after AI generation
+      const validateStepAdvancement = (aiResponseData: any) => {
+        if (!step.expectedResponses) return aiResponseData.shouldAdvance;
+
+        const expectedResponses = step.expectedResponses.split('|').map(r => r.trim().toLowerCase());
+        const normalizedMessage = userMessage.trim().toLowerCase();
+        const matchesExpected = expectedResponses.some(response => normalizedMessage.includes(response));
+
+        return matchesExpected || aiResponseData.shouldAdvance;
+      };
+
+      const finalShouldAdvance = validateStepAdvancement(aiResponseData);
+
+      // Store assistant message with metadata
+      // Ensure we have valid content before creating the message
+      if (!aiResponse) {
+        throw new Error("No response content generated");
+      }
+
+      // Get the correct step for the current/new activity
+      let stepForMessage;
+      if (activityChange) {
+        // First try to get step 0, fallback to step 1 if not found
+        stepForMessage = await storage.getStepByActivityAndNumber(activityChange, 0) || 
+                        await storage.getStepByActivityAndNumber(activityChange, 1);
+
+        if (!stepForMessage) {
+          throw new Error(`No initial step found for activity ${activityChange}`);
+        }
+      } else {
+        stepForMessage = step;
+      }
+
+      const assistantMessage = await storage.createMessage({
+        conversationId,
+        stepId: stepForMessage.id,
+        role: "assistant" as MessageRole,
+        content: aiResponse,
+        metadata: {
+          shouldAdvance: finalShouldAdvance,
+          activityChange: activityChange || null
+        }
+      } as any); // Using 'any' to handle the RecordObject vs string type discrepancy
+
+      // Track conversation updates
+      let updatedConv = currentConversation;
+
+      // Handle activity change if requested
+      if (activityChange && activityChange !== currentConversation.activityId) {
         try {
-          updatedConversation = await storage.updateConversationStep(
+          // Verify that the activity exists
+          const newActivity = await storage.getActivity(activityChange);
+          if (!newActivity) {
+            console.error(`Cannot change to non-existent activity ID: ${activityChange}`);
+          } else {
+            // Update the conversation with the new activity
+            updatedConv = await storage.updateConversationActivity(
+              conversationId,
+              activityChange,
+              currentConversation.activityId // Store current activity as previous
+            );
+
+            console.log(`Switched conversation ${conversationId} from activity ${currentConversation.activityId} to ${activityChange}`);
+
+            // Get the first step of the new activity to include in the response
+            const firstStep = await storage.getStepByActivityAndNumber(activityChange, 1);
+            if (firstStep) {
+              // Create a system message indicating the activity change
+              const systemMetadata = { activitySwitch: true };
+              await storage.createMessage({
+                conversationId,
+                stepId: firstStep.id,
+                role: "system" as MessageRole,
+                content: `Switched to activity: ${newActivity.name}`,
+                metadata: systemMetadata
+              } as any); // Using 'any' to handle the RecordObject vs string type discrepancy
+            }
+          }
+        } catch (error) {
+          console.error('Error changing activity:', error);
+        }
+      }
+      // If no activity change but should advance step
+      else if (finalShouldAdvance) {
+        const nextStep = currentConversation.currentStep + 1;
+        try {
+          updatedConv = await storage.updateConversationStep(
             conversationId,
             nextStep
           );
@@ -116,24 +233,92 @@ export class MessageService {
         }
       }
 
+      // Generate audio if requested
+      if (options.requestAudio) {
+        try {
+          console.log(`Generating audio for message ${assistantMessage.id}`);
+          const audioBuffer = await textToSpeech(aiResponse);
+          
+          // We don't need to store the audio in the database as it will be streamed via WebSocket
+          console.log(`Audio generated for message ${assistantMessage.id}: ${audioBuffer.length} bytes`);
+          
+          // Add audio information to the message event
+          messageEvents.emit('message', {
+            type: 'ai-response-audio',
+            conversationId,
+            messageId: assistantMessage.id,
+            audioAvailable: true
+          });
+        } catch (error) {
+          console.error('Error generating audio:', error);
+        }
+      }
+
       // Notify clients about the AI response with updated conversation state
       messageEvents.emit('message', {
         type: 'ai-response',
         conversationId,
         message: assistantMessage,
-        conversation: updatedConversation,
-        stepAdvanced: shouldAdvance
+        conversation: updatedConv,
+        stepAdvanced: finalShouldAdvance,
+        activityChanged: activityChange !== undefined && activityChange !== currentConversation.activityId
       });
 
     } catch (error) {
       console.error('Error generating AI response:', error);
       // Notify clients about the error
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate response';
       messageEvents.emit('message', {
         type: 'error',
         conversationId,
-        error: error.message || 'Failed to generate response'
+        error: errorMessage
       });
     }
+  }
+
+  /**
+   * Get all available activities with detailed information
+   * This can be used to dynamically inform the user about available activities
+   */
+  async getAvailableActivitiesInfo(): Promise<{
+    activities: Array<{
+      id: number;
+      name: string; 
+      description: string;
+      language: string;
+      contentType: string;
+      stepCount: number;
+      conversationCount: number;
+    }>
+  }> {
+    console.log("Getting detailed activity information for dynamic selection");
+
+    // Get all visible activities
+    const activitiesWithCounts = await storage.getAllVisibleActivitiesWithConversationCounts();
+    console.log(`Found ${activitiesWithCounts.length} visible activities`);
+
+    // Get step counts for each activity
+    const activitiesWithDetails = await Promise.all(
+      activitiesWithCounts.map(async (activity) => {
+        const steps = await storage.getStepsByActivity(activity.id);
+        const details = {
+          id: activity.id,
+          name: activity.name,
+          // Generate description from the activity name and content type since it doesn't exist in the Activity schema
+          description: `${activity.name} (${activity.contentType})`,
+          language: activity.language || 'Spanish', // Default to Spanish
+          contentType: activity.contentType,
+          stepCount: steps.length,
+          conversationCount: activity.conversationCount
+        };
+
+        console.log(`Activity ${activity.id}: ${details.name}, ${details.stepCount} steps, ${details.conversationCount} conversations`);
+        return details;
+      })
+    );
+
+    console.log("Prepared detailed activity information for response");
+    return { activities: activitiesWithDetails };
   }
 
   // Method to handle SSE connections

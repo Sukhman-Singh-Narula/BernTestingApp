@@ -9,23 +9,34 @@ async function throwIfResNotOk(res: Response) {
 
 export async function apiRequest<T>(
   method: string,
-  url: string,
-  data?: unknown | undefined,
+  path: string,
+  body?: any,
+  retries = 3
 ): Promise<T> {
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: data ? { "Content-Type": "application/json" } : {},
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-    });
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    await throwIfResNotOk(res);
-    return await res.json();
-  } catch (error) {
-    console.error("API request failed:", error);
-    throw error; // Re-throw the error for handling by the caller.
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(`/api${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await delay(1000 * (i + 1)); // Exponential backoff
+    }
   }
+
+  throw new Error('Max retries reached');
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

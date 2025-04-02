@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Activity, Step } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronUp, Download, Upload, EyeOff, Eye } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Upload, EyeOff, Eye, ExternalLink } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -207,6 +208,16 @@ export default function Activities() {
                     ) : (
                       <EyeOff className="h-4 w-4" />
                     )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link href={`/activity/${activity.id}`}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
                   </Button>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm">
