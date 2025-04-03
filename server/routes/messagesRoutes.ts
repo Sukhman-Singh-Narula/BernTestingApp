@@ -1,3 +1,4 @@
+// server/routes/messagesRoutes.ts
 import { Router } from 'express';
 import messageService from '../services/messageService';
 
@@ -6,7 +7,7 @@ const router = Router();
 // POST /api/conversation/:id/message
 router.post("/conversation/:id/message", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, requestAudio = false } = req.body;
 
     // Enhanced validation for conversation ID
     if (!req.params.id || req.params.id === 'undefined' || req.params.id === 'null') {
@@ -23,7 +24,7 @@ router.post("/conversation/:id/message", async (req, res) => {
     }
 
     // Use the service to handle the message (now returns immediately)
-    const result = await messageService.createMessage(conversationId, message);
+    const result = await messageService.createMessage(conversationId, message, { requestAudio });
 
     res.json(result);
   } catch (error) {

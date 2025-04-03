@@ -1,5 +1,7 @@
+// server/services/messageService.ts
 import { storage } from '../storage';
 import { generateResponse } from '../lib/openai';
+import { MessageRole, InsertMessage, Activity } from '@shared/schema';
 import { MessageRole, InsertMessage, Activity } from '@shared/schema';
 import { EventEmitter } from 'events';
 import { z } from 'zod';
@@ -10,7 +12,11 @@ export const messageEvents = new EventEmitter();
 messageEvents.setMaxListeners(100);
 
 export class MessageService {
-  async createMessage(conversationId: number, message: string) {
+  async createMessage(
+    conversationId: number, 
+    message: string, 
+    options: { requestAudio?: boolean } = {}
+  ) {
     // Validate conversation ID
     if (!conversationId || isNaN(conversationId) || conversationId <= 0) {
       throw new Error(`Invalid conversation ID: ${conversationId}`);
@@ -48,7 +54,7 @@ export class MessageService {
     });
 
     // Start AI response generation in the background
-    this.generateAIResponse(conversationId, message, step, conversation);
+    this.generateAIResponse(conversationId, message, step, conversation, options);
 
     // Return immediately with user message
     return {
@@ -62,7 +68,13 @@ export class MessageService {
     };
   }
 
-  private async generateAIResponse(conversationId: number, userMessage: string, step: any, conversation: any) {
+  private async generateAIResponse(
+    conversationId: number, 
+    userMessage: string, 
+    step: any, 
+    conversation: any,
+    options: { requestAudio?: boolean } = {}
+  ) {
     try {
       // Get previous messages for context
       const existingMessages = await storage.getMessagesByConversation(conversationId);
@@ -218,6 +230,27 @@ export class MessageService {
         } catch (error) {
           console.error('Error updating conversation step:', error);
           throw error;
+        }
+      }
+
+      // Generate audio if requested
+      if (options.requestAudio) {
+        try {
+          console.log(`Generating audio for message ${assistantMessage.id}`);
+          const audioBuffer = await textToSpeech(aiResponse);
+          
+          // We don't need to store the audio in the database as it will be streamed via WebSocket
+          console.log(`Audio generated for message ${assistantMessage.id}: ${audioBuffer.length} bytes`);
+          
+          // Add audio information to the message event
+          messageEvents.emit('message', {
+            type: 'ai-response-audio',
+            conversationId,
+            messageId: assistantMessage.id,
+            audioAvailable: true
+          });
+        } catch (error) {
+          console.error('Error generating audio:', error);
         }
       }
 

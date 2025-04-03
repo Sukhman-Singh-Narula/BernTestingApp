@@ -232,7 +232,7 @@ export default function Chat() {
           const updatedMessages = [...old.messages];
 
           // Check if the AI message already exists (avoid duplicates)
-          const messageExists = updatedMessages.some(m => 
+          const messageExists = updatedMessages.some(m =>
             m.id === data.message.id && m.role === "assistant"
           );
 
@@ -258,7 +258,7 @@ export default function Chat() {
               previousActivityId: data.conversation.previousActivityId,
               messages: updatedMessages
             };
-          } 
+          }
           // Otherwise if just the step was advanced, update only the current step
           else if (data.stepAdvanced) {
             return {
@@ -448,11 +448,10 @@ export default function Chat() {
                 {conversation.messages?.map((message, i) => (
                   <div key={i}>
                     <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[80%] rounded-lg p-3 ${
-                        message.role === "user"
+                      <div className={`max-w-[80%] rounded-lg p-3 ${message.role === "user"
                           ? "bg-primary text-primary-foreground ml-4"
                           : "bg-muted"
-                      }`}>
+                        }`}>
                         {message.content}
                       </div>
                     </div>
