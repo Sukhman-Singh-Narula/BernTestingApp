@@ -17,7 +17,7 @@ export async function apiRequest<T>(
 
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(`/api${path}`, {
+      const response = await fetch(`${path}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
