@@ -7,7 +7,7 @@ const router = Router();
 // POST /api/conversation/:id/message
 router.post("/conversation/:id/message", async (req, res) => {
   try {
-    const { message, requestAudio = false } = req.body;
+    const { message, requestAudio = true } = req.body; // Default to true to always request audio
 
     // Enhanced validation for conversation ID
     if (!req.params.id || req.params.id === 'undefined' || req.params.id === 'null') {
@@ -23,10 +23,32 @@ router.post("/conversation/:id/message", async (req, res) => {
       return res.status(400).json({ message: "Invalid conversation ID value" });
     }
 
-    // Use the service to handle the message (now returns immediately)
+    // Use the service to create the message (returns immediately)
     const result = await messageService.createMessage(conversationId, message, { requestAudio });
 
-    res.json(result);
+    // Wait for the response to be generated
+    try {
+      // Wait for the AI response to complete
+      const aiResponse = await result.responsePromise;
+      
+      // Return the complete response with audio data
+      return res.json({
+        success: true,
+        message: aiResponse.message,
+        conversation: aiResponse.conversation,
+        audio: aiResponse.audioData,
+        stepAdvanced: aiResponse.stepAdvanced,
+        activityChanged: aiResponse.activityChanged
+      });
+    } catch (responseError) {
+      // If there's an error generating the response, still return the original result
+      console.warn("Error waiting for AI response:", responseError);
+      return res.json({
+        ...result,
+        errorWaitingForResponse: true,
+        errorMessage: responseError.message
+      });
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to process message";
     const statusCode = errorMessage === "Conversation not found" || errorMessage === "Activity step not found" ? 404 : 500;

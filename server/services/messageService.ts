@@ -2,9 +2,10 @@
 import { storage } from '../storage';
 import { generateResponse } from '../lib/openai';
 import { MessageRole, InsertMessage, Activity } from '@shared/schema';
-import { MessageRole, InsertMessage, Activity } from '@shared/schema';
 import { EventEmitter } from 'events';
+import { textToSpeech } from '../lib/speechServices';
 import { z } from 'zod';
+import { ELEVENLABS_VOICES } from '../config';
 
 // Create a global event emitter for real-time message updates
 export const messageEvents = new EventEmitter();
@@ -53,14 +54,15 @@ export class MessageService {
       message: userMessage
     });
 
-    // Start AI response generation in the background
-    this.generateAIResponse(conversationId, message, step, conversation, options);
+    // Process AI response generation (now returning a promise)
+    const responsePromise = this.generateAIResponse(conversationId, message, step, conversation, options);
 
-    // Return immediately with user message
+    // Return immediately with user message and response promise
     return {
       message: "Processing response...",
       userMessage,
       processing: true,
+      responsePromise, // This allows the route handler to await the full response if needed
       conversation: {
         ...conversation,
         messages: [userMessage]
@@ -233,25 +235,21 @@ export class MessageService {
         }
       }
 
-      // Generate audio if requested
-      if (options.requestAudio) {
-        try {
-          console.log(`Generating audio for message ${assistantMessage.id}`);
-          const audioBuffer = await textToSpeech(aiResponse);
-          
-          // We don't need to store the audio in the database as it will be streamed via WebSocket
-          console.log(`Audio generated for message ${assistantMessage.id}: ${audioBuffer.length} bytes`);
-          
-          // Add audio information to the message event
-          messageEvents.emit('message', {
-            type: 'ai-response-audio',
-            conversationId,
-            messageId: assistantMessage.id,
-            audioAvailable: true
-          });
-        } catch (error) {
-          console.error('Error generating audio:', error);
-        }
+      // Get the activity to determine language for speech
+      const activity = await storage.getActivity(updatedConv.activityId);
+      const language = activity?.language || 'Spanish'; // Default to Spanish
+      
+      // Get appropriate voice ID based on language (using female voice by default)
+      const voiceId = ELEVENLABS_VOICES[language]?.female || ELEVENLABS_VOICES['Spanish'].female;
+      
+      // Always generate audio (whether requested via options or not)
+      let audioBuffer = null;
+      try {
+        console.log(`Generating audio for message ${assistantMessage.id} in ${language} language`);
+        audioBuffer = await textToSpeech(aiResponse, voiceId);
+        console.log(`Audio generated for message ${assistantMessage.id}: ${audioBuffer.length} bytes`);
+      } catch (error) {
+        console.error('Error generating audio:', error);
       }
 
       // Notify clients about the AI response with updated conversation state
@@ -261,8 +259,18 @@ export class MessageService {
         message: assistantMessage,
         conversation: updatedConv,
         stepAdvanced: finalShouldAdvance,
-        activityChanged: activityChange !== undefined && activityChange !== currentConversation.activityId
+        activityChanged: activityChange !== undefined && activityChange !== currentConversation.activityId,
+        audioAvailable: !!audioBuffer
       });
+
+      // Return the complete response including audio data (used by the HTTP route)
+      return {
+        message: assistantMessage,
+        conversation: updatedConv,
+        stepAdvanced: finalShouldAdvance,
+        activityChanged: activityChange !== undefined && activityChange !== currentConversation.activityId,
+        audioData: audioBuffer ? audioBuffer.toString('base64') : null
+      };
 
     } catch (error) {
       console.error('Error generating AI response:', error);
@@ -273,6 +281,9 @@ export class MessageService {
         conversationId,
         error: errorMessage
       });
+      
+      // Rethrow to allow the calling function to handle the error
+      throw error;
     }
   }
 

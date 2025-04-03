@@ -26,7 +26,7 @@ export async function apiRequest(method: string, path: string, body?: any) {
   }
 
   // Specifically check for conversation message endpoints with potential ID issues
-  if (path.includes('/api/conversation/') && path.includes('/message')) {
+  if (path.includes('/conversation/') && path.includes('/message')) {
     const idMatch = path.match(/\/conversation\/([^\/]+)\/message/);
     if (idMatch && idMatch[1]) {
       const conversationId = idMatch[1];
@@ -37,10 +37,14 @@ export async function apiRequest(method: string, path: string, body?: any) {
     }
   }
 
-  console.log(`Sending ${method} request to: ${API_URL}${path}`);
+  // Ensure path is properly formatted
+  // If path already starts with '/', don't add another one
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+
+  console.log(`Sending ${method} request to: ${formattedPath}`);
 
   try {
-    console.log(`Executing ${method} request to ${API_URL}${path}`, { 
+    console.log(`Executing ${method} request to ${formattedPath}`, { 
       options: { 
         method, 
         headers: options.headers,
@@ -48,7 +52,7 @@ export async function apiRequest(method: string, path: string, body?: any) {
       }
     });
 
-    const response = await fetch(`${API_URL}${path}`, options);
+    const response = await fetch(formattedPath, options);
 
     // First check if the response can be parsed as JSON
     let data;

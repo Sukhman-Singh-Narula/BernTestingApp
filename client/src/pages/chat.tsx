@@ -10,6 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Send, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import ForcedAutoplayAudio from "@/components/ForcedAutoPlayAudio";
+
+// Add this state near your other state declarations
 
 // Import types from schema
 import type {
@@ -44,6 +47,7 @@ export default function Chat() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
   const [error, setError] = useState<string | null>(null);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
 
   // Get and validate conversation ID from URL params or localStorage
   const rawConversationId = params.id || localStorage.getItem("currentConversationId");
@@ -69,6 +73,29 @@ export default function Chat() {
 
     console.log(`Active conversation ID: ${conversationId}`);
   }, [setLocation, conversationId, rawConversationId, params.id]);
+  useEffect(() => {
+    if (currentAudioUrl) {
+      const audio = new Audio(currentAudioUrl);
+      audio.onended = handleAudioEnd;
+      audio.onerror = handleAudioError;
+
+      audio.play()
+        .then(() => console.log("Audio playback started"))
+        .catch(error => {
+          console.error("Error playing audio:", error);
+          // Try again after a short delay
+          setTimeout(() => {
+            new Audio(currentAudioUrl).play()
+              .catch(e => console.error("Retry failed:", e));
+          }, 500);
+        });
+
+      return () => {
+        audio.pause();
+      };
+    }
+  }, [currentAudioUrl]);
+
 
   // Fetch conversation data with consistent query key
   const { data: conversation, isError, isLoading } = useQuery<ConversationResponse>({
@@ -112,10 +139,11 @@ export default function Chat() {
 
       setIsProcessing(true);
 
+      // Make HTTP request, always requesting audio
       return await apiRequest(
         "POST",
-        `/conversation/${conversationId}/message`,
-        { message }
+        `/api/conversation/${conversationId}/message`,
+        { message, requestAudio: true }
       );
     },
     onMutate: async (newMessage) => {
@@ -130,7 +158,7 @@ export default function Chat() {
           role: "user" as MessageRole,
           content: newMessage,
           createdAt: new Date().toISOString(),
-          metadata: null, // Add this to match the required type
+          metadata: null,
         };
 
         queryClient.setQueryData<ConversationResponse>(
@@ -162,8 +190,99 @@ export default function Chat() {
     onSuccess: (data) => {
       setInput("");
       setError(null);
+      setIsProcessing(false);
+
+      console.log("API Response received:", Object.keys(data));
+
+      // Check if the response contains audio data
+      if (data && data.audio) {
+        console.log("Audio data found in response", {
+          audioLength: data.audio.length
+        });
+
+        try {
+          // Convert base64 audio to blob and create object URL
+          const audioBlob = base64ToBlob(data.audio, 'audio/mp3');
+          const audioUrl = URL.createObjectURL(audioBlob);
+
+          // Save the audio URL in state for later playback
+          if (data.message && data.message.id) {
+            setAudioBlobs(prev => ({
+              ...prev,
+              [data.message.id]: audioUrl
+            }));
+          }
+
+          // Set as current audio for immediate playback
+          setCurrentAudioUrl(audioUrl);
+
+          console.log("Audio ready for playback:", audioUrl);
+        } catch (error) {
+          console.error("Error processing audio data:", error);
+        }
+      } else {
+        console.log("No audio data found in response");
+      }
     }
   });
+
+  // Helper function to convert base64 to Blob (already defined in your code)
+  const base64ToBlob = (base64: string, defaultMimeType: string = 'audio/mp3'): Blob => {
+    try {
+      // Check if the base64 string includes data URI prefix (e.g., "data:audio/mp3;base64,")
+      // and extract just the base64 data part if needed
+      let actualBase64 = base64;
+      let mimeType = defaultMimeType;
+
+      if (base64.includes(';base64,')) {
+        // Extract MIME type and base64 data from data URI
+        const parts = base64.split(';base64,');
+        if (parts.length === 2) {
+          // Get MIME type from data URI if present
+          const dataPart = parts[0];
+          if (dataPart.startsWith('data:') && dataPart.length > 5) {
+            mimeType = dataPart.substring(5);
+          }
+          actualBase64 = parts[1];
+        }
+      }
+
+      console.log(`Converting base64 to blob with MIME type: ${mimeType}`);
+
+      // Decode base64
+      const byteCharacters = atob(actualBase64);
+      const byteArrays = [];
+
+      // Use larger chunk size for better performance with audio files
+      const chunkSize = 16384; // 16KB chunks
+
+      for (let offset = 0; offset < byteCharacters.length; offset += chunkSize) {
+        const slice = byteCharacters.slice(offset, offset + chunkSize);
+
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
+        }
+
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+      }
+
+      return new Blob(byteArrays, { type: mimeType });
+    } catch (error) {
+      console.error("Error converting base64 to blob:", error);
+      // Return a small empty audio blob as fallback
+      return new Blob([], { type: defaultMimeType });
+    }
+  };
+
+  // Helper function to play audio (already defined in your code)
+  const playAudio = (audioUrl: string) => {
+    const audio = new Audio(audioUrl);
+    audio.play().catch(error => {
+      console.error("Error playing audio:", error);
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,6 +447,21 @@ export default function Chat() {
   }
 
   const currentStep = getCurrentStep();
+  const handleAudioEnd = () => {
+    console.log("Audio playback ended");
+    setCurrentAudioUrl(null);
+  };
+
+  const handleAudioError = (error: any) => {
+    console.error("Audio playback error:", error);
+    setCurrentAudioUrl(null);
+
+    toast({
+      title: "Audio Playback Error",
+      description: "There was a problem playing the audio response",
+      variant: "destructive"
+    });
+  };
 
   return (
     <div className="container mx-auto h-screen p-4 flex flex-col gap-4">
@@ -513,6 +647,13 @@ export default function Chat() {
           )}
         </div>
       </div>
+      {currentAudioUrl && (
+        <ForcedAutoplayAudio
+          audioUrl={currentAudioUrl}
+          onEnd={handleAudioEnd}
+          onError={handleAudioError}
+        />
+      )}
     </div>
   );
 }

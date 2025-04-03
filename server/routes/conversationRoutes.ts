@@ -12,7 +12,7 @@ router.post("/conversation", async (req, res) => {
 
     // Provide sensible defaults and validate
     const { 
-      activityId = 3, // Default to Activity Selection
+      activityId = 1, // Default to Activity Selection
       shouldGenerateFirstResponse = true, 
       userName, 
       systemPrompt,

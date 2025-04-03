@@ -15,9 +15,14 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+  // Ensure path is properly formatted
+  // If path already starts with '/', don't add another one
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(`/api${path}`, {
+      // Note: No API_URL prefix here
+      const response = await fetch(`${formattedPath}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
