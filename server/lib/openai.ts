@@ -10,6 +10,13 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// Define system prompts for different activities
+const SYSTEM_PROMPTS = {
+  default: "You are an English-speaking AI language tutor designed to help users learn Spanish through conversation. You can: 1. Guide users through structured language learning activities that focus on different aspects of Spanish. 2. Switch between different activities based on the user's request. 3. List available activities when asked. IMPORTANT: Activities are dynamically provided in each conversation. Respond in a friendly and encouraging manner.",
+  counting: "You are now teaching counting in Spanish. Provide engaging, level-appropriate instructions. Feel free to ask follow-up questions and offer exercises as needed.",
+  alphabet: "You are now teaching the Spanish alphabet. Explain the pronunciation and order of letters in an engaging manner. Include exercises if appropriate."
+};
+
 interface ResponseOptions {
   userInput: string | number;
   step: Step;
@@ -64,7 +71,7 @@ Success Response: ${step.successResponse}
     });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: messages,
       temperature: 0.7,
       max_tokens: 500,
@@ -110,6 +117,49 @@ Success Response: ${step.successResponse}
           }
         } catch (error) {
           console.error('Error parsing function call arguments:', error);
+        }
+      } else if (message.function_call.name === 'teach_counting') {
+        try {
+          const args = JSON.parse(message.function_call.arguments);
+          const level = args.level || 'beginner';
+          
+          // Call a secondary request with the specialized prompt
+          const countingResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPTS.counting },
+              { role: "user", content: `Teach counting in Spanish at a ${level} level.` }
+            ],
+            temperature: 0.7
+          });
+          
+          return {
+            content: countingResponse.choices[0].message.content || "Let's learn counting in Spanish!",
+            shouldAdvance: false,
+            activityChange: undefined
+          };
+        } catch (error) {
+          console.error('Error in teach_counting function:', error);
+        }
+      } else if (message.function_call.name === 'teach_alphabet') {
+        try {
+          // Call a secondary request with the specialized prompt
+          const alphabetResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPTS.alphabet },
+              { role: "user", content: "Teach me the Spanish alphabet." }
+            ],
+            temperature: 0.7
+          });
+          
+          return {
+            content: alphabetResponse.choices[0].message.content || "Let's learn the Spanish alphabet!",
+            shouldAdvance: false,
+            activityChange: undefined
+          };
+        } catch (error) {
+          console.error('Error in teach_alphabet function:', error);
         }
       }
     }

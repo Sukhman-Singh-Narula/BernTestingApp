@@ -16,7 +16,6 @@ import { ElevenLabsClient, stream } from 'elevenlabs';
 export async function speechToText(audioBuffer: Buffer, isInterim: boolean = false): Promise<string> {
   try {
     console.log(`Processing speech-to-text with Groq/Whisper, size: ${audioBuffer.length} bytes`);
-
     if (!GROQ_API_KEY) {
       throw new Error('GROQ_API_KEY is not set in environment variables');
     }
@@ -38,7 +37,6 @@ export async function speechToText(audioBuffer: Buffer, isInterim: boolean = fal
     });
     formData.append('model', 'whisper-large-v3');
     formData.append('language', 'es'); // Spanish by default, can be made dynamic
-
     // Make API request to Groq for transcription
     const response = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', formData, {
       headers: {

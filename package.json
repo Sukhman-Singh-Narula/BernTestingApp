@@ -54,7 +54,10 @@
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
+<<<<<<< HEAD
     "elevenlabs": "^1.56.0",
+=======
+>>>>>>> da49efc39b897d6b7e14dc29bd678c87bcb70134
     "embla-carousel-react": "^8.3.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
