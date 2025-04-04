@@ -240,7 +240,7 @@ export class MessageService {
       const language = activity?.language || 'Spanish'; // Default to Spanish
       
       // Get appropriate voice ID based on language (using female voice by default)
-      const voiceId = ELEVENLABS_VOICES[language]?.female || ELEVENLABS_VOICES['Spanish'].female;
+      const voiceId = "JBFqnCBsd6RMkjVDRZzb";
       
       // Always generate audio (whether requested via options or not)
       let audioBuffer = null;

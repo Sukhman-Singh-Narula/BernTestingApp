@@ -5,7 +5,7 @@
 export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 export const PATRONUS_API_KEY = process.env.PATRONUS_API_KEY || '';
 export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-export const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
+export const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || 'sk_a2821fb8f6ef19d7c55979c5142f8cf7ae7fca165ca53be9';
 
 // Database
 export const DATABASE_URL = process.env.DATABASE_URL || '';
